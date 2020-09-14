@@ -118,7 +118,7 @@ phases.
 ### Constructing the grid
 
 You can navigate to any cell using the arrow keys or by clicking on it
-(including the dark, block cells). The following controls, all available
+(including the dark, block cells). The following controls are all available
 from the "Edit" menu (as well as through keyboard shortcuts listed below
 and also shown in the menu):
 
@@ -128,20 +128,20 @@ and also shown in the menu):
 - Toggle encircling (@)
 - Toggle marking prefilled (!)
 
-For the actions that modify the grid (.|_) in non-cosmetic ways, symmetric
+For the actions that modify the grid in non-cosmetic ways (.|_), symmetric
 changes are automatically applied to the other end of the grid.
 
 The "Open" menu allows you to start with blocked blank grids following a few
 checkquered templates. You can also open any existing HTML file that
 contains an puzzle in the Exolve format (when you save such a crossword
-after editing it, the saved file will replicate whatever is there before
+after editing it, the saved Exolve file will replicate whatever is there before
 and after the Exolve part in the original HTML file that you opened).
 
 ### Filling the grid
 
 You can fill any light by typing into its cells. You can also use grid-fill
-suggestions shown to the right of the grid. These grid-fill suggestions
-are ordered by their popularity in English Wikipedia articles.
+suggestions shown to the right of the grid (in the "Exet" tab). These grid-fill
+suggestions are ordered by their popularity in English Wikipedia articles.
 
 The grid-fill suggestions include phrases and hyphenated words. When you pick
 these, the clue enum is automatically adjusted. For example, for 1A, if you
