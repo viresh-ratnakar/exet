@@ -1,0 +1,22 @@
+- code docs/cleanups
+  - Move all styling to CSS
+  - Make README.md more complete
+- track used words
+- When a particular choice leads to purples, move it to deadends
+- option for US dictionary
+- auto-fill
+- Let users manage local storage used
+  - Delete specific revisions
+  - "Smart-delete" to purge excessive revisions
+
+- write .puz [Done]
+- copy widget html [Done]
+- save w/o solutions [Done]
+- Edit metadata [Done]
+- Specify id for new puzzles [Done]
+- tabular choosers [Done]
+- controls for grid changes [Done]
+- enum change check [Done]
+- clear-all should clear hyphens etc. [unnecessary, now that enum-editing works and fillLight() does te right thing]
+- Open menus only with clicks, not with hovers [Done]
+- Load the most recent puzzle on start-up [Done]
