@@ -280,7 +280,7 @@ to add any of the following features.
   of crossword construction, and have tried to make these resources
   readily accessible in-context within Exet.
 - Qxw also provides [links to the original versions of many word
-  lists](https://www.quinapalus.com/xwfaq.html), including (UKACD18, the one
+  lists](https://www.quinapalus.com/xwfaq.html), (including UKACD18, the one
   that I used).
 - The "viablots" that I display in Exet are inspired by a similar construct
   in Qxw.
