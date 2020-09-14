@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.00 September 13, 2020
+Current version: v0.01 September 13, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -378,6 +378,15 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       let id = window.localStorage.key(idx)
       if (id == this.SPECIAL_KEY) {
+        continue
+      }
+      let stored = window.localStorage.getItem(id)
+      try {
+        stored = JSON.parse(stored)
+      } catch (err) {
+        continue
+      }
+      if (!stored || !stored["id"] || !stored["revs"] || !stored["maxRevNum"]) {
         continue
       }
       ids.push(id)
