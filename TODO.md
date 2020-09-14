@@ -17,6 +17,6 @@
 - tabular choosers [Done]
 - controls for grid changes [Done]
 - enum change check [Done]
-- clear-all should clear hyphens etc. [unnecessary, now that enum-editing works and fillLight() does te right thing]
+- clear-all should clear hyphens etc. [unnecessary, now that enum-editing works and fillLight() does the right thing]
 - Open menus only with clicks, not with hovers [Done]
 - Load the most recent puzzle on start-up [Done]
