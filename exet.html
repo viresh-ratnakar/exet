@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.03 September 15, 2020
+Current version: v0.04 September 15, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -2446,7 +2446,13 @@ if (exetState) {
   }
 }
 if (!exet.puz) {
-  exetBlank()
+  let url = new URL(location.href)
+  let newgrid = url.searchParams.get('newgrid')
+  if (newgrid == 'blank') {
+    exetBlank(15, 15, '', false)
+  } else {
+    exetBlank()
+  }
 }
 
 </script>

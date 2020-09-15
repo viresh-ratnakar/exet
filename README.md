@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.03 September 15 2020
+#### Version: Exet v0.04 September 15 2020
 
 #### Author: Viresh Ratnakar
 
@@ -108,7 +108,8 @@ After it loads, your browser screen should look something like this:
 
 Normally, Exet would start with the last crossword that you were working
 on. When you open it for the very first time, it creates a blank 15x15
-blocked grid.
+blocked grid (you can pass a URL option to default to a blank unblocked
+grid instead: exet.html?newgrid=blank).
 
 There are three phases in crossword construction:
 

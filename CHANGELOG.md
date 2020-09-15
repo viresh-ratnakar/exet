@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Exet v0.04 September 15 2020
+
+- Add a url param called newgrid. If set to 'blank' and there is no
+  previous grid, start with a blank 15x15 grid instead of a blocked one.
+  the exet.html?newgrid=blank URL will be useful for new users who might
+  look to create US-style (non-"chequered") blocked grids.
+
 ### Version: Exet v0.03 September 15 2020
 
 - Persist scratchpad contents across edits.
