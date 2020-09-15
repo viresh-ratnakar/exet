@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.02 September 14, 2020
+Current version: v0.03 September 15, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -120,7 +120,8 @@ Current version: v0.02 September 14, 2020
 .xet-url {
   font-family: monospace;
   font-size: 10px;
-  color: blue
+  color: blue;
+  text-decoration: none;
 }
 .xet-controls-row {
   display: flex;
@@ -583,6 +584,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.prefix = exet.prefix
   exetRev.suffix = exet.suffix
   exetRev.exolve = exolve
+  exetRev.scratchPad = exet.puz.scratchPad.value
   exetRev.navState = [exet.puz.currDir, exet.puz.currRow, exet.puz.currCol]
   stored.revs.push(exetRev)
   window.localStorage.setItem(exet.puz.id, JSON.stringify(stored))
@@ -1114,22 +1116,21 @@ Exet.prototype.makeIndsTab = function(panelH) {
   let html = `
   <div>
   <select name="xet-inds-select" id="xet-inds-select"
-    onchange="document.getElementById('xet-inds-iframe').src =
-      document.getElementById('xet-inds-select').value;
-    document.getElementById('xet-inds-choice-url').innerText =
-      document.getElementById('xet-inds-select').value;
-  ">`
+    onchange="exet.indsIframe.src = exet.indsSelect.value; exet.indsUrl.innerText = exet.indsSelect.value; exet.indsUrl.href = exet.indsSelect.value;">`
   for (let ind of inds) {
     html = html + `
     <option value="${ind.url}">${ind.name}</option>`
   }
   html = html + '</select></div><br>'
   html = html + `
-  <div id="xet-inds-choice-url" class="xet-url"></div><br>
+  <a href="" target="_blank" id="xet-inds-choice-url" class="xet-url"></a><br>
   <iframe id="xet-inds-iframe" class="xet-iframe" src=""
     style="height:${panelH}px" height="${panelH}"></iframe>
   `;
   indsTab.content.innerHTML = html;
+  this.indsIframe = document.getElementById('xet-inds-iframe')
+  this.indsSelect = document.getElementById('xet-inds-select')
+  this.indsUrl = document.getElementById('xet-inds-choice-url')
 
   this.handleTabClick(this.currTab);
 }
@@ -1154,7 +1155,7 @@ Exet.prototype.populateFrame = function() {
         frameHTML = frameHTML + `<div>${section.title}</div>`
       }
       frameHTML = frameHTML + `
-        <div id="xet-${id}-url-0" class="xet-url"></div><br>
+        <a href="" target="_blank" id="xet-${id}-url-0" class="xet-url"></a><br>
         <iframe class="xet-iframe" style="height:${panelH}px"
            height="${panelH}" id="xet-${id}-content-0"></iframe>`
     } else if (tab.sections.length >= 2) {
@@ -1178,7 +1179,7 @@ Exet.prototype.populateFrame = function() {
          }
          frameHTML = frameHTML + `
             <div>${section.title}</div>
-            <div id="xet-${id}-url-${i}" class="xet-url"></div><br>
+            <a href="" target="_blank" id="xet-${id}-url-${i}" class="xet-url"></a><br>
             <iframe class="xet-iframe" style="height:${h}px;width:${twoPanelW}px;"
                 height="${h}" width="${twoPanelW}px" id="xet-${id}-content-${i}">
             </iframe>
@@ -1556,8 +1557,13 @@ Exet.prototype.handleTabClick = function(id) {
   for (let i = 0; i < tab.sections.length; i++) {
     let section = tab.sections[i]
     let wordParam = section.maker ? section.maker.call(this, words) : this.makeWordParam(words)
-    section.content.src = section.url + wordParam
-    section.urldisp.innerText = section.url + wordParam
+    if (!section.param || section.param != wordParam) {
+      let url = section.url + wordParam
+      section.content.src = url
+      section.urldisp.innerText = url
+      section.urldisp.href = url
+      section.param = wordParam
+    }
   }
 }
 
@@ -1934,11 +1940,13 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   let row = this.puz.currRow
   let col = this.puz.currCol
   let dir = this.puz.currDir
+  let scratch = this.puz.scratchPad.value
   let exolve = this.getExolve()
   this.makeExolve(exolve)
   this.puz.currDir = dir
   this.puz.currRow = row
   this.puz.currCol = col
+  this.puz.scratchPad.value = scratch
   if (this.puz.currCellIsValid()) {
     if (this.puz.grid[row][col].isLight) {
       this.puz.activateCell(row, col)
@@ -2328,6 +2336,9 @@ function exetFromHistory(exetRev) {
     exet.startNav(exetRev.navState[0], exetRev.navState[1], exetRev.navState[2])
   } else {
     exet.startNav()
+  }
+  if (exetRev.scratchPad && exet.puz && exet.puz.scratchPad) {
+    exet.puz.scratchPad.value = exetRev.scratchPad
   }
   if (exet.puz && exet.puz.id && exetRev.revNum < exetRev.maxRevNum) {
     exetRevManager.throttledSaveRev(exetRevManager.REV_JUMPED_TO_REV,

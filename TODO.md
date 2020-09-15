@@ -2,13 +2,14 @@
   - Move all styling to CSS
   - Make README.md more complete
 - track used words
-- When a particular choice leads to purples, move it to deadends
 - option for US dictionary
 - auto-fill
+- When a particular choice leads to purples, move it to deadends
 - Let users manage local storage used
   - Delete specific revisions
   - "Smart-delete" to purge excessive revisions
 
+- Persist scratchpad contents [Done]
 - write .puz [Done]
 - copy widget html [Done]
 - save w/o solutions [Done]

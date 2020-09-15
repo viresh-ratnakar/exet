@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.02 September 14 2020
+#### Version: Exet v0.03 September 15 2020
 
 #### Author: Viresh Ratnakar
 
@@ -46,6 +46,7 @@ support for other languages eventually).
 
 I welcome [bug reports and feature
 requests](https://github.com/viresh-ratnakar/exet/issues/new).
+You may contact me via email too, at viresh at gmail dot com.
 
 ## Lexicon
 
