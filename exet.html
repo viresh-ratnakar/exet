@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.01 September 13, 2020
+Current version: v0.02 September 14, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -224,7 +224,7 @@ Current version: v0.01 September 13, 2020
   display: none;
   position: absolute;
   background-color: #f9f9f9;
-  min-width: 42ch;
+  min-width: 275px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 1;
   margin: 0;
@@ -237,7 +237,7 @@ Current version: v0.01 September 13, 2020
 .xet-dropdown-item,
 .xet-dropdown-subitem {
   margin: 0;
-  padding: 12px 16px;
+  padding: 15px;
   display: block;
   text-align: left;
   position: relative;
@@ -251,7 +251,7 @@ Current version: v0.01 September 13, 2020
 .xet-dropdown-submenu .xet-dropdown-subitem:nth-child(odd) { background: #F1F1F1; }   
 .xet-dropdown-submenu .xet-dropdown-subitem:nth-child(even) { background: #FEFEFE; }  
 .xet-dropdown-submenu .xet-dropdown-subitem:hover {
-  background-color: lightgreen;
+  background-color: #a1ffa1;
   cursor: pointer;
 }
 .xet-dropdown-item:hover .xet-dropdown-submenu {
@@ -292,6 +292,11 @@ Current version: v0.01 September 13, 2020
 }
 #xet-scratch-pad {
   margin: 0 6px 6px;
+}
+.xet-icon {
+  padding: 0;
+  height: 25px;
+  width: 25px;
 }
 </style>
 
@@ -762,49 +767,51 @@ Exet.prototype.setPuzzle = function(puz) {
       id: "exet",
       display: "Exet",
       hover: "Controls: load, save, grid-fill, edit, etc...",
+      sections: [],
       url: "",
     },
     "tfd": {
       id: "tfd",
       display: "TFD",
       hover: "The Free Dictionary: definitions, roots, synonyms, US/UK pronunciations, encycolopedia...",
-      url: "https://thefreedictionary.com/",
+      sections: [{url: "https://thefreedictionary.com/"}],
     },
     "google": {
       id: "google",
       display: "Google Dict",
       hover: "Google Dictionary: definitions, synonyms, pronunciation...",
-      url: "https://api.dictionaryapi.dev/api/v1/entries/en/",
+      sections: [{url: "https://api.dictionaryapi.dev/api/v1/entries/en/"}],
     },
     "etym": {
       id: "etym",
       display: "Etym",
       hover: "Etymonline: Roots and history...",
-      url: "https://www.etymonline.com/search?q="
+      sections: [{url: "https://www.etymonline.com/search?q="}],
     },
     "wordplay1": {
       id: "wordplay1",
       display: "Anagrams...",
-      hover: "Nutrimatic: anagrams, alternations, and other wordplays...",
-      title1: "Anagrams",
-      url1: "https://nutrimatic.org/?q=",
-      title2: "Alternations",
-      url2: "https://nutrimatic.org/?q=",
+      hover: "Nutrimatic, Quinaplus: anagrams, alternations, composite anagrams, and other wordplays...",
+      sections: [
+        {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam, title: "Anagrams"},
+        {url: "https://nutrimatic.org/?q=", maker: this.makeAlternationParam, title: "Alternations"},
+        {url: "https://www.quinapalus.com/cgi-bin/companag?ent=Search&", maker: this.makeCAParam, title: "Composite anagrams (edit the \"debit\")"},
+      ],
     },
     "wordplay2": {
       id: "wordplay2",
       display: "Hidden...",
       hover: "Nutrimatic: hidden answers and other wordplays...",
-      title1: "Hidden answers",
-      url1: "https://nutrimatic.org/?q=",
-      title2: "Reversed hidden answers",
-      url2: "https://nutrimatic.org/?q=",
+      sections: [
+        {url: "https://nutrimatic.org/?q=", maker: this.makeHiddenParam, title: "Hidden answers"},
+        {url: "https://nutrimatic.org/?q=", maker: this.makeRevHiddenParam, title: "Reversed hidden answers"},
+      ]
     },
     "inds": {
       id: "inds",
       display: "Lists",
       hover: "Crossword Unclued, Wikipedia: cryptic indicators and abbreviations lists...",
-      url: "",
+      sections: [],
     },
   }
 
@@ -928,26 +935,27 @@ Exet.prototype.makeExetTab = function() {
                 </div>
               </div>
               <hr>
-              <hr>
-              <div class="xet-dropdown-subitem"
-                onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, false);">
-                No blocks
-              </div>
-              <div class="xet-dropdown-subitem"
-                onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, false, false);">
-                Blocked with no top/left unches
-              </div>
-              <div class="xet-dropdown-subitem"
-                onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, false, true);">
-                Blocked with left but not top unches
-              </div>
-              <div class="xet-dropdown-subitem"
-                onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, true, false);">
-                Blocked with top but not left unches
-              </div>
-              <div class="xet-dropdown-subitem"
-                onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, true, true);">
-                Blocked with top/left unches
+              <div class="xet-controls-row">
+                <div class="xet-dropdown-subitem" title="Blocked with no top/left unches"
+                  onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, false, false);">
+                  <img class="xet-icon" src="no-unches.png"/>
+                </div>
+                <div class="xet-dropdown-subitem" title="Blocked with top but not left unches"
+                  onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, true, false);">
+                  <img class="xet-icon" src="t-unches.png"/>
+                </div>
+                <div class="xet-dropdown-subitem" title="Blocked with left but not top unches"
+                  onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, false, true);">
+                  <img class="xet-icon" src="l-unches.png"/>
+                </div>
+                <div class="xet-dropdown-subitem" title="Blocked with top/left unches"
+                  onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, true, true, true);">
+                  <img class="xet-icon" src="tl-unches.png"/>
+                </div>
+                <div class="xet-dropdown-subitem" title="No blocks"
+                  onclick="exetBlank(document.getElementById('xet-w').value, document.getElementById('xet-h').value, document.getElementById('xet-id').value, false);">
+                  <img class="xet-icon" src="no-blocks.png"/>
+                </div>
               </div>
             </div>
           </div>
@@ -1140,31 +1148,47 @@ Exet.prototype.populateFrame = function() {
   for (let id in this.tabs) {
     let tab = this.tabs[id]
     frameHTML = frameHTML + `<div class="xet-tabcontent" id="xet-${id}-frame">`
-    if (tab.url) {
+    if (tab.sections.length == 1) {
+      let section = tab.sections[0]
+      if (section.title) {
+        frameHTML = frameHTML + `<div>${section.title}</div>`
+      }
       frameHTML = frameHTML + `
-        <div id="xet-${id}-url" class="xet-url"></div><br>
+        <div id="xet-${id}-url-0" class="xet-url"></div><br>
         <iframe class="xet-iframe" style="height:${panelH}px"
-           height="${panelH}" id="xet-${id}-content"></iframe>`
-    } else if (tab.url1 && tab.url2) {
+           height="${panelH}" id="xet-${id}-content-0"></iframe>`
+    } else if (tab.sections.length >= 2) {
+      // We show the first (presumably main) section in the left column,
+      // and stack up all the other sections in the right column.
+      let numRows = tab.sections.length - 1
       const twoPanelW = 440
+      const secondH = (numRows > 1 ? 400 : panelH)
+      frameHTML = frameHTML + '<div class="xet-panel"><table>'
+      for (let i = 0; i < tab.sections.length; i++) {
+        let section = tab.sections[i]
+         if (i != 1) {
+           frameHTML = frameHTML + '<tr>'
+         }
+         let h = secondH
+         if (i == 0) {
+           frameHTML = frameHTML + `<td style="vertical-align:top" rowspan="${numRows}">`
+           h = panelH
+         } else {
+           frameHTML = frameHTML + '<td>'
+         }
+         frameHTML = frameHTML + `
+            <div>${section.title}</div>
+            <div id="xet-${id}-url-${i}" class="xet-url"></div><br>
+            <iframe class="xet-iframe" style="height:${h}px;width:${twoPanelW}px;"
+                height="${h}" width="${twoPanelW}px" id="xet-${id}-content-${i}">
+            </iframe>
+          </td>`
+         if (i != 0) {
+           frameHTML = frameHTML + '</tr>'
+         }
+      }
       frameHTML = frameHTML + `
-        <div class="xet-panel">
-        <table><tr>
-          <td>
-            <div>${tab.title1}</div>
-            <div id="xet-${id}-url1" class="xet-url"></div><br>
-              <iframe class="xet-iframe" style="height:${panelH}px;width:${twoPanelW}px;"
-                 height="${panelH}" width="${twoPanelW}px" id="xet-${id}-content1">
-            </iframe>
-          </td>
-          <td>
-            <div>${tab.title2}</div>
-            <div id="xet-${id}-url2" class="xet-url"></div><br>
-              <iframe class="xet-iframe" style="height:${panelH}px;width:${twoPanelW}px;"
-                 height="${panelH}" width="${twoPanelW}px" id="xet-${id}-content2">
-            </iframe>
-          </td>
-        </tr></table>
+        </table>
         </div>`
     } else {
       frameHTML = frameHTML + `
@@ -1181,14 +1205,12 @@ Exet.prototype.populateFrame = function() {
     tab.button.addEventListener(
       'click', this.handleTabClick.bind(this, id));
     tab.frame = document.getElementById(`xet-${id}-frame`)
-    if (tab.url) {
-      tab.content = document.getElementById(`xet-${id}-content`)
-      tab.urldisp = document.getElementById(`xet-${id}-url`)
-    } else if (tab.url1 && tab.url2) {
-      tab.content1 = document.getElementById(`xet-${id}-content1`)
-      tab.urldisp1 = document.getElementById(`xet-${id}-url1`)
-      tab.content2 = document.getElementById(`xet-${id}-content2`)
-      tab.urldisp2 = document.getElementById(`xet-${id}-url2`)
+    if (tab.sections.length > 0) {
+      for (let i = 0; i < tab.sections.length; i++) {
+        let section = tab.sections[i]
+        section.content = document.getElementById(`xet-${id}-content-${i}`)
+        section.urldisp = document.getElementById(`xet-${id}-url-${i}`)
+      }
     } else {
       tab.content = document.getElementById(`xet-${id}-content`)
     }
@@ -1196,32 +1218,6 @@ Exet.prototype.populateFrame = function() {
 
   this.makeExetTab()
   this.makeIndsTab(panelH)
-}
-
-Exet.prototype.makeWordParams = function(s, id) {
-  let out = s.toLowerCase()
-  let out2 = ''
-  if (id == "wordplay1") {
-    out = out.replace(/\?/g, 'A')
-    out = out.replace(/ /g, '')
-    out2 = 'A%3F'
-    for (let c of out) {
-      out2 = out2 + c + 'A'
-    }
-    out2 = out2 + '%3F'
-    out = "<" + out + ">"
-  } else if (id == "wordplay2") {
-    out = out.replace(/\?/g, 'A')
-    out = out.replace(/ /g, '')
-    for (let i = out.length - 1; i >= 0; i--) {
-      out2 = out2 + out.charAt(i)
-    }
-    out = 'A*"A' + out.charAt(0) + '"' + out.substr(1, out.length - 2) + '"' + out.charAt(out.length - 1) + 'A"A*'
-    out2 = 'A*"A' + out2.charAt(0) + '"' + out2.substr(1, out2.length - 2) + '"' + out2.charAt(out2.length - 1) + 'A"A*'
-  } else {
-    out = out.replace(/\?/g, '')
-  }
-  return [out, out2]
 }
 
 Exet.prototype.download = function(solved=true) {
@@ -1489,6 +1485,47 @@ Exet.prototype.downloadDotPuz = function() {
   exetModals.hide()
 }
 
+Exet.prototype.makeWordParam = function(s) {
+  return s.toLowerCase()
+}
+
+Exet.prototype.makeAnagramParam = function(s) {
+  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  return "<" + s + ">"
+}
+
+Exet.prototype.makeAlternationParam = function(s) {
+  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  let out = 'A%3F'
+  for (let c of s) {
+    out = out + c + 'A'
+  }
+  return out + '%3F'
+}
+
+Exet.prototype.makeCAParam = function(s) {
+  s = s.toLowerCase().replace(/\?/g, '').replace(/ /g, '')
+  let debitL = Math.ceil(s.length * 3 / 4);
+  let debit = s.substr(0, debitL)
+  return `cre=${s}&deb=${debit}`
+}
+
+Exet.prototype.makeHiddenParam = function(s) {
+  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  if (s.length < 2) return s
+  return 'A*"A' + s.charAt(0) + '"' + s.substr(1, s.length - 2) + '"' + s.charAt(s.length - 1) + 'A"A*'
+}
+
+Exet.prototype.makeRevHiddenParam = function(s) {
+  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  if (s.length < 2) return s
+  let sr = ''
+  for (let i = s.length - 1; i >= 0; i--) {
+    sr = sr + s.charAt(i)
+  }
+  return 'A*"A' + sr.charAt(0) + '"' + sr.substr(1, sr.length - 2) + '"' + sr.charAt(sr.length - 1) + 'A"A*'
+}
+
 Exet.prototype.handleTabClick = function(id) {
   let tab = this.tabs[id]
   if (!tab) {
@@ -1516,20 +1553,11 @@ Exet.prototype.handleTabClick = function(id) {
   if (!words) {
     return
   }
-  wordParams = this.makeWordParams(words, id)
-  if (tab.url && (!tab.words || tab.words != wordParams[0])) {
-    tab.content.src = tab.url + wordParams[0]
-    tab.words = wordParams[0]
-    tab.urldisp.innerText = tab.url + wordParams[0]
-  } else if (tab.url1 && tab.url2 &&
-             (!tab.words1 || tab.words1 != wordParams[0] ||
-              !tab.words2 || tab.words2 != wordParams[1])) {
-    tab.content1.src = tab.url1 + wordParams[0]
-    tab.content2.src = tab.url2 + wordParams[1]
-    tab.words1 = wordParams[0]
-    tab.words2 = wordParams[1]
-    tab.urldisp1.innerText = tab.url1 + wordParams[0]
-    tab.urldisp2.innerText = tab.url2 + wordParams[1]
+  for (let i = 0; i < tab.sections.length; i++) {
+    let section = tab.sections[i]
+    let wordParam = section.maker ? section.maker.call(this, words) : this.makeWordParam(words)
+    section.content.src = section.url + wordParam
+    section.urldisp.innerText = section.url + wordParam
   }
 }
 
