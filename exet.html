@@ -310,6 +310,9 @@ Current version: v0.05 September 16, 2020
   font-family: monospace;
   font-size: 14px;
 }
+.xet-section {
+  font-weight: bold;
+}
 </style>
 
 <title>Exet: Create a crossword</title>
@@ -1275,14 +1278,14 @@ Exet.prototype.populateFrame = function() {
         }
         if (section.url) {
           frameHTML = frameHTML + `
-            <div>${section.title || ''}</div>
+            <div class="xet-section">${section.title || ''}</div>
             <a href="" target="_blank" id="xet-${id}-url-${i}" class="xet-url"></a><br>
             <iframe class="xet-iframe" style="height:${h}px;width:${panelW}px;"
                height="${h}" width="${panelW}px" id="xet-${id}-content-${i}">
             </iframe>`
         } else {
           frameHTML = frameHTML + `
-            <div>${section.title}</div>
+            <div class="xet-section">${section.title}</div>
             <div id=${section.id}
               class="xet-frame"
               style="height:${h}px;width:${panelW}px;">
