@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.04 September 15, 2020
+Current version: v0.05 September 16, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -91,6 +91,9 @@ Current version: v0.04 September 15, 2020
 }
 .xet-frame {
   margin: 0 8px 8px 8px;
+}
+.xet-panel-td {
+  vertical-align: top;
 }
 .xet-iframe {
   width: 900px;
@@ -299,6 +302,14 @@ Current version: v0.04 September 15, 2020
   height: 25px;
   width: 25px;
 }
+.xet-companag * {
+  margin: 4px 0;
+}
+.xet-companag-text {
+  color: blue;
+  font-family: monospace;
+  font-size: 14px;
+}
 </style>
 
 <title>Exet: Create a crossword</title>
@@ -306,7 +317,7 @@ Current version: v0.04 September 15, 2020
 </head>
 <body>
 
-<div id="xet-frame">
+<div id="xet-xlv-frame">
 </div>
 
 <script>
@@ -793,17 +804,17 @@ Exet.prototype.setPuzzle = function(puz) {
     "wordplay1": {
       id: "wordplay1",
       display: "Anagrams...",
-      hover: "Nutrimatic, Quinaplus: anagrams, alternations, composite anagrams, and other wordplays...",
+      hover: "Nutrimatic: anagrams, alternations, composite anagrams...",
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam, title: "Anagrams"},
         {url: "https://nutrimatic.org/?q=", maker: this.makeAlternationParam, title: "Alternations"},
-        {url: "https://www.quinapalus.com/cgi-bin/companag?ent=Search&", maker: this.makeCAParam, title: "Composite anagrams (edit the \"debit\")"},
+        {id: "xet-companag", title: "Composite and extended anagrams"},
       ],
     },
     "wordplay2": {
       id: "wordplay2",
       display: "Hidden...",
-      hover: "Nutrimatic: hidden answers and other wordplays...",
+      hover: "Nutrimatic: hidden answers...",
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeHiddenParam, title: "Hidden answers"},
         {url: "https://nutrimatic.org/?q=", maker: this.makeRevHiddenParam, title: "Reversed hidden answers"},
@@ -1135,6 +1146,93 @@ Exet.prototype.makeIndsTab = function(panelH) {
   this.handleTabClick(this.currTab);
 }
 
+Exet.prototype.updateCA = function() {
+  let fodder = this.caFodder.value.toLowerCase().replace(/[^a-z]/g, '').split('').sort()
+  let anagram = this.caAnagram.value.toLowerCase().replace(/[^a-z]/g, '').split('').sort()
+  let f = 0;
+  let a = 0;
+  let extra = []
+  let unused = []
+  while (f < fodder.length && a < anagram.length) {
+    if (fodder[f] == anagram[a]) {
+      f++;
+      a++;
+    } else if (fodder[f] < anagram[a]) {
+      unused.push(fodder[f++])
+    } else {
+      extra.push(anagram[a++])
+    }
+  }
+  while (f < fodder.length) {
+    unused.push(fodder[f++])
+  }
+  while (a < anagram.length) {
+    extra.push(anagram[a++])
+  }
+  extraS = extra.join('')
+  this.caExtra.innerText = extraS
+  let extraUrl = "https://nutrimatic.org/?q=<" + extraS + ">"
+  this.caExtraAnags.src = extraUrl
+  this.caExtraAnagsUrl.href = extraUrl
+  this.caExtraAnagsUrl.innerText = extraUrl
+  unusedS = unused.join('')
+  this.caUnused.innerText = unusedS
+  let unusedUrl = "https://nutrimatic.org/?q=<" + unusedS + ">"
+  this.caUnusedAnags.src = unusedUrl
+  this.caUnusedAnagsUrl.href = unusedUrl
+  this.caUnusedAnagsUrl.innerText = unusedUrl
+}
+
+Exet.prototype.populateCompanag = function() {
+  let ca = document.getElementById('xet-companag')
+  ca.className = 'xet-companag'
+  ca.innerHTML = `
+    <table>
+      <tr>
+        <td class="xet-panel-td">Fodder: <input type="text" class="xlv-answer xet-companag-text" id='xet-ca-fodder'></input></td>
+        <td class="xet-panel-td">Anagram: <input type="text"
+          title="Enter a phrase that's only roughly an anagram of some of the letters in the fodder"
+          class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input></td>
+      </tr>
+      <tr>
+        <td class="xet-panel-td"><div>Extra in anagram:</div>
+          <div class="xet-companag-text" id='xet-ca-extra'></div></td>
+        <td class="xet-panel-td"><div>Unused from fodder:</div>
+          <div class="xet-companag-text" id='xet-ca-unused'></div></td>
+      </tr>
+      <tr>
+        <td class="xet-panel-td">
+          <a id="xet-ca-extra-anags-url"
+            class="xet-url" target="_blank" href=""></a>
+        <td class="xet-panel-td">
+          <a id="xet-ca-unused-anags-url"
+            class="xet-url" target="_blank" href=""></a>
+      </tr>
+      <tr>
+        <td class="xet-panel-td">
+          <iframe class="xet-iframe"
+            width="220" height="400"
+            style="width:220px;height:400px"
+            id='xet-ca-extra-anags'></iframe></td>
+        <td class="xet-panel-td">
+          <iframe class="xet-iframe"
+            width="220" height="400"
+            style="width:220px;height:400px"
+            id='xet-ca-unused-anags'></iframe></td>
+      </tr>
+    </table>`
+  this.caFodder = document.getElementById('xet-ca-fodder')
+  this.caAnagram = document.getElementById('xet-ca-anagram')
+  this.caExtra = document.getElementById('xet-ca-extra')
+  this.caUnused = document.getElementById('xet-ca-unused')
+  this.caFodder.addEventListener('input', this.updateCA.bind(this))
+  this.caAnagram.addEventListener('input', this.updateCA.bind(this))
+  this.caExtraAnags = document.getElementById('xet-ca-extra-anags')
+  this.caUnusedAnags = document.getElementById('xet-ca-unused-anags')
+  this.caExtraAnagsUrl = document.getElementById('xet-ca-extra-anags-url')
+  this.caUnusedAnagsUrl = document.getElementById('xet-ca-unused-anags-url')
+}
+
 Exet.prototype.populateFrame = function() {
   let frameHTML = ''
   frameHTML = frameHTML + '<div class="xet-tab">'
@@ -1149,44 +1247,54 @@ Exet.prototype.populateFrame = function() {
   for (let id in this.tabs) {
     let tab = this.tabs[id]
     frameHTML = frameHTML + `<div class="xet-tabcontent" id="xet-${id}-frame">`
-    if (tab.sections.length == 1) {
-      let section = tab.sections[0]
-      if (section.title) {
-        frameHTML = frameHTML + `<div>${section.title}</div>`
-      }
-      frameHTML = frameHTML + `
-        <a href="" target="_blank" id="xet-${id}-url-0" class="xet-url"></a><br>
-        <iframe class="xet-iframe" style="height:${panelH}px"
-           height="${panelH}" id="xet-${id}-content-0"></iframe>`
-    } else if (tab.sections.length >= 2) {
+    if (tab.sections.length > 0) {
       // We show the first (presumably main) section in the left column,
       // and stack up all the other sections in the right column.
-      let numRows = tab.sections.length - 1
-      const twoPanelW = 440
-      const secondH = (numRows > 1 ? 400 : panelH)
+      let numRows = 1
+      let panelW = 900
+      let secondH = panelH
+      if (tab.sections.length > 1) {
+        numRows = tab.sections.length - 1
+        panelW = 440
+      }
+      if (numRows > 1) {
+        secondH = 400
+      }
       frameHTML = frameHTML + '<div class="xet-panel"><table>'
       for (let i = 0; i < tab.sections.length; i++) {
         let section = tab.sections[i]
-         if (i != 1) {
-           frameHTML = frameHTML + '<tr>'
-         }
-         let h = secondH
-         if (i == 0) {
-           frameHTML = frameHTML + `<td style="vertical-align:top" rowspan="${numRows}">`
-           h = panelH
-         } else {
-           frameHTML = frameHTML + '<td>'
-         }
-         frameHTML = frameHTML + `
-            <div>${section.title}</div>
+        if (i != 1) {
+          frameHTML = frameHTML + '<tr>'
+        }
+        let h = secondH
+        if (i == 0) {
+          frameHTML = frameHTML + `<td class="xet-panel-td" rowspan="${numRows}">`
+          h = panelH
+        } else {
+          frameHTML = frameHTML + '<td>'
+        }
+        if (section.url) {
+          frameHTML = frameHTML + `
+            <div>${section.title || ''}</div>
             <a href="" target="_blank" id="xet-${id}-url-${i}" class="xet-url"></a><br>
-            <iframe class="xet-iframe" style="height:${h}px;width:${twoPanelW}px;"
-                height="${h}" width="${twoPanelW}px" id="xet-${id}-content-${i}">
-            </iframe>
-          </td>`
-         if (i != 0) {
-           frameHTML = frameHTML + '</tr>'
-         }
+            <iframe class="xet-iframe" style="height:${h}px;width:${panelW}px;"
+               height="${h}" width="${panelW}px" id="xet-${id}-content-${i}">
+            </iframe>`
+        } else {
+          frameHTML = frameHTML + `
+            <div>${section.title}</div>
+            <div id=${section.id}
+              class="xet-frame"
+              style="height:${h}px;width:${panelW}px;">
+            </div>`
+        }
+        if (i > 0 && i < tab.sections.length - 1) {
+              frameHTML = frameHTML + '<hr/><br>'
+        }
+        frameHTML = frameHTML + '</td>'
+        if (i > 0 || tab.sections.length == 1) {
+          frameHTML = frameHTML + '</tr>'
+        }
       }
       frameHTML = frameHTML + `
         </table>
@@ -1209,6 +1317,9 @@ Exet.prototype.populateFrame = function() {
     if (tab.sections.length > 0) {
       for (let i = 0; i < tab.sections.length; i++) {
         let section = tab.sections[i]
+        if (!section.url) {
+          continue
+        }
         section.content = document.getElementById(`xet-${id}-content-${i}`)
         section.urldisp = document.getElementById(`xet-${id}-url-${i}`)
       }
@@ -1216,6 +1327,7 @@ Exet.prototype.populateFrame = function() {
       tab.content = document.getElementById(`xet-${id}-content`)
     }
   }
+  this.populateCompanag()
 
   this.makeExetTab()
   this.makeIndsTab(panelH)
@@ -1504,13 +1616,6 @@ Exet.prototype.makeAlternationParam = function(s) {
   return out + '%3F'
 }
 
-Exet.prototype.makeCAParam = function(s) {
-  s = s.toLowerCase().replace(/\?/g, '').replace(/ /g, '')
-  let debitL = Math.ceil(s.length * 3 / 4);
-  let debit = s.substr(0, debitL)
-  return `cre=${s}&deb=${debit}`
-}
-
 Exet.prototype.makeHiddenParam = function(s) {
   s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
   if (s.length < 2) return s
@@ -1554,16 +1659,24 @@ Exet.prototype.handleTabClick = function(id) {
   if (!words) {
     return
   }
+  let newCAFodder = ''
   for (let i = 0; i < tab.sections.length; i++) {
     let section = tab.sections[i]
     let wordParam = section.maker ? section.maker.call(this, words) : this.makeWordParam(words)
-    if (!section.param || section.param != wordParam) {
+    if (section.url && (!section.param || section.param != wordParam)) {
       let url = section.url + wordParam
       section.content.src = url
       section.urldisp.innerText = url
       section.urldisp.href = url
       section.param = wordParam
+    } else if (section.id == 'xet-companag') {
+      newCAFodder = wordParam
     }
+  }
+  if (newCAFodder && this.caFodder != newCAFodder) {
+    this.caFodder.value = newCAFodder
+    this.caAnagram.value = ''
+    this.updateCA()
   }
 }
 
@@ -1908,12 +2021,12 @@ Exet.prototype.killInvalidatedClues = function(row, col) {
 }
 
 Exet.prototype.makeExolve = function(specs) {
-  document.getElementById('xet-frame').innerHTML = ''
+  document.getElementById('xet-xlv-frame').innerHTML = ''
   if (this.puz) {
     delete exolvePuzzles[this.puz.id]
   }
   try {
-    let ptemp = new Exolve(specs, 'xet-frame', this.setPuzzle.bind(this), false)
+    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false)
   } catch (err) {
     this.puz = null
     alert('Could not create/parse Exolve puzzle. Please reload and retry. The JavaScript console might show some diagnostic messages.')

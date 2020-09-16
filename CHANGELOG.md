@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.05 September 16 2020
+
+- Replace the Composite Anagrams iframe with a more native
+  implementation similar to http://martindemello.net/wgn.html (except
+  with added Nutrimatic anagrams of the unused and extra parts).
+
 ### Version: Exet v0.04 September 15 2020
 
 - Add a url param called newgrid. If set to 'blank' and there is no

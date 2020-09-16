@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.04 September 15 2020
+#### Version: Exet v0.05 September 16 2020
 
 #### Author: Viresh Ratnakar
 
@@ -202,9 +202,11 @@ word/phrase in the current light.
 For cryptic crosswords, three additional tabs might be of use to setters. These
 are:
 
-- **Anagrams...**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
-  anagrams of the current light, as well as "alternation" wordplays for the
-  current light. Setters can tweak the wordplay as they choose.
+- **Anagrams...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
+  meaningful anagrams of the current light, as well as "alternation" wordplays
+  for the current light. Setters can tweak the wordplay as they choose. Also
+  shows a panel with possibilities for composite anagrams (can also be used for
+  anagrams with deletions).
 - **Hidden...**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay ppossibilities for the
   current light. Setters can tweak the wordplay as they choose.
