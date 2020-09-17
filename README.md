@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.05 September 16 2020
+#### Version: Exet v0.06 September 17 2020
 
 #### Author: Viresh Ratnakar
 
@@ -199,9 +199,12 @@ let you do that by using reputed online resources:
 In each case, clicking on the tab will directly open the online resource for the
 word/phrase in the current light.
 
-For cryptic crosswords, three additional tabs might be of use to setters. These
+For cryptic crosswords, these additional tabs might be of use to setters. These
 are:
 
+- **Charades...**: Shows candidate charades and container wordplays for the
+  current light, sorted in decreasing order of the average length of elements
+  used in each wordplay.
 - **Anagrams...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
   meaningful anagrams of the current light, as well as "alternation" wordplays
   for the current light. Setters can tweak the wordplay as they choose. Also

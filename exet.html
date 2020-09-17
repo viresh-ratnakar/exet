@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.05 September 16, 2020
+Current version: v0.06 September 17, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -41,6 +41,9 @@ Current version: v0.05 September 16, 2020
 [contenteditable="true"]:focus{
   border:none;
   outline:none;
+}
+#xet-frame {
+  margin-left: 8px;
 }
 .xet-controls-col {
   padding: 4px;
@@ -61,7 +64,7 @@ Current version: v0.05 September 16, 2020
 }
 .xet-tab button {
   font-size: 14px;
-  width: 16ex;
+  width: 14ex;
   height: 100%;
   background-color: inherit;
   float: left;
@@ -90,7 +93,7 @@ Current version: v0.05 September 16, 2020
   border-top: none;
 }
 .xet-frame {
-  margin: 0 8px 8px 8px;
+  margin: 0 8px 8px 0;
 }
 .xet-panel-td {
   vertical-align: top;
@@ -120,11 +123,13 @@ Current version: v0.05 September 16, 2020
   font-size: 14px;
   padding: 2px 2px 4px 2px;
 }
-.xet-url {
-  font-family: monospace;
-  font-size: 10px;
+.xet-blue {
   color: blue;
   text-decoration: none;
+}
+.xet-small {
+  font-family: monospace;
+  font-size: 10px;
 }
 .xet-controls-row {
   display: flex;
@@ -649,6 +654,7 @@ function Exet() {
   this.throttledGridTimer = null;
   this.throttledClueTimer = null;
   this.throttledMetadataTimer = null;
+  this.throttledCharadeTimer = null;
   this.inputLagMS = 400
 };
 
@@ -804,6 +810,12 @@ Exet.prototype.setPuzzle = function(puz) {
       hover: "Etymonline: Roots and history...",
       sections: [{url: "https://www.etymonline.com/search?q="}],
     },
+    "wordplay0": {
+      id: "wordplay0",
+      display: "Charades...",
+      hover: "Charades and containers...",
+      sections: [{id: "xet-charades", maker: this.makeCharadeParam, title: "Possible splits using charades and containers"}],
+    },
     "wordplay1": {
       id: "wordplay1",
       display: "Anagrams...",
@@ -811,7 +823,7 @@ Exet.prototype.setPuzzle = function(puz) {
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam, title: "Anagrams"},
         {url: "https://nutrimatic.org/?q=", maker: this.makeAlternationParam, title: "Alternations"},
-        {id: "xet-companag", title: "Composite and extended anagrams"},
+        {id: "xet-companag", maker: this.makeCAParam, title: "Composite and extended anagrams"},
       ],
     },
     "wordplay2": {
@@ -1137,7 +1149,7 @@ Exet.prototype.makeIndsTab = function(panelH) {
   }
   html = html + '</select></div><br>'
   html = html + `
-  <a href="" target="_blank" id="xet-inds-choice-url" class="xet-url"></a><br>
+  <a href="" target="_blank" id="xet-inds-choice-url" class="xet-blue xet-small"></a><br>
   <iframe id="xet-inds-iframe" class="xet-iframe" src=""
     style="height:${panelH}px" height="${panelH}"></iframe>
   `;
@@ -1147,6 +1159,191 @@ Exet.prototype.makeIndsTab = function(panelH) {
   this.indsUrl = document.getElementById('xet-inds-choice-url')
 
   this.handleTabClick(this.currTab);
+}
+
+Exet.prototype.getAllSplits = function(fodder, k) {
+  let n = fodder.length
+  if (n < 1 || k < 1 || k > n ) return []
+  if (k == 1) {
+    return [[fodder]]
+  }
+  if (k == n) {
+    let pieces = []
+    for (let i = 0; i < n; i++) {
+      pieces.push(fodder.charAt(i))
+    }
+    return [pieces]
+  }
+  let splits = []
+  // For long fodders, skip some splits.
+  for (let last_span = (fodder.length > 10 ? fodder.length - 9 : 1);
+       last_span <= n - k + 1; last_span++) {
+    let last_piece = fodder.substr(n - last_span, last_span);
+    let prefix = fodder.substr(0, n - last_span);
+    let subsplits = this.getAllSplits(prefix, k - 1)
+    for (let subsplit of subsplits) {
+      subsplit.push(last_piece);
+      splits.push(subsplit);
+    }
+  }
+  return splits
+}
+
+Exet.prototype.pushCharadeCandidate = function(elements) {
+  if (!elements || elements.length == 0) {
+    return
+  }
+  let charade = ''
+  let score = 0;
+  let i = 0
+  let numScores = elements.length
+  while (i < elements.length) {
+    let x = elements[i]
+    if (!x.possible) {
+      return
+    }
+    if (charade) charade = charade + '<span class="xet-blue"> + </span>'
+    charade = charade + x.possible
+    score += x.score
+    i++
+    if (x.container) {
+      contents = ''
+      while (i < x.container) {
+        let y = elements[i]
+        if (!y.possible) {
+          return
+        }
+        if (contents) contents = contents + ' '
+        contents = contents + y.possible
+        score += y.score
+        i++
+      }
+      charade = charade + ' <span class="xet-blue">around (</span>' + contents +
+        '<span class="xet-blue">)</span>'
+      i++
+      numScores = elements.length - 1
+    }
+  }
+  score = score / numScores
+  if (charade) {
+    this.charadeCandidates.push({
+      charade: charade,
+      score: score
+    })
+  }
+}
+
+Exet.prototype.updateCharades = function(fodder) {
+  if (this.throttledCharadeTimer) {
+    clearTimeout(this.throttledCharadeTimer);
+  }
+  this.throttledCharadeTimer = null
+  this.charadeCandidates = []
+  this.charadeParts = 2;
+  this.charadeSplits = null;
+  this.charadeSplitIndex = 0;
+  this.charadeMax = Math.min(fodder.length, 4)
+  this.charadeFodder = fodder
+  this.updateCharadesPartial()
+}
+
+Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
+  let startTS = Date.now()
+  while (this.charadeParts <= this.charadeMax) {
+    if (!this.charadeSplits) {
+      this.charadeSplits = this.getAllSplits(this.charadeFodder, this.charadeParts)
+      this.charadeSplitIndex = 0
+    }
+    while (this.charadeSplitIndex < this.charadeSplits.length) {
+      let split = this.charadeSplits[this.charadeSplitIndex]
+      let viable = []
+      for (let part of split) {
+        let possible = ''
+        let score = 0
+        let choices = this.getLexChoices(part, 1)
+        if (choices.length > 0) {
+          possible = choices[0]
+          score = part.length
+        }
+        if (part.length > 1) {
+          let rpart = part.split('').reverse().join('')
+          choices = this.getLexChoices(rpart, 1)
+          if (choices.length > 0) {
+            if (!possible) {
+              possible = choices[0] + '<span class="xet-blue"><<</span>'
+            } else {
+              possible = '<span class="xet-blue">[</span>' + possible + ', ' + choices[0] + '<span class="xet-blue"><<]</span>'
+            }
+            score = rpart.length
+          }
+        }
+        viable.push({possible: possible, score: score})
+      }
+      if (viable.length < this.charadeParts) {
+        continue
+      }
+      this.pushCharadeCandidate(viable)
+      for (let c1 = 0; c1 < this.charadeParts - 2; c1++) {
+        for (let c2 = c1 + 2; c2 < this.charadeParts; c2++) {
+          // Everything else must be viable
+          let ok = true
+          for (let i = 0; i < this.charadeParts; i++) {
+            if (i != c1 && i != c2 && !viable[i].possible) {
+              ok = false
+              break
+            }
+          }
+          if (!ok) {
+            continue
+          }
+          let container = split[c1] + split[c2]
+          let choices = this.getLexChoices(container, 1)
+          if (choices.length > 0) {
+            let vcopy = viable.slice(0, viable.length)
+            vcopy[c1] = {}
+            vcopy[c1].possible = choices[0]
+            vcopy[c1].score = container.length
+            vcopy[c1].container = c2
+            this.pushCharadeCandidate(vcopy)
+          }
+          let rcontainer = container.split('').reverse().join('')
+          choices = this.getLexChoices(rcontainer, 1)
+          if (choices.length > 0) {
+            let vcopy = viable.slice(0, viable.length)
+            vcopy[c1] = {}
+            vcopy[c1].possible = choices[0] + '<span class="xet-blue"><<</span>'
+            vcopy[c1].score = rcontainer.length
+            vcopy[c1].container = c2
+            this.pushCharadeCandidate(vcopy)
+          }
+        }
+      }
+      this.charadeSplitIndex++
+      if (Date.now() - startTS >= work) {
+        break
+      }
+    }
+    if (this.charadeSplitIndex == this.charadeSplits.length) {
+      this.charadeSplits = null
+      this.charadeParts++;
+    }
+    if (Date.now() - startTS >= work) {
+      break
+    }
+  }
+  let candidates = this.charadeCandidates.sort((a, b) => b.score - a.score);
+  let html = '<table id="xet-charade-choices">'
+  for (let candidate of candidates) {
+    html = html + `
+      <tr><td><span style="color:gray">[${candidate.score.toFixed(1)}]</span> ${candidate.charade}</td></tr>`
+  }
+  html = html + '</table>'
+  this.charades.innerHTML = html;
+  if (this.charadeParts <= this.charadeMax) {
+    this.throttledCharadeTimer = setTimeout(() => {
+      this.updateCharadesPartial(work, sleep)
+    }, sleep);
+  }
 }
 
 Exet.prototype.updateCA = function() {
@@ -1206,10 +1403,10 @@ Exet.prototype.populateCompanag = function() {
       <tr>
         <td class="xet-panel-td">
           <a id="xet-ca-extra-anags-url"
-            class="xet-url" target="_blank" href=""></a>
+            class="xet-blue xet-small" target="_blank" href=""></a>
         <td class="xet-panel-td">
           <a id="xet-ca-unused-anags-url"
-            class="xet-url" target="_blank" href=""></a>
+            class="xet-blue xet-small" target="_blank" href=""></a>
       </tr>
       <tr>
         <td class="xet-panel-td">
@@ -1279,13 +1476,13 @@ Exet.prototype.populateFrame = function() {
         if (section.url) {
           frameHTML = frameHTML + `
             <div class="xet-section">${section.title || ''}</div>
-            <a href="" target="_blank" id="xet-${id}-url-${i}" class="xet-url"></a><br>
+            <a href="" target="_blank" id="xet-${id}-url-${i}" class="xet-blue xet-small"></a><br>
             <iframe class="xet-iframe" style="height:${h}px;width:${panelW}px;"
                height="${h}" width="${panelW}px" id="xet-${id}-content-${i}">
             </iframe>`
         } else {
           frameHTML = frameHTML + `
-            <div class="xet-section">${section.title}</div>
+            <div class="xet-section">${section.title || ''}</div>
             <div id=${section.id}
               class="xet-frame"
               style="height:${h}px;width:${panelW}px;">
@@ -1330,6 +1527,13 @@ Exet.prototype.populateFrame = function() {
       tab.content = document.getElementById(`xet-${id}-content`)
     }
   }
+  let ch = document.getElementById('xet-charades')
+  ch.innerHTML = `
+    <div id="xet-charades-box"
+         style="margin:16px 0;border:0;overflow:auto;max-height:${panelH}px">
+    </div>
+  `
+  this.charades = document.getElementById('xet-charades-box')
   this.populateCompanag()
 
   this.makeExetTab()
@@ -1605,9 +1809,17 @@ Exet.prototype.makeWordParam = function(s) {
   return s.toLowerCase()
 }
 
+Exet.prototype.makeCharadeParam = function(s) {
+  return s.toLowerCase().replace(/\?/g, '').replace(/ /g, '')
+}
+
 Exet.prototype.makeAnagramParam = function(s) {
   s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
   return "<" + s + ">"
+}
+
+Exet.prototype.makeCAParam = function(s) {
+  return s.toLowerCase().replace(/\?/g, '')
 }
 
 Exet.prototype.makeAlternationParam = function(s) {
@@ -1662,24 +1874,24 @@ Exet.prototype.handleTabClick = function(id) {
   if (!words) {
     return
   }
-  let newCAFodder = ''
   for (let i = 0; i < tab.sections.length; i++) {
     let section = tab.sections[i]
     let wordParam = section.maker ? section.maker.call(this, words) : this.makeWordParam(words)
     if (section.url && (!section.param || section.param != wordParam)) {
+      section.param = wordParam
       let url = section.url + wordParam
       section.content.src = url
       section.urldisp.innerText = url
       section.urldisp.href = url
+    } else if (section.id == 'xet-charades' && section.param != wordParam) {
       section.param = wordParam
-    } else if (section.id == 'xet-companag') {
-      newCAFodder = wordParam
+      this.updateCharades(wordParam)
+    } else if (section.id == 'xet-companag' && section.param != wordParam) {
+      section.param = wordParam
+      this.caFodder.value = wordParam
+      this.caAnagram.value = ''
+      this.updateCA()
     }
-  }
-  if (newCAFodder && this.caFodder != newCAFodder) {
-    this.caFodder.value = newCAFodder
-    this.caAnagram.value = ''
-    this.updateCA()
   }
 }
 
@@ -2181,11 +2393,11 @@ Exet.prototype.keyMatchesPhrase = function(key, phrase) {
 Exet.prototype.getLexChoices = function(partialSol, limit=1024) {
   let choices = []
   let key = this.makeLexKey(partialSol);
-  if (!key) return []
+  if (!key) return choices
   let gkey = key;
   while (!exetLexicon.index[gkey]) {
     let ngkey = this.generalizeKey(gkey)
-    if (ngkey == gkey) return []
+    if (ngkey == gkey) return choices
     gkey = ngkey;
   }
   let indices = exetLexicon.index[gkey];

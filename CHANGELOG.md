@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.06 September 17 2020
+
+- Added a tab to show candidate charades and containers. Had to make it
+  do its work in throttled chunks.
+
 ### Version: Exet v0.05 September 16 2020
 
 - Replace the Composite Anagrams iframe with a more native
