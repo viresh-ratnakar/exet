@@ -1984,6 +1984,7 @@ Exet.prototype.replaceHandlers = function() {
       let ret = exet.cnavToInnerSaved.apply(exet.puz, arguments);
       exet.makeClueEditable()
       exet.updateFillChoices()
+      exet.handleTabClick(exet.currTab)
       return ret
     };
   })();
