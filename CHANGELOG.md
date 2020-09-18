@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.09 September 18 2020
+
+- Bug-fix: strip any newlines entered in clue/anno/title/setter/copyright.
+
 ### Version: Exet v0.08 September 17 2020
 
 - Remember what was open in the "inds" tab when updating the puzzle,

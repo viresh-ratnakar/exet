@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.08 September 17, 2020
+Current version: v0.09 September 18, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -866,6 +866,7 @@ Exet.prototype.setPuzzle = function(puz) {
       id="xet-copyright" contenteditable=true
       oninput="exet.updateMetadata()">${this.puz.copyright}</span>`
   this.copyright.style.display = ''
+  this.xetCopyright = document.getElementById('xet-copyright')
 
   this.title = document.getElementById(`${this.puz.prefix}-title`)
   this.title.innerHTML = `<span class="xet-action">Edit optional
@@ -874,6 +875,7 @@ Exet.prototype.setPuzzle = function(puz) {
       id="xet-title" contenteditable=true
       oninput="exet.updateMetadata()">${this.puz.title}</span>`
   this.title.style.display = ''
+  this.xetTitle = document.getElementById('xet-title')
 
   this.setter = document.getElementById(`${this.puz.prefix}-setter`)
   this.setter.innerHTML = `<span class="xet-action">Edit optional
@@ -882,6 +884,7 @@ Exet.prototype.setPuzzle = function(puz) {
       id="xet-setter" contenteditable=true
       oninput="exet.updateMetadata()">${this.puz.setter}</span>`
   this.setter.style.display = ''
+  this.xetSetter = document.getElementById('xet-setter')
 
   this.frame = document.createElement('div')
   this.frame.className = 'xet-frame'
@@ -1109,6 +1112,11 @@ Exet.prototype.makeExetTab = function() {
   scratchP.after(cluesPanel)
 }
 
+Exet.prototype.stripInputLF = function(inp) {
+  if (!inp) return
+  inp.innerText = inp.innerText.replace(/\n/g, ' ')
+}
+
 Exet.prototype.updateMetadata = function() {
   if (!this.puz) {
     return
@@ -1117,10 +1125,18 @@ Exet.prototype.updateMetadata = function() {
     clearTimeout(this.throttledMetadataTimer);
   }
   this.throttledMetadataTimer = setTimeout(() => {
-    this.puz.title = document.getElementById('xet-title').innerText
-    this.puz.setter = document.getElementById('xet-setter').innerText
-    this.puz.copyright = document.getElementById('xet-copyright').innerText
-    this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
+    if (this.xetTitle) {
+      this.stripInputLF(this.xetTitle)
+      this.puz.title = this.xetTitle.innerText
+    }
+    if (this.xetSetter) {
+      this.stripInputLF(this.xetSetter)
+      this.puz.setter = this.xetSetter.innerText
+    }
+    if (this.xetCopyright) {
+      this.stripInputLF(this.xetCopyright)
+      this.puz.copyright = this.xetCopyright.innerText
+    }
     this.throttledMetadataTimer = null;
   }, 2000);
 }
@@ -2105,6 +2121,7 @@ Exet.prototype.handleClueChange = function() {
       expEnumLen = expEnumLen + this.puz.clues[lci].cells.length
     }
   }
+  this.stripInputLF(currClueText)
   let clue = currClueText.innerText
   let clueSansEnum = clue
   let newEnum = ''
@@ -2131,6 +2148,8 @@ Exet.prototype.handleClueChange = function() {
   }
   theClue.clue = clue
   clueSpan.innerText = clue
+
+  this.stripInputLF(currClueAnno)
   theClue.anno = currClueAnno.innerText
   theClue.annoSpan.lastElementChild.innerText = currClueAnno.innerText
   this.puz.makeCurrClueVisible()
@@ -2294,7 +2313,7 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   let col = this.puz.currCol
   let dir = this.puz.currDir
   let scratch = this.puz.scratchPad.value
-  this.savedIndsSelect = this.indsSelect.value
+  this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
   let exolve = this.getExolve()
   this.makeExolve(exolve)
   this.puz.currDir = dir
@@ -2383,6 +2402,7 @@ Exet.prototype.getHTML = function(solved=true) {
 
 Exet.prototype.makeLexKey = function(partialSol) {
   let key = ''
+  if (!partialSol) return key;
   let lowerSol = partialSol.toLowerCase()
   for (let i = 0; i < partialSol.length; ++i) {
     let c = lowerSol.charAt(i);
