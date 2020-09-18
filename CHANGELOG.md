@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.08 September 17 2020
+
+- Remember what was open in the "inds" tab when updating the puzzle,
+  and return to that if the inds tab is the current tab.
+
 ### Version: Exet v0.07 September 17 2020
 
 - Handle searching for anagrams natively now. So, charades also include

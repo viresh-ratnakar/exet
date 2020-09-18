@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.07 September 17, 2020
+Current version: v0.08 September 17, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -657,6 +657,7 @@ function Exet() {
 
   // Start in the Exet tab
   this.currTab = "exet"
+  this.savedIndsSelect = ""
 
   // State for throttled handlers
   this.throttledGridTimer = null;
@@ -827,7 +828,7 @@ Exet.prototype.setPuzzle = function(puz) {
     "wordplay1": {
       id: "wordplay1",
       display: "Anagrams...",
-      hover: "Nutrimatic: anagrams, alternations, composite anagrams...",
+      hover: "Nutrimatic: anagrams, alternations; composite anagrams...",
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam, title: "Anagrams"},
         {url: "https://nutrimatic.org/?q=", maker: this.makeAlternationParam, title: "Alternations"},
@@ -1124,6 +1125,15 @@ Exet.prototype.updateMetadata = function() {
   }, 2000);
 }
 
+Exet.prototype.indsTabNav = function() {
+  if (this.indsIframe.src == this.indsSelect.value) {
+    return
+  }
+  this.indsIframe.src = this.indsSelect.value;
+  this.indsUrl.innerText = this.indsSelect.value;
+  this.indsUrl.href = this.indsSelect.value;
+}
+
 Exet.prototype.makeIndsTab = function(panelH) {
   let inds = [
     {name: "Please select", url: ""},
@@ -1150,7 +1160,7 @@ Exet.prototype.makeIndsTab = function(panelH) {
   let html = `
   <div>
   <select name="xet-inds-select" id="xet-inds-select"
-    onchange="exet.indsIframe.src = exet.indsSelect.value; exet.indsUrl.innerText = exet.indsSelect.value; exet.indsUrl.href = exet.indsSelect.value;">`
+    onchange="exet.indsTabNav()">`
   for (let ind of inds) {
     html = html + `
     <option value="${ind.url}">${ind.name}</option>`
@@ -1164,9 +1174,8 @@ Exet.prototype.makeIndsTab = function(panelH) {
   indsTab.content.innerHTML = html;
   this.indsIframe = document.getElementById('xet-inds-iframe')
   this.indsSelect = document.getElementById('xet-inds-select')
+  this.indsSelect.value = this.savedIndsSelect
   this.indsUrl = document.getElementById('xet-inds-choice-url')
-
-  this.handleTabClick(this.currTab);
 }
 
 Exet.prototype.getAllSplits = function(fodder, k) {
@@ -1876,6 +1885,10 @@ Exet.prototype.handleTabClick = function(id) {
   if (id == "exet") {
     return
   }
+  if (id == "inds") {
+    this.indsTabNav();
+    return
+  }
 
   let ci = this.puz.currClueIndex
   if (!ci) {
@@ -1971,7 +1984,6 @@ Exet.prototype.replaceHandlers = function() {
       let ret = exet.cnavToInnerSaved.apply(exet.puz, arguments);
       exet.makeClueEditable()
       exet.updateFillChoices()
-      exet.handleTabClick(exet.currTab);
       return ret
     };
   })();
@@ -2265,6 +2277,7 @@ Exet.prototype.makeExolve = function(specs) {
   if (!this.puz) {
     return
   }
+  this.handleTabClick(this.currTab);
   let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
   if (!exetState) {
     exetState = {}
@@ -2280,6 +2293,7 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   let col = this.puz.currCol
   let dir = this.puz.currDir
   let scratch = this.puz.scratchPad.value
+  this.savedIndsSelect = this.indsSelect.value
   let exolve = this.getExolve()
   this.makeExolve(exolve)
   this.puz.currDir = dir
