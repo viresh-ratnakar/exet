@@ -1114,6 +1114,7 @@ Exet.prototype.makeExetTab = function() {
 
 Exet.prototype.stripInputLF = function(inp) {
   if (!inp) return
+  if (inp.innerText.indexOf('\n') < 0) return
   inp.innerText = inp.innerText.replace(/\n/g, ' ')
 }
 
@@ -1138,6 +1139,7 @@ Exet.prototype.updateMetadata = function() {
       this.puz.copyright = this.xetCopyright.innerText
     }
     this.throttledMetadataTimer = null;
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
   }, 2000);
 }
 
@@ -2314,8 +2316,10 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   let dir = this.puz.currDir
   let scratch = this.puz.scratchPad.value
   this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
+
   let exolve = this.getExolve()
   this.makeExolve(exolve)
+
   this.puz.currDir = dir
   this.puz.currRow = row
   this.puz.currCol = col
