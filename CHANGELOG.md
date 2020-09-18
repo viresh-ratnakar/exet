@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.07 September 17 2020
+
+- Handle searching for anagrams natively now. So, charades also include
+  anagrams and the composite anagram panel now does not use Nutrimatic.
+
 ### Version: Exet v0.06 September 17 2020
 
 - Added a tab to show candidate charades and containers. Had to make it

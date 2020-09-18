@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.06 September 17 2020
+#### Version: Exet v0.07 September 17 2020
 
 #### Author: Viresh Ratnakar
 
@@ -202,14 +202,16 @@ word/phrase in the current light.
 For cryptic crosswords, these additional tabs might be of use to setters. These
 are:
 
-- **Charades...**: Shows candidate charades and container wordplays for the
-  current light, sorted in decreasing order of the average length of elements
-  used in each wordplay.
+- **Charades...**: Shows candidate charade wordplays, including anagrams and
+  containers, wordplays for the current light, sorted in decreasing order of
+  the average length of wordplay components.
 - **Anagrams...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
   meaningful anagrams of the current light, as well as "alternation" wordplays
-  for the current light. Setters can tweak the wordplay as they choose. Also
-  shows a panel with possibilities for composite anagrams (can also be used for
-  anagrams with deletions).
+  for the current light. Setters can tweak the wordplay as they choose. The
+  Nutrimatic anagrams may cover more possibilities than the anagrams shown in
+  the Charades tab, as the anagrams shown in the Charades tab are restricted
+  to words and phrases in the lexicon. Also shows a panel with possibilities for
+  composite anagrams (can also be used for anagrams with deletions).
 - **Hidden...**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay ppossibilities for the
   current light. Setters can tweak the wordplay as they choose.
