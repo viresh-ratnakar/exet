@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.09 September 18, 2020
+Current version: v0.10 September 19, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -42,20 +42,22 @@ Current version: v0.09 September 18, 2020
   border:none;
   outline:none;
 }
-#xet-frame {
-  margin-left: 8px;
+.xet-frame {
+  width: 940px;
+  margin: 0 8px;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 14px;
 }
 .xet-controls-col {
   padding: 4px;
 }
-.xet-panel hr {
+.xet-frame hr {
   margin-left: 0;
   margin-right: 0;
-  width: 100%;
-  box-sizing: border-box;
 }
 .xet-tab {
-  height: 7ex;
+  height: 50px;
   border: 4px solid #ddd;
   border-bottom: 0;
   background-color: #ddd;
@@ -64,7 +66,7 @@ Current version: v0.09 September 18, 2020
 }
 .xet-tab button {
   font-size: 14px;
-  width: 14ex;
+  width: 105px;
   height: 100%;
   background-color: inherit;
   float: left;
@@ -72,7 +74,6 @@ Current version: v0.09 September 18, 2020
   cursor: pointer;
   padding: 2px 4px;
   transition: 0.3s;
-  font-family: monospace;
   font-weight: bold;
   border-radius: 10px 10px 0 0;
   border: 1px solid silver;
@@ -92,25 +93,30 @@ Current version: v0.09 September 18, 2020
   border: 1px solid #ccc;
   border-top: none;
 }
-.xet-frame {
-  margin: 0 8px 8px 0;
-}
-.xet-panel-td {
+.xet-td {
   vertical-align: top;
 }
 .xet-iframe {
-  width: 900px;
-  border: 0
+  width: 910px;
+  border: 0;
+  overflow: auto;
 }
 .xet-panel {
-  width: 900px;
+  width: 910px;
   border: 0;
-  font-family: monospace;
-  font-size: 14px;
+  overflow: auto;
 }
-.xet-full-box {
-  width: 100%;
-  border: 0
+.xet-section {
+  border: 0;
+}
+.xet-high-tall-box {
+  height: 450px;
+}
+.xet-mid-tall-box {
+  height: 320px;
+}
+.xet-low-tall-box {
+  height: 250px;
 }
 .xet-anno {
   font-family: monospace;
@@ -130,6 +136,9 @@ Current version: v0.09 September 18, 2020
 .xet-small {
   font-family: monospace;
   font-size: 10px;
+}
+.xet-bold {
+  font-weight: bold;
 }
 .xet-controls-row {
   display: flex;
@@ -192,6 +201,10 @@ Current version: v0.09 September 18, 2020
   background: lightgreen;
   cursor: pointer;
 }  
+.xet-menu {
+  position: relative;
+  width:100%;
+}
 .xet-menu ul {
   list-style-type: none;
   margin: 0;
@@ -266,13 +279,19 @@ Current version: v0.09 September 18, 2020
 .xet-dropdown-item:hover .xet-dropdown-submenu {
   display: block;
 }
-.xet-panel .xlv-clues {
+.xet-frame .xlv-clues {
   font-size: 16px;
   font-family: serif;
   font-weight: 400;
   line-height: normal;
   box-sizing: border-box;
-  width: 480px;
+}
+.xet-frame .xlv-clues,
+.xet-frame .xlv-clues-box {
+  width: 634px;
+}
+.xet-clues {
+  width: 640px;
 }
 .xet-rev-chooser {
   position: absolute;
@@ -311,20 +330,25 @@ Current version: v0.09 September 18, 2020
   padding: 0 0 8px 0;
   overflow: auto;
 }
-.xet-companag * {
-  margin: 4px 0;
-}
 .xet-companag-text {
   color: blue;
   font-family: monospace;
   font-size: 14px;
 }
-.xet-section {
-  font-weight: bold;
-}
 .xet-table-midline td:nth-child(2) {
   border-left: 1px solid gray;
   padding-left: 4px;
+}
+.xet-table-midline td {
+  padding-top: 4px;
+}
+.xet-preview {
+  height: 300px;
+  width:800px;
+  overflow:auto;
+}
+.xet-full-width {
+  width: 100%;
 }
 </style>
 
@@ -459,7 +483,7 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
           style="float:right;margin: 0 16px;"
           class="xlv-button">Open</button>
         </div>
-        <div id="xet-preview" style="height:300px;width:800px;overflow:auto">
+        <div id="xet-preview" class="xet-preview">
         </div>
       </td>
     </tr>
@@ -937,7 +961,7 @@ Exet.prototype.makeExetTab = function() {
   let exetTab = this.tabs["exet"]
   exetTab.content.innerHTML = `
 <div class="xet-controls-col">
-  <div class="xet-menu" style="position:relative;width:100%;">
+  <div class="xet-menu">
     <ul>
       <li class="xet-dropdown">
         <div class="xet-dropbtn" title="Click to open a new or previously saved puzzle">Open</div>
@@ -1038,7 +1062,7 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropbtn" title="Click to see Motes, notices, and pointers about Exet...">About</div>
         <div class="xet-dropdown-content" style="right:0;width:90ch;padding:8px;">
           <iframe id="xet-about-iframe" class="xet-iframe"
-              style="height:600px"
+              style="height:450px"
               src="about-exet.html">
           </iframe>
         </div>
@@ -1047,11 +1071,11 @@ Exet.prototype.makeExetTab = function() {
     <div id="xet-rev-chooser" class="xet-rev-chooser" style="display:none">
     </div>
   </div>
-  <hr/>
+  <hr class="xet-full-width"/>
   <div id="xet-temp" style="display:none">
   </div>
 
-  <div class="xet-controls-row">
+  <div class="xet-controls-row xet-panel xet-high-tall-box">
     <div class="xet-controls-col">
       <div>
         <span style="font-weight:bold" title="Please note that any lexicon in use by this software is inevitably likely to have some errors and omissions.">Choose grid-fill</span>
@@ -1099,17 +1123,20 @@ Exet.prototype.makeExetTab = function() {
 
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
-  this.puz.scratchPad.rows = "5"
-  this.puz.scratchPad.cols = "60"
+  this.puz.scratchPad.rows = "3"
+  this.puz.scratchPad.cols = "82"
   const scratchPLabel = document.getElementById(this.puz.prefix + '-shuffle')
   scratchPLabel.style.padding = '8px 0'
   scratchP.appendChild(scratchPLabel)
   scratchP.appendChild(this.puz.scratchPad)
 
   // Pull in the clues.
-  let cluesPanel = document.getElementById(`${this.puz.prefix}-clues`)
-  cluesPanel.title = 'You can edit the current clue as shown above the grid by clicking on it.'
-  scratchP.after(cluesPanel)
+  this.cluesPanel = document.createElement('div')
+  this.cluesPanel.id = 'xet-clues'
+  this.cluesPanel.className = 'xet-panel xet-mid-tall-box xet-clues'
+  this.cluesPanel.title = 'You can edit the current clue as shown above the grid by clicking on it.'
+  scratchP.after(this.cluesPanel)
+  this.cluesPanel.appendChild(document.getElementById(`${this.puz.prefix}-clues`))
 }
 
 Exet.prototype.stripInputLF = function(inp) {
@@ -1433,29 +1460,31 @@ Exet.prototype.populateCompanag = function() {
   ca.innerHTML = `
     <table class="xet-table-midline">
       <tr>
-        <td class="xet-panel-td">Fodder: <input type="text" class="xlv-answer xet-companag-text" id='xet-ca-fodder'></input></td>
-        <td class="xet-panel-td">Anagram: <input type="text"
+        <td class="xet-td">Fodder:</td>
+        <td class="xet-td">Anagram:</td>
+      </tr>
+      <tr>
+        <td class="xet-td"><input type="text" class="xlv-answer xet-companag-text" id='xet-ca-fodder'></input></td>
+        <td class="xet-td"><input type="text"
           title="Enter a phrase that's only roughly an anagram of some of the letters in the fodder"
           class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input></td>
       </tr>
       <tr>
-        <td class="xet-panel-td"><div>Extra in anagram:</div>
-          <div class="xet-companag-text" id='xet-ca-extra'></div></td>
-        <td class="xet-panel-td"><div>Unused from fodder:</div>
-          <div class="xet-companag-text" id='xet-ca-unused'></div></td>
+        <td class="xet-td">Extra in anagram:</td>
+        <td class="xet-td"><div>Unused from fodder:</td>
       </tr>
       <tr>
-        <td class="xet-panel-td"><div>Extra* anagrams:</div>
-        </td>
-        <td class="xet-panel-td"><div>Unused* anagrams:</div>
-        </td>
+        <td class="xet-td"><div class="xet-companag-text" id='xet-ca-extra'></div></td>
+        <td class="xet-td"><div class="xet-companag-text" id='xet-ca-unused'></div></td>
       </tr>
       <tr>
-        <td class="xet-panel-td">
+        <td class="xet-td">
+          Extra* anagrams:
           <table id="xet-ca-extra-anags">
           </table>
         </td>
-        <td class="xet-panel-td">
+        <td class="xet-td">
+          Unused* anagrams:
           <table id="xet-ca-unused-anags">
           </table>
         </td>
@@ -1481,7 +1510,8 @@ Exet.prototype.populateFrame = function() {
   }
   frameHTML = frameHTML + '</div>'
 
-  const panelH = Math.ceil(this.puz.gridPanel.getBoundingClientRect().height)
+  const panelH = 500
+  const panelInnerH = 450
   for (let id in this.tabs) {
     let tab = this.tabs[id]
     frameHTML = frameHTML + `<div class="xet-tabcontent" id="xet-${id}-frame">`
@@ -1490,15 +1520,15 @@ Exet.prototype.populateFrame = function() {
       // and stack up all the other sections in the right column.
       let numRows = 1
       let panelW = 900
-      let secondH = panelH
+      let secondH = panelInnerH
       if (tab.sections.length > 1) {
         numRows = tab.sections.length - 1
         panelW = 440
       }
       if (numRows > 1) {
-        secondH = 400
+        secondH = 200
       }
-      frameHTML = frameHTML + '<div class="xet-panel"><table>'
+      frameHTML = frameHTML + '<div class="xet-section"><table>'
       for (let i = 0; i < tab.sections.length; i++) {
         let section = tab.sections[i]
         if (i != 1) {
@@ -1506,28 +1536,28 @@ Exet.prototype.populateFrame = function() {
         }
         let h = secondH
         if (i == 0) {
-          frameHTML = frameHTML + `<td class="xet-panel-td" rowspan="${numRows}">`
-          h = panelH
+          frameHTML = frameHTML + `<td class="xet-td" rowspan="${numRows}">`
+          h = panelInnerH
         } else {
-          frameHTML = frameHTML + '<td>'
+          frameHTML = frameHTML + '<td class="xet-td">'
         }
         if (section.url) {
           frameHTML = frameHTML + `
-            <div class="xet-section">${section.title || ''}</div>
+            <div class="xet-bold">${section.title || ''}</div>
             <a href="" target="_blank" id="xet-${id}-url-${i}" class="xet-blue xet-small"></a><br>
             <iframe class="xet-iframe" style="height:${h}px;width:${panelW}px;"
                height="${h}" width="${panelW}px" id="xet-${id}-content-${i}">
             </iframe>`
         } else {
           frameHTML = frameHTML + `
-            <div class="xet-section">${section.title || ''}</div>
+            <div class="xet-bold">${section.title || ''}</div>
             <div id=${section.id}
-              class="xet-frame"
+              class="xet-panel"
               style="height:${h}px;width:${panelW}px;">
             </div>`
         }
         if (i > 0 && i < tab.sections.length - 1) {
-              frameHTML = frameHTML + '<hr/><br>'
+          frameHTML = frameHTML + '<hr/><br>'
         }
         frameHTML = frameHTML + '</td>'
         if (i > 0 || tab.sections.length == 1) {
@@ -1539,7 +1569,7 @@ Exet.prototype.populateFrame = function() {
         </div>`
     } else {
       frameHTML = frameHTML + `
-        <div class="xet-panel" id="xet-${id}-content"></div>`
+        <div class="xet-section" id="xet-${id}-content"></div>`
     }
     frameHTML = frameHTML + '</div>'
   }
@@ -1567,15 +1597,14 @@ Exet.prototype.populateFrame = function() {
   }
   let ch = document.getElementById('xet-charades')
   ch.innerHTML = `
-    <div id="xet-charades-box"
-         style="margin:16px 0;border:0;overflow:auto;max-height:${panelH}px">
+    <div id="xet-charades-box" style="margin:16px 0;border:0">
     </div>
   `
   this.charades = document.getElementById('xet-charades-box')
   this.populateCompanag()
 
   this.makeExetTab()
-  this.makeIndsTab(panelH)
+  this.makeIndsTab(panelInnerH)
 }
 
 Exet.prototype.download = function(solved=true) {
@@ -1995,11 +2024,36 @@ Exet.prototype.arrowNav = function(key) {
   return true
 }
 
+Exet.prototype.scrollCluesIfNeeded = function() {
+  let clue = this.puz.clues[this.puz.currClueIndex]
+  if (!clue) return
+  let elt = clue.clueTR
+  if (!elt) return
+  const parPos = this.cluesPanel.getBoundingClientRect();
+  if (parPos.bottom < 0) {
+    return
+  }
+  let windowH = this.puz.getViewportHeight()
+  if (!windowH || windowH <= 0) {
+    return
+  }
+  if (parPos.top >= windowH) {
+    return
+  }
+  const pos = elt.getBoundingClientRect();
+  let ref = this.cluesPanel.firstElementChild
+  if (pos.bottom < 0 || pos.bottom < parPos.top || pos.top >= windowH ||
+      pos.top < parPos.top || pos.top >= parPos.bottom) {
+    this.cluesPanel.scrollTop = pos.top - ref.getBoundingClientRect().top
+  }
+}
+
 Exet.prototype.replaceHandlers = function() {
   this.puz.cnavToInner = (function() {
     exet.cnavToInnerSaved = exet.puz.cnavToInner;
     return function() {
       let ret = exet.cnavToInnerSaved.apply(exet.puz, arguments);
+      exet.scrollCluesIfNeeded()
       exet.makeClueEditable()
       exet.updateFillChoices()
       exet.handleTabClick(exet.currTab)

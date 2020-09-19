@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.10 September 19 2020
+
+- Mainly CSS changes, make the panels not move around, limit scroll bars, etc.
+- Scroll to the current clue in the clues list.
+
 ### Version: Exet v0.09 September 18 2020
 
 - Bug-fix: strip any newlines entered in clue/anno/title/setter/copyright.

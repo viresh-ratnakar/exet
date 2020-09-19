@@ -2,12 +2,12 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.09 September 18 2020
+#### Version: Exet v0.10 September 19 2020
 
 #### Author: Viresh Ratnakar
 
 Exet is free, open source software for setting crosswords.
-You can use Exet from [my site](https://viresh-ratnakar.github.io/exet.html)
+You can use Exet from my site, [exet.app](https://exet.app)
 or you can download and use your own copy of the software from this
 repository and a couple of files from
 [Exolve](https://github.com/viresh-ratnakar/exolve).
