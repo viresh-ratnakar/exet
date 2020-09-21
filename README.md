@@ -129,13 +129,13 @@ You can navigate to any cell using the arrow keys or by clicking on it
 from the "Edit" menu (as well as through keyboard shortcuts listed below
 and also shown in the menu):
 
-- Toggle block (.)
-- Toggle bar-after (|)
-- Toggle bar-under (_)
 - Toggle encircling (@)
 - Toggle marking prefilled (!)
+- Toggle block (.)
+- Toggle bar-after (|)
+- Toggle bar-under (\_)
 
-For the actions that modify the grid in non-cosmetic ways (.|_), symmetric
+For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
 changes are automatically applied to the other end of the grid.
 
 The "Open" menu allows you to start with blocked blank grids following a few
@@ -169,9 +169,16 @@ The grid-fill suggestions shown for a light take into account a limited
 amount of look-ahead. What that means is that the software evaluates
 each candidate suggestion for a light (that matches its crossing letters)
 by checking if the choice leads to a dead-end for any of the crossing
-clues. Such suggestions are moved to the bottom of the list and shown in
-purple colour. I will try to improve this feature over time by playing
-out multiple steps in the background.
+clues. This sweep to weed out non-viable grid-fill suggestions happens in
+the background, and also updates the viablots. When this background sweep
+is going on, a flashing red indicator is shown under the grid, in the
+bottom-right corner. You may notice grid-fill suggestions getting
+modified while such a sweep is going on.
+
+When Exet determines (using its lexicon) that for some unfilled cell, exactly
+one letter choice is viable, it shows that letter choice in gray. You can press
+"=" (or use the Edit menu's "Accept forced fills" option) to accept all such
+forced letter suggestions.
 
 ### Providing the clues
 
@@ -211,7 +218,7 @@ are:
   Nutrimatic anagrams may cover more possibilities than the anagrams shown in
   the Charades tab, as the anagrams shown in the Charades tab are restricted
   to words and phrases in the lexicon. Also shows a panel with possibilities for
-  composite anagrams (can also be used for anagrams with deletions).
+  composite anagrams (this can also be used for anagrams with deletions).
 - **Hidden...**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay ppossibilities for the
   current light. Setters can tweak the wordplay as they choose.

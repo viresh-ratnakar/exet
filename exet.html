@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.10 September 19, 2020
+Current version: v0.11 September 20, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -149,9 +149,6 @@ Current version: v0.10 September 19, 2020
   display: flex;
   flex-flow: column wrap;
   align-items: flex-start;
-}
-.xet-deadend {
-  color: magenta;
 }
 .xet-choices-box {  
   overflow-y: auto;
@@ -353,6 +350,35 @@ Current version: v0.10 September 19, 2020
 #xet-charade-choices td {
   padding: 3px 0;
 }
+.xet-sweeping-box {
+  display: inline-block;
+  position: absolute;
+  height: 31px;
+  width: 31px;
+  right: 0;
+  bottom: -22px;
+}
+@keyframes xet-sweeping {
+  from {width: 0; height: 0; border-radius: 0; left: 15.5px; top: 15.5px; background: red;}
+  to {width: 10px; height: 10px; border-radius: 5px; left: 10.5px; top: 10.5px; background: red;}
+}
+.xet-sweeping,
+.xet-sweeping-animated {
+  position: absolute;
+}
+.xet-sweeping {
+  left: 15.5px;
+  top: 15.5px;
+  width: 0;
+  height: 0;
+  border-radius: 0;
+}
+.xet-sweeping-animated {
+  animation-name: xet-sweeping;
+  animation-duration: 2s;
+  animation-direction: alternate;
+  animation-iteration-count: infinite;
+}
 </style>
 
 <title>Exet: Create a crossword</title>
@@ -430,10 +456,10 @@ function ExetRevManager() {
   this.previewId = `exet-preview-${Math.random().toString(36).substring(2, 8)}`
 };
 
-ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
-  let ids = []
-  if (id) {
-    ids = [id]
+ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
+  let choices = []
+  if (puz) {
+    choices = [{id: puz.id, title: puz.title}]
   } else {
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       let id = window.localStorage.key(idx)
@@ -449,13 +475,17 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
       if (!stored || !stored["id"] || !stored["revs"] || !stored["maxRevNum"]) {
         continue
       }
-      ids.push(id)
+      let title = ''
+      if (stored.revs.length > 0) {
+        title = stored.revs[stored.revs.length - 1].title
+      }
+      choices.push({id: stored.id, title: title})
     }
   }
   let html = `
   <table>
     <tr>
-      <td><i>Select puzzle ID</i></td>
+      <td><i>Select puzzle ID/Title</i></td>
       <td>
         <i>Select revision</i>
       </td>
@@ -464,9 +494,9 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
       <td>
         <div class="xet-choices-box" id="xet-choose-id">
           <table class="xet-choices" id="xet-id-choices">`
-  for (let i = 0; i < ids.length; i++) {
+  for (let i = 0; i < choices.length; i++) {
     html = html + `
-    <tr id="xet-id-choice-${i}"><td>${ids[i]}</td></tr>`
+      <tr id="xet-id-choice-${i}"><td>${choices[i].id}</td><td>${choices[i].title}</td></tr>`
   }
   html = html + `
           </table>
@@ -494,10 +524,10 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
   `
   elt.innerHTML = html
   this.idChoicesBox = document.getElementById('xet-choose-id')
-  this.idChoicesBox.style.width = '180px'
+  this.idChoicesBox.style.width = '270px'
   this.idChoicesBox.style.height = '200px'
   this.revChoicesBox = document.getElementById('xet-choose-rev')
-  this.revChoicesBox.style.width = '600px'
+  this.revChoicesBox.style.width = '500px'
   this.revChoicesBox.style.height = '200px'
   this.revChoices = document.getElementById('xet-rev-choices')
   this.preview = document.getElementById('xet-preview')
@@ -523,16 +553,16 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
   this.idSelectors = []
   this.revSelectors = []
   this.storedRevs = null
-  if (id) {
-    this.idChoice = id
+  if (puz) {
+    this.idChoice = puz.id
     document.getElementById("xet-id-choice-0").className = 'xet-chosen'
     this.chooseRev()
     return
   }
-  for (let i = 0; i < ids.length; i++) {
+  for (let i = 0; i < choices.length; i++) {
     let selector = document.getElementById(`xet-id-choice-${i}`)
     this.idSelectors.push(selector)
-    let id = ids[i]
+    let id = choices[i].id
     selector.addEventListener('click', e => {
       this.preview.innerHTML = ''
       delete exolvePuzzles[this.previewId]
@@ -545,7 +575,7 @@ ExetRevManager.prototype.choosePuzRev = function(id, elt, callback) {
         this.idChoice = null
         selector.className = ''
       } else {
-        for (let j = 0; j < ids.length; j++) {
+        for (let j = 0; j < choices.length; j++) {
           if (j != i) {
             this.idSelectors[j].className = ''
           }
@@ -691,7 +721,20 @@ function Exet() {
   this.throttledClueTimer = null;
   this.throttledMetadataTimer = null;
   this.throttledCharadeTimer = null;
+  this.viabilityUpdateTimer = null;
   this.inputLagMS = 400
+  this.sweepMS = 500
+
+  // Params for light choices shown.
+  this.sweepMaxChoices = 500
+  this.sweepMaxChoicesSmall = 4
+  this.shownLightChoices = 200
+
+  // Set of all letters in the lexicon.
+  this.allLetters = {}
+  for (let c of exetLexicon.letters) {
+    this.allLetters[c.toUpperCase()] = true
+  }
 };
 
 Exet.prototype.startNav = function(dir='A', row=0, col=0) {
@@ -917,6 +960,8 @@ Exet.prototype.setPuzzle = function(puz) {
   this.frame.className = 'xet-frame'
   this.frame.id = 'xet-frame'
   this.puz.gridPanel.after(this.frame)
+
+  delete this.shownChoicesHash
   this.populateFrame()
 
   // Add darkness and viability indicators ("viablots").
@@ -955,6 +1000,19 @@ Exet.prototype.setPuzzle = function(puz) {
       }
     }
   }
+
+  // Display lexicon info
+  const status = document.getElementById(`${this.puz.prefix}-status`)
+  status.insertAdjacentHTML('beforeend', `<span> Lexicon: ${exetLexicon.id} ${exetLexicon.language} ${exetLexicon.script}.</span>`)
+
+  // Display sweeping activity indicator
+  const gridParent = document.getElementById(`${this.puz.prefix}-grid-parent`)
+  gridParent.insertAdjacentHTML('beforeend',
+    `<div class="xet-sweeping-box"
+       title="When there is a flashing red circle here, Exet is pruning away non-viable grid-fill suggestions in the background">
+       <div class="xet-sweeping" id="xet-sweeping"></div></div>`)
+  this.sweepIndicator = document.getElementById('xet-sweeping')
+
   this.updateViability();
 
   return true
@@ -1058,6 +1116,7 @@ Exet.prototype.makeExetTab = function() {
           <div class="xet-dropdown-item" onclick="exet.handleKeyDown('_')">Toggle bar-under (_)</div>
           <hr>
           <hr>
+          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('=')">Accept forced fills (=)</div>
           <div class="xet-dropdown-item" onclick="exet.puz.clearAll()">Clear all the lights!</div>
         </div>
       </li>
@@ -1113,13 +1172,13 @@ Exet.prototype.makeExetTab = function() {
   this.revChooser = document.getElementById("xet-rev-chooser")
   let showPuzChooser = document.getElementById("xet-show-puz-chooser")
   showPuzChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev('', exet.revChooser, exetFromHistory);
+    exetRevManager.choosePuzRev(null, exet.revChooser, exetFromHistory);
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
   let showRevChooser = document.getElementById("xet-show-rev-chooser")
   showRevChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(this.puz.id, exet.revChooser, exetFromHistory);
+    exetRevManager.choosePuzRev(this.puz, exet.revChooser, exetFromHistory);
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
@@ -2059,6 +2118,7 @@ Exet.prototype.replaceHandlers = function() {
       exet.scrollCluesIfNeeded()
       exet.makeClueEditable()
       exet.updateFillChoices()
+      exet.startDeadendSweep(exet.puz.currClueIndex)
       exet.handleTabClick(exet.currTab)
       return ret
     };
@@ -2224,6 +2284,12 @@ Exet.prototype.handleClueChange = function() {
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
   let key = e.key || e
+  if (key == '=') {
+    if (this.acceptAll()) {
+      this.handleGridInput()
+    }
+    return
+  }
   let gridCell = this.puz.currCell()
   if (!gridCell) {
     return
@@ -2356,6 +2422,7 @@ Exet.prototype.makeExolve = function(specs) {
   if (!this.puz) {
     return
   }
+  this.initViability()
   this.handleTabClick(this.currTab);
   let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
   if (!exetState) {
@@ -2497,7 +2564,7 @@ Exet.prototype.keyMatchesPhrase = function(key, phrase) {
   return true
 }
 
-Exet.prototype.getLexChoices = function(partialSol, limit=1024) {
+Exet.prototype.getLexChoices = function(partialSol) {
   let choices = []
   let key = this.makeLexKey(partialSol);
   if (!key) return choices
@@ -2511,10 +2578,7 @@ Exet.prototype.getLexChoices = function(partialSol, limit=1024) {
   for (let idx of indices) {
     let phrase = exetLexicon.lexicon[idx]
     if (this.keyMatchesPhrase(key, phrase)) {
-      choices.push(phrase)
-      if (choices.length >= limit) {
-        return choices
-      }
+      choices.push(idx)
     }
   }
   return choices;
@@ -2524,7 +2588,7 @@ Exet.prototype.makeAnagramKey = function(phrase) {
   return phrase.toLowerCase().replace(/ /g, '').split('').sort().join('')
 }
 
-Exet.prototype.JavaHash = function(key) {
+Exet.prototype.javaHash = function(key) {
   let hash = 0;
   for (let i = 0; i < key.length; i++) {
     let c = key.charCodeAt(i);
@@ -2537,7 +2601,7 @@ Exet.prototype.JavaHash = function(key) {
 Exet.prototype.getAnagrams = function(phrase) {
   const key = this.makeAnagramKey(phrase);
   const NUM_SHARDS = exetLexicon.anagrams.length
-  let shard = this.JavaHash(key) % NUM_SHARDS
+  let shard = this.javaHash(key) % NUM_SHARDS
   if (shard < 0) shard += NUM_SHARDS
   let anagrams = []
   for (let idx of exetLexicon.anagrams[shard]) {
@@ -2549,168 +2613,473 @@ Exet.prototype.getAnagrams = function(phrase) {
   return anagrams
 }
 
-Exet.prototype.getCrossers = function(ci) {
-  let crossers = []
-  let theClue = this.puz.clues[ci]
-  if (theClue.dir == 'X') {
-    return crossers
+Exet.prototype.cellsOfClue = function(theClue) {
+  if (theClue.parentClueIndex) {
+    return []
+  } else if (!theClue.childrenClueIndices || theClue.childrenClueIndices.length == 0) {
+    return theClue.cells
   }
-  for (let i = 0; i < theClue.cells.length; i++) {
-    let x = theClue.cells[i]
-    let row = x[0]
-    let col = x[1]
-    let gridCell = this.puz.grid[row][col]
-    if (!gridCell.acrossClueLabel || !gridCell.downClueLabel) {
-      continue
-    }
-    let cci
-    if (theClue.dir == 'A') {
-      cci = 'D' + gridCell.downClueLabel
-    } else {
-      cci = 'A' + gridCell.acrossClueLabel
-    }
-    let crosser = this.puz.clues[cci]
-    if (crosser.lightChoices.length == 0) {
-      // crosser is already at a deadend, skip it.
-      continue
-    }
-    let index = -1
-    for (let j = 0; j < crosser.cells.length; j++) {
-      let ccell = crosser.cells[j]
-      if (ccell[0] == row && ccell[1] == col) {
-        crossers.push([i, cci, j])
-        break;
-      }
-    }
+  let cells = []
+  let linked = this.puz.getLinkedClues(theClue.index)
+  for (let lci of linked) {
+    cells = cells.concat(this.puz.clues[lci].cells)
   }
-  return crossers
+  return cells
 }
 
-Exet.prototype.findDeadendFills = function() {
+Exet.prototype.IntersectChoices = function(set1, set2) {
+  let result = {}
+  for (let x in set2) {
+    if (set1[x]) result[x] = true
+  }
+  return result
+}
+
+Exet.prototype.Set2Trims = function(set1, set2) {
+  for (let x in set1) {
+    if (!set2[x]) return true
+  }
+  return false
+}
+
+Exet.prototype.findDeadendsByCell = function() {
+  for (let ci in this.puz.clues) {
+    let theClue = this.puz.clues[ci]
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      continue
+    }
+    let cells = this.cellsOfClue(theClue)
+    let cellChoiceSets = []
+    for (let cell of cells) {
+      cellChoiceSets.push({})
+    }
+    let limit = Math.min(this.shownLightChoices, theClue.lightChoices.length)
+    for (let i = 0; i < limit; i++) {
+      let lchoice = theClue.lightChoices[i]
+      let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+      console.assert(key.length = cells.length, key.length, cells.length)
+      for (let i = 0; i < key.length; i++) {
+        let letter = key.charAt(i).toUpperCase()
+        cellChoiceSets[i][letter] = true
+      }
+    }
+    for (let i = 0; i < cells.length; i++) {
+      let cell = cells[i]
+      let gridCell = this.puz.grid[cell[0]][cell[1]]
+      if (gridCell.solution != '?') {
+        continue
+      }
+      gridCell.choices = this.IntersectChoices(gridCell.choices, cellChoiceSets[i])
+    }
+  }
   let changes = 0;
   for (let ci in this.puz.clues) {
     let theClue = this.puz.clues[ci]
-    let crossers = this.getCrossers(ci)
-    let checkSets = {}
-    for (let crosser of crossers) {
-      if (!checkSets[crosser[0]]) {
-        checkSets[crosser[0]] = {}
-      }
-      let crosserClue = this.puz.clues[crosser[1]]
-      for (let crosserChoice of crosserClue.lightChoices) {
-        let crosserKey = this.makeLexKey(crosserChoice)
-        checkSets[crosser[0]][crosserKey.charAt(crosser[2])] = true
-      }
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      continue
     }
-    let choices = theClue.lightChoices.slice()
+    let cells = this.cellsOfClue(theClue)
+    let choices = theClue.lightChoices.slice(0, this.sweepMaxChoices)
+    let remChoices = theClue.lightChoices.slice(this.sweepMaxChoices)
     theClue.lightChoices = []
-    for (let choice of choices) {
-      let key = this.makeLexKey(choice)
+    for (let lchoice of choices) {
+      let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
       let viable = true
       for (let i = 0; i < key.length; i++) {
-        if (!checkSets[i]) {
-          continue
-        }
-        let letter = key.charAt(i)
-        if (!checkSets[i][letter]) {
+        let cell = cells[i]
+        let gridCell = this.puz.grid[cell[0]][cell[1]]
+        let letter = key.charAt(i).toUpperCase()
+        if (gridCell.solution == '?' && !gridCell.choices[letter]) {
           viable = false
           break
         }
       }
       if (viable) {
-        theClue.lightChoices.push(choice)
+        theClue.lightChoices.push(lchoice)
       } else {
-        theClue.fillDeadends.push(choice)
         changes++;
       }
     }
+    if (remChoices.length > 0) {
+      theClue.lightChoices = theClue.lightChoices.concat(remChoices)
+    }
   }
+  let forceEndSweep = false
   for (let i = 0; i < this.puz.gridHeight; i++) {
     for (let j = 0; j < this.puz.gridWidth; j++) {
       let gridCell = this.puz.grid[i][j]
       if (!gridCell.isLight || gridCell.solution != '?') {
         continue
       }
-      gridCell.viability = 5.0;
-    }
-  }
-  for (let ci in this.puz.clues) {
-    let theClue = this.puz.clues[ci]
-    theClue.viability = this.viability(theClue.lightChoices.length);
-    for (let c of theClue.cells) {
-      let gridCell = this.puz.grid[c[0]][c[1]]
-      if (gridCell.solution == '?' && theClue.viability < gridCell.viability) {
-        gridCell.viability = theClue.viability
-      }
-    }
-  }
-  for (let i = 0; i < this.puz.gridHeight; i++) {
-    for (let j = 0; j < this.puz.gridWidth; j++) {
-      let gridCell = this.puz.grid[i][j]
-      if (!gridCell.isLight || gridCell.solution != '?') {
-        continue
-      }
+      let choices = Object.keys(gridCell.choices)
+      gridCell.viability = this.viability(choices.length)
       let viablot = gridCell.viablot
       viablot.style.fill = (gridCell.viability >= 5 ?
         'transparent' : (gridCell.viability == 0 ? 'magenta' : 'red'))
       viablot.setAttributeNS(null, 'r',
                              this.puz.circleR * 0.1 * (5 - gridCell.viability));
+      if (choices.length == 1) {
+        if (!gridCell.forcedLetter) {
+          let cellText =
+            document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          cellText.setAttributeNS(
+            null, 'x', this.puz.cellLeftPos(j, this.puz.lightStartX));
+          cellText.setAttributeNS(
+            null, 'y', this.puz.cellTopPos(i, this.puz.lightStartY));
+          cellText.setAttributeNS(null, 'text-anchor', 'middle');
+          cellText.setAttributeNS(null, 'editable', 'simple');
+          let cellClass = 'xlv-cell-text'
+          cellText.style.fill = 'gray'
+          cellText.style.fontSize = this.puz.letterSize + 'px'
+          cellText.setAttributeNS(null, 'class', cellClass)
+          cellText.addEventListener('click', this.puz.cellActivator.bind(this.puz, i, j));
+
+          const text = document.createTextNode(choices[0]);
+          cellText.appendChild(text);
+          this.puz.svg.appendChild(cellText)
+          gridCell.forcedLetter = text
+        }
+        gridCell.forcedLetter.nodeValue = choices[0]
+        viablot.style.fill = 'transparent'
+      } else {
+        if (gridCell.forcedLetter) {
+          gridCell.forcedLetter.nodeValue = ''
+        }
+      }
+      if (gridCell.viability == 0) {
+        forceEndSweep = true
+      }
     }
   }
-  this.updateFillChoices()
+  if (forceEndSweep) {
+    if (this.viabilityUpdateTimer) {
+      clearTimeout(this.viabilityUpdateTimer);
+    }
+    this.viabilityUpdateTimer = null;
+    this.sweepIndicator.className = 'xet-sweeping'
+    return 0;
+  }
   return changes
 }
 
-Exet.prototype.findAllDeadendFills = function() {
-  if (this.viabilityUpdateTimer) {
-    clearTimeout(this.viabilityUpdateTimer);
+Exet.prototype.acceptAll = function() {
+  let changed = false;
+  // First do it by clue, to get hyphens/word-breaks.
+  for (let ci in this.puz.clues) {
+    let theClue = this.puz.clues[ci]
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      continue
+    }
+    let choices = theClue.lightChoices
+    if (choices.length != 1) {
+      continue
+    }
+    this.fillLight(choices[0], ci)
+    changed = true
   }
-  this.viabilityUpdateTimer = null;
-  let changes = this.findDeadendFills()
-  if (changes > 0) {
-    this.viabilityUpdateTimer = setTimeout(() => {
-      this.findAllDeadendFills()
-    }, 500);
-  }
-}
-
-Exet.prototype.viability = function(len) {
-  return len == 0 ? 0 : (1 + (Math.log(len) / Math.log(4)));
-}
-
-Exet.prototype.updateViability = function() {
   for (let i = 0; i < this.puz.gridHeight; i++) {
     for (let j = 0; j < this.puz.gridWidth; j++) {
       let gridCell = this.puz.grid[i][j]
       if (!gridCell.isLight || gridCell.solution != '?') {
         continue
       }
-      if (!gridCell.hasOwnProperty('viability')) {
+      if (gridCell.forcedLetter && gridCell.forcedLetter.nodeValue) {
+        let c = gridCell.forcedLetter.nodeValue
+        gridCell.currLetter = c
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+// Finds a clue that becomes non-viable when it previously was viable.
+// Return true if such a clue can be found.
+Exet.prototype.someClueTurnsNonViable = function(tempGrid) {
+  let changes = 1
+  let tempClues = {}
+  for (let ci in this.puz.clues) {
+    tempClues[ci] = {}
+    let theClue = this.puz.clues[ci]
+    if (theClue.lightChoices) {
+      tempClues[ci].choices = theClue.lightChoices.slice()
+    }
+  }
+  let count = 0
+  while (changes > 0 && count < 1) {
+    count++
+    changes = 0
+    for (let ci in this.puz.clues) {
+      let theClue = this.puz.clues[ci]
+      if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+        continue
+      }
+      let cells = this.cellsOfClue(theClue)
+      let cellChoiceSets = []
+      for (let cell of cells) {
+        cellChoiceSets.push({})
+      }
+      let tempClue = tempClues[ci]
+      let limit = Math.min(this.shownLightChoices, tempClue.choices.length)
+      for (let i = 0; i < limit; i++) {
+        let lchoice = tempClue.choices[i]
+        let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+        console.assert(key.length = cells.length, key.length, cells.length)
+        for (let i = 0; i < key.length; i++) {
+          let letter = key.charAt(i).toUpperCase()
+          cellChoiceSets[i][letter] = true
+        }
+      }
+      for (let i = 0; i < cells.length; i++) {
+        let cell = cells[i]
+        let gridCell = this.puz.grid[cell[0]][cell[1]]
+        if (gridCell.solution != '?') {
+          continue
+        }
+        let tempGridCell = tempGrid[cell[0]][cell[1]]
+        tempGridCell.choices = this.IntersectChoices(tempGridCell.choices, cellChoiceSets[i])
+      }
+    }
+    for (let ci in this.puz.clues) {
+      let theClue = this.puz.clues[ci]
+      if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+        continue
+      }
+      let cells = this.cellsOfClue(theClue)
+      let tempClue = tempClues[ci]
+      if (tempClue.choices.length > this.sweepMaxChoicesSmall) {
+        continue
+      }
+      let choices = tempClue.choices.slice()
+      tempClue.choices = []
+      for (let i = 0; i < choices.length; i++) {
+        let lchoice = choices[i]
+        let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+        let viable = true
+        for (let i = 0; i < key.length; i++) {
+          let cell = cells[i]
+          let gridCell = this.puz.grid[cell[0]][cell[1]]
+          if (gridCell.solution != '?') {
+            continue
+          }
+          let tempGridCell = tempGrid[cell[0]][cell[1]]
+          let letter = key.charAt(i).toUpperCase()
+          if (!tempGridCell.choices[letter]) {
+            viable = false
+            break
+          }
+        }
+        if (viable) {
+          tempClue.choices.push(lchoice)
+        } else {
+          changes++;
+        }
+      }
+      if (choices.length > 0 && tempClue.choices.length == 0) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+// Returns true if should be called again
+Exet.prototype.findDeadendsByClue = function() {
+  let ci = this.deadendClueCheck
+  if (!ci) {
+    return false
+  }
+  let theClue = this.puz.clues[ci]
+  if (!theClue) {
+    return false
+  }
+  if (theClue.parentClueIndex) {
+    ci = theClue.parentClueIndex
+    theClue = this.puz.clues[ci]
+  }
+  if (!theClue.solution || theClue.solution.indexOf('?')) {
+    return false
+  }
+  let cells = this.cellsOfClue(theClue)
+  if (this.deadendClueLightCheck >= theClue.lightChoices.length ||
+      cells.length == 0) {
+    return false
+  }
+  if (this.deadendClueLightCheck >= this.shownLightChoices) {
+    return false
+  }
+  const CHOICES_TO_CHECK = 3
+  let prefix = theClue.lightChoices.slice(0, this.deadendClueLightCheck)
+  let choices = theClue.lightChoices.slice(this.deadendClueLightCheck, this.deadendClueLightCheck + CHOICES_TO_CHECK)
+  let viableChoices = []
+  let suffix = theClue.lightChoices.slice(this.deadendClueLightCheck + CHOICES_TO_CHECK)
+  let oldLen = theClue.lightChoices.length
+  for (let lchoice of choices) {
+    let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+    console.assert(key.length = cells.length, key.length, cells.length)
+    let tempGrid = new Array(this.puz.gridHeight)
+    for (let r = 0; r < this.puz.gridHeight; r++) {
+      tempGrid[r] = new Array(this.puz.gridWidth)
+      for (let c = 0; c < this.puz.gridWidth; c++) {
+        tempGrid[r][c] = {}
+        if (this.puz.grid[r][c].choices) {
+          tempGrid[r][c].choices = this.puz.grid[r][c].choices
+        }
+      }
+    }
+    for (let i = 0; i < cells.length; i++) {
+      let cell = cells[i]
+      let tempGridCell = tempGrid[cell[0]][cell[1]]
+      tempGridCell.choices = {}
+      let letter = key.charAt(i).toUpperCase()
+      tempGridCell.choices[letter] = true
+    }
+    if (!this.someClueTurnsNonViable(tempGrid)) {
+      viableChoices.push(lchoice)
+    }
+  }
+  theClue.lightChoices = prefix.concat(viableChoices, suffix)
+  this.deadendClueCheckChanges += (oldLen - theClue.lightChoices.length)
+  this.deadendClueLightCheck +=  viableChoices.length
+  return this.deadendClueLightCheck < theClue.lightChoices.length
+}
+
+Exet.prototype.startDeadendSweep = function(ci='') {
+  if (this.viabilityUpdateTimer) {
+    clearTimeout(this.viabilityUpdateTimer);
+  }
+  this.viabilityUpdateTimer = null;
+  if (!this.puz || this.puz.numCellsFilled >= this.puz.numCellsToFill) {
+    return
+  }
+  this.deadendsGridSweep = true
+  this.viabilityUpdateTimer = setTimeout(() => {
+    this.findAllDeadendFills(ci)
+  }, this.sweepMS);
+}
+
+Exet.prototype.getClueToCheckDeadends = function(ci) {
+  if (ci) {
+    let theClue = this.puz.clues[ci]
+    if (theClue.parentClueIndex) {
+      ci = theClue.parentClueIndex
+      theClue = this.puz.clues[ci]
+    }
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      return ''
+    }
+    return ci
+  }
+  // Find most constrained unsolved and still-viable clue
+  let res = ''
+  let resChoices = exetLexicon.lexicon.length
+  for (ci in this.puz.clues) {
+    let theClue = this.puz.clues[ci]
+    if (theClue.parentClueIndex) continue
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) continue
+    if (theClue.lightChoices.length > 0 && theClue.lightChoices.length < resChoices) {
+      resChoices = theClue.lightChoices.length
+      res = ci
+    }
+  }
+  return res
+}
+
+Exet.prototype.findAllDeadendFills = function(ci) {
+  if (this.viabilityUpdateTimer) {
+    clearTimeout(this.viabilityUpdateTimer);
+  }
+  this.viabilityUpdateTimer = null;
+  this.sweepIndicator.className = 'xet-sweeping-animated'
+  if (this.deadendsGridSweep) {
+    let changes = this.findDeadendsByCell()
+    if (changes > 0) {
+      this.updateFillChoices()
+      this.viabilityUpdateTimer = setTimeout(() => {
+        this.findAllDeadendFills(ci)
+      }, this.sweepMS);
+    } else {
+      // Start the clue-sweep
+      this.deadendsGridSweep = false
+      this.deadendClueLightCheck = 0;
+      this.deadendClueCheckChanges = 0;
+      this.deadendClueCheck = this.getClueToCheckDeadends(ci);
+      if (!this.deadendClueCheck) {
+        this.sweepIndicator.className = 'xet-sweeping'
+        return
+      }
+      this.viabilityUpdateTimer = setTimeout(() => {
+        this.findAllDeadendFills()
+      }, this.sweepMS);
+    }
+  } else {
+    let doMore = this.findDeadendsByClue()
+    if (this.deadendClueCheckChanges > 0) {
+      this.updateFillChoices()
+    }
+    if (!doMore) {
+      this.deadendsGridSweep = true
+      if (this.deadendClueCheckChanges > 0) {
+        // Repeat the grid-sweep
+        this.viabilityUpdateTimer = setTimeout(() => {
+          this.findAllDeadendFills()
+        }, this.sweepMS);
+      } else {
+        this.sweepIndicator.className = 'xet-sweeping'
+      }
+    } else {
+      this.viabilityUpdateTimer = setTimeout(() => {
+        this.findAllDeadendFills()
+      }, this.sweepMS);
+    }
+  }
+}
+
+Exet.prototype.viability = function(len) {
+  const log2 = 0.6931471805599453;
+  return len == 0 ? 0 : (len >= 16 ? 5 : (1 + (Math.log(len) / log2)));
+}
+
+Exet.prototype.initViability = function() {
+  for (let i = 0; i < this.puz.gridHeight; i++) {
+    for (let j = 0; j < this.puz.gridWidth; j++) {
+      let gridCell = this.puz.grid[i][j]
+      if (!gridCell.isLight) {
+        continue
+      }
+      if (gridCell.solution != '?') {
+        gridCell.choices = {}
+        gridCell.choices[gridCell.solution] = true
+        gridCell.viability = 1.0;
+      } else {
+        gridCell.choices = this.allLetters
         gridCell.viability = 5.0;
       }
     }
   }
-  // TODO: move to a background job:
+}
+
+Exet.prototype.updateViability = function() {
   for (let ci in this.puz.clues) {
     let theClue = this.puz.clues[ci]
     let key = this.makeLexKey(theClue.solution)
     theClue.lightChoices = this.getLexChoices(key)
-    theClue.fillDeadends = []
   }
   this.updateFillChoices()
-  if (this.viabilityUpdateTimer) {
-    clearTimeout(this.viabilityUpdateTimer);
-  }
-  this.viabilityUpdateTimer = setTimeout(() => {
-    this.findAllDeadendFills()
-  }, 500);
+  this.startDeadendSweep()
 }
 
-Exet.prototype.fillLight = function(solution) {
-  if (!this.puz.currClueIndex) {
+Exet.prototype.fillLight = function(idx, ci='') {
+  let updateIfChanged = false
+  if (!ci && this.puz) {
+    ci = this.puz.currClueIndex
+    updateIfChanged = true
+  }
+  if (!ci) {
     return
   }
-  let theClue = this.puz.clues[this.puz.currClueIndex]
+  let solution = exetLexicon.lexicon[idx]
+  let theClue = this.puz.clues[ci]
   if (!theClue || !solution ||
       this.makeLexKey(solution).length != theClue.cells.length) {
     return
@@ -2736,9 +3105,6 @@ Exet.prototype.fillLight = function(solution) {
       let gridCell = this.puz.grid[cell[0]][cell[1]]
       if (gridCell.currLetter != c || gridCell.solution != c) {
         gridCell.currLetter = c
-        gridCell.solution = c
-        gridCell.textNode.nodeValue = c
-        gridCell.viablot.style.fill = 'transparent'
         changed = true
       }
     }
@@ -2759,13 +3125,12 @@ Exet.prototype.fillLight = function(solution) {
     theClue.clue = theClue.clue.trim() + ' (' + enumStr + ')'
     changed = true
   }
-  if (changed) {
-    this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+  if (changed && updateIfChanged) {
+    this.handleGridInput()
   }
 }
 
 Exet.prototype.updateFillChoices = function() {
-  this.lightChoices.innerHTML = ''
   if (!this.puz.currClueIndex) {
     return
   }
@@ -2774,21 +3139,23 @@ Exet.prototype.updateFillChoices = function() {
     return
   }
   let html = ''
+  let numShown = 0
   for (let choice of theClue.lightChoices) {
     html = html + `
-      <tr><td>${choice}</td></tr>
+      <tr><td>${exetLexicon.lexicon[choice]}</td></tr>
     `
+    numShown++
+    if (numShown >= this.shownLightChoices) break;
   }
-  for (let choice of theClue.fillDeadends) {
-    html = html + `
-      <tr class="xet-deadend"><td>${choice}</td></tr>
-    `
+  let htmlHash = this.javaHash(html + this.puz.currClueIndex)
+  if (this.shownChoicesHash && this.shownChoicesHash == htmlHash) {
+    return
   }
+  this.shownChoicesHash = htmlHash
   this.lightChoices.innerHTML = html
   let trs = this.lightChoices.getElementsByTagName('tr')
-  let choices = theClue.lightChoices.concat(theClue.fillDeadends)
   for (let i = 0; i < trs.length; i++) {
-    trs[i].addEventListener('click', this.fillLight.bind(this, choices[i]))
+    trs[i].addEventListener('click', this.fillLight.bind(this, theClue.lightChoices[i], ''))
   }
 }
 

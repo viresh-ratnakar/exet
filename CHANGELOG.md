@@ -1,5 +1,34 @@
 # Changelog
 
+### Version: Exet v0.11 September 20 2020
+
+- Do not show "deadend" light choices in magenta anymore. We now load
+  all possible light choices and weed them out, so the deadends list
+  might become too long.
+- Show a flashing viablot-like indicator at the bottom right just under
+  the grid when Exet is doing a sweep to weed out non-viable grid-fill
+  suggestions.
+- Show puzzle titles in the dialog to open a previous crossword.
+- Use a grid-cell-based viability value directly, using the # of possible
+  letter choices, instead of deriving it from a light-based scheme.
+- If light choices for a light are exactly the same as its last set,
+  after some part of the background sweep, do not change the innerHTML
+  of the light choices box (to avoid losing clicks).
+- Display the current lexicon id.
+- When an unfilled grid cell has exactly one possible choice, show
+  that forced letter in gray.
+- Add a control ('=', also in the Edit menu) to accept all forced letters
+  shown.
+- Lots of changes to the background sweep to compute viability and to
+  update grid-fill suggestions:
+  - Do some look-ahead in the current clue.
+  - Chunk all the work better to make the UI responsive.
+  - Do not consider filled cells/lights (they might have been filled
+    out-of-lexicon).
+  - Limit the # of light choices looked at.
+  - End the sweep when some unfillable cells are found (rather than
+    continuing and marking all remaining cells unfilled).
+
 ### Version: Exet v0.10 September 19 2020
 
 - Mainly CSS changes, make the panels not move around, limit scroll bars, etc.
