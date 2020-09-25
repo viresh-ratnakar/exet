@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.11 September 20, 2020
+Current version: v0.12 September 24, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -129,6 +129,9 @@ Current version: v0.11 September 20, 2020
   font-size: 14px;
   padding: 2px 2px 4px 2px;
 }
+.xet-red {
+  color: red;
+}
 .xet-blue {
   color: blue;
   text-decoration: none;
@@ -194,9 +197,8 @@ Current version: v0.11 September 20, 2020
 }
 .xet-choices tr:nth-child(even) td { background: #F1F1F1; }   
 .xet-choices tr:nth-child(odd) td { background: #FEFEFE; }  
-.xet-choices tr:hover td {
+.xet-choices:not(.xet-picked) tr:hover td {
   background: lightgreen;
-  cursor: pointer;
 }  
 .xet-menu {
   position: relative;
@@ -451,22 +453,56 @@ function ExetRevManager() {
 
   // Special localStorage key for storing preferences and state
   this.SPECIAL_KEY = '42-exet-42'
+  this.spaceUsedAtStart = 0
+  for (let idx = 0; idx < window.localStorage.length; idx++) {
+    let id = window.localStorage.key(idx)
+    this.spaceUsedAtStart += window.localStorage.getItem(id).length
+  }
+  this.spaceUsed = this.spaceUsedAtStart
+
+  let k500 = '1234567812345678'
+  while (k500.length < 500000) {
+    k500 = k500 + k500
+  }
+  let tempKey = '42-exet-cap-42-'
+  this.spaceLeftAtStart = 0
+  for (let i = 0; i < 20; i++) {
+    // Only count up to 10 MB
+    try {
+      window.localStorage.setItem(tempKey + i, k500)
+      this.spaceLeftAtStart += k500.length
+    } catch (err) {
+      break
+    }
+  }
+  for (let i = 0; i < 20; i++) {
+    window.localStorage.removeItem(tempKey + i)
+  }
 
   // Id for previews
   this.previewId = `exet-preview-${Math.random().toString(36).substring(2, 8)}`
 };
 
-ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
+ExetRevManager.prototype.inMB = function(num) {
+  return (num / 1000000).toFixed(2)
+}
+
+ExetRevManager.prototype.choosePuzRev = function(manageStorage=false, puz, elt, callback) {
   let choices = []
   if (puz) {
-    choices = [{id: puz.id, title: puz.title}]
+    let stored = window.localStorage.getItem(puz.id)
+    let spaceUsed = stored.length
+    choices = [{id: puz.id, title: puz.title, space: spaceUsed}]
   } else {
+    this.spaceUsed = 0
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       let id = window.localStorage.key(idx)
+      let stored = window.localStorage.getItem(id)
+      let spaceUsed = stored.length
+      this.spaceUsed += spaceUsed
       if (id == this.SPECIAL_KEY) {
         continue
       }
-      let stored = window.localStorage.getItem(id)
       try {
         stored = JSON.parse(stored)
       } catch (err) {
@@ -479,7 +515,7 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
       if (stored.revs.length > 0) {
         title = stored.revs[stored.revs.length - 1].title
       }
-      choices.push({id: stored.id, title: title})
+      choices.push({id: stored.id, title: title, space: spaceUsed})
     }
   }
   let html = `
@@ -496,7 +532,7 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
           <table class="xet-choices" id="xet-id-choices">`
   for (let i = 0; i < choices.length; i++) {
     html = html + `
-      <tr id="xet-id-choice-${i}"><td>${choices[i].id}</td><td>${choices[i].title}</td></tr>`
+      <tr id="xet-id-choice-${i}"><td>${choices[i].id}</td><td>${choices[i].title}</td><td>${this.inMB(choices[i].space)} MB</td></tr>`
   }
   html = html + `
           </table>
@@ -512,9 +548,20 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
     <tr>
       <td colspan="2">
         <div>
-        <button id="xset-puz-rev-selector"
-          style="float:right;margin: 0 16px;"
-          class="xlv-button">Open</button>
+          <span>Space used: ${this.inMB(this.spaceUsed)} MB</span>
+          <span>Space available: <span class="xet-red">${this.inMB(this.spaceUsedAtStart + this.spaceLeftAtStart - this.spaceUsed)}</span> MB</span>
+          <button id="xset-puz-rev-deleter"
+            style="float:right;margin: 0 16px; display: none"
+            class="xlv-button">Delete rev</button>
+          <button id="xset-puz-prior-deleter"
+            style="float:right;margin: 0 16px; display: none"
+            class="xlv-button">Delete older revs!</button>
+          <button id="xset-puz-deleter"
+            style="float:right;margin: 0 16px; display: none"
+            class="xlv-button">Delete!</button>
+          <button id="xset-puz-rev-selector"
+            style="float:right;margin: 0 16px; display: none"
+            class="xlv-button">Open</button>
         </div>
         <div id="xet-preview" class="xet-preview">
         </div>
@@ -526,6 +573,7 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
   this.idChoicesBox = document.getElementById('xet-choose-id')
   this.idChoicesBox.style.width = '270px'
   this.idChoicesBox.style.height = '200px'
+  this.idChoices = document.getElementById('xet-id-choices')
   this.revChoicesBox = document.getElementById('xet-choose-rev')
   this.revChoicesBox.style.width = '500px'
   this.revChoicesBox.style.height = '200px'
@@ -533,23 +581,69 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
   this.preview = document.getElementById('xet-preview')
   this.idChoice = ''
   this.revChoice = -1
+  this.puzDeleter = document.getElementById('xset-puz-deleter')
+  this.puzPriorDeleter = document.getElementById('xset-puz-prior-deleter')
+  this.puzRevDeleter = document.getElementById('xset-puz-rev-deleter')
   this.puzRevSelector = document.getElementById('xset-puz-rev-selector')
-  this.puzRevSelector.disabled = true
-  this.puzRevSelector.addEventListener('click', e => {
-    if (this.revChoice < 0 || !this.storedRevs ||
-        this.storedRevs.revs.length == 0 ||
-        this.revChoice >= this.storedRevs.revs.length) {
-      console.log('Hmm: bad selection! Check ExetRevManager:')
-      console.log(this)
-      return
+  this.manageStorage = manageStorage
+  if (manageStorage) {
+    this.puzDeleter.style.display = ''
+    this.puzPriorDeleter.style.display = ''
+    this.puzRevDeleter.style.display = ''
+    this.puzDeleter.disabled = true
+    this.puzPriorDeleter.disabled = true
+    this.puzRevDeleter.disabled = true
+    let deleter = (types, e) => {
+      if (!confirm('Are you sure you want to delete ' + types + ' revision(s)?')) {
+        return
+      }
+      this.idChoices.className = 'xet-choices'
+      this.revChoices.className = 'xet-choices'
+      if (types == 'all') {
+        window.localStorage.removeItem(this.idChoice)
+      } else {
+        if (this.revChoice < 0 || !this.storedRevs ||
+            this.storedRevs.revs.length == 0 ||
+            this.revChoice >= this.storedRevs.revs.length) {
+          console.log('Weird, did not find revChoice/storedRevs to delete from')
+          return
+        }
+        let lastToDelete = this.revChoice
+        if (types == 'prior') lastToDelete--
+        let numToDelete = (types == 'prior' ? lastToDelete + 1 : 1)
+        let newRevs = []
+        if (lastToDelete - numToDelete >= 0) {
+          newRevs = this.storedRevs.revs.slice(0, lastToDelete - numToDelete + 1)
+        }
+        this.storedRevs.revs = newRevs.concat(this.storedRevs.revs.slice(lastToDelete + 1))
+        this.saveLocal(this.idChoice, JSON.stringify(this.storedRevs))
+      }
+      this.choosePuzRev(true, null, exet.revChooser, null)
+      e.stopPropagation()
     }
-    exetModals.hide()
-    this.idSelectors = []
-    this.revSelectors = []
-    this.preview.innerHTML = ''
-    delete exolvePuzzles[this.previewId]
-    callback(this.storedRevs.revs[this.revChoice])
-  })
+    this.puzDeleter.addEventListener('click', deleter.bind(this, 'all'))
+    this.puzPriorDeleter.addEventListener('click', deleter.bind(this, 'prior'))
+    this.puzRevDeleter.addEventListener('click', deleter.bind(this, 'this'))
+  } else {
+    this.puzRevSelector.style.display = ''
+    this.puzRevSelector.disabled = true
+    this.puzRevSelector.addEventListener('click', e => {
+      if (this.revChoice < 0 || !this.storedRevs ||
+          this.storedRevs.revs.length == 0 ||
+          this.revChoice >= this.storedRevs.revs.length) {
+        console.log('Hmm: bad selection! Check ExetRevManager:')
+        console.log(this)
+        return
+      }
+      exetModals.hide()
+      this.idSelectors = []
+      this.revSelectors = []
+      this.preview.innerHTML = ''
+      delete exolvePuzzles[this.previewId]
+      callback(this.storedRevs.revs[this.revChoice])
+    })
+  }
+
   this.idSelectors = []
   this.revSelectors = []
   this.storedRevs = null
@@ -566,7 +660,11 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
     selector.addEventListener('click', e => {
       this.preview.innerHTML = ''
       delete exolvePuzzles[this.previewId]
+      this.puzDeleter.disabled = true
+      this.puzPriorDeleter.disabled = true
+      this.puzRevDeleter.disabled = true
       this.revChoices.innerHTML = ''
+      this.revChoices.className = 'xet-choices'
       this.revChoice = -1
       this.revSelectors = []
       this.storedRevs = null
@@ -574,6 +672,7 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
       if (id == this.idChoice) {
         this.idChoice = null
         selector.className = ''
+        this.idChoices.className = 'xet-choices'
       } else {
         for (let j = 0; j < choices.length; j++) {
           if (j != i) {
@@ -581,7 +680,9 @@ ExetRevManager.prototype.choosePuzRev = function(puz, elt, callback) {
           }
         }
         this.idChoice = id
+        this.puzDeleter.disabled = false
         selector.className = 'xet-chosen'
+        this.idChoices.className = 'xet-choices xet-picked'
         this.chooseRev()
       }
     })
@@ -614,12 +715,18 @@ ExetRevManager.prototype.chooseRev = function() {
     let selector = document.getElementById(`xet-rev-choice-${i}`)
     this.revSelectors.push(selector)
     selector.addEventListener('click', e => {
+      if (!this.storedRevs) {
+        return
+      }
+      this.puzPriorDeleter.disabled = true
+      this.puzRevDeleter.disabled = true
       this.puzRevSelector.disabled = true
       this.preview.innerHTML = ''
       delete exolvePuzzles[this.previewId]
       if (i == this.revChoice) {
         this.revChoice = -1
         selector.className = ''
+        this.revChoices.className = 'xet-choices'
       } else {
         for (let j = 0; j < this.revSelectors.length; j++) {
           if (j != i) {
@@ -628,15 +735,27 @@ ExetRevManager.prototype.chooseRev = function() {
         }
         this.revChoice = i
         selector.className = 'xet-chosen'
+        this.revChoices.className = 'xet-choices xet-picked'
         let exolve = this.storedRevs.revs[i].exolve.replace(/exolve-id:[ ]*[a-zA-Z0-9-]*/,
             `exolve-id: ${this.previewId}`)
         let newPuz = new Exolve(exolve, "xet-preview", null, false, 0, 400)
         newPuz.revealAll(false)
+        this.puzPriorDeleter.disabled = (i <= 0)
+        this.puzRevDeleter.disabled = false
         this.puzRevSelector.disabled = false
       }
     })
   }
 };
+
+ExetRevManager.prototype.saveLocal = function(k, v) {
+  try {
+    window.localStorage.setItem(k, v)
+  } catch (err) {
+    alert('No available local storage left. Please use the "Manage storage" menu option to free up some space.')
+    console.log('Could not save value of length ' + v.length + ' for key: ' + k)
+  }
+}
 
 ExetRevManager.prototype.saveRev = function(revType, details="") {
   if (!exet || !exet.puz || !exet.puz.id) {
@@ -671,7 +790,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.scratchPad = exet.puz.scratchPad.value
   exetRev.navState = [exet.puz.currDir, exet.puz.currRow, exet.puz.currCol]
   stored.revs.push(exetRev)
-  window.localStorage.setItem(exet.puz.id, JSON.stringify(stored))
+  this.saveLocal(exet.puz.id, JSON.stringify(stored))
 };
 
 ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
@@ -1084,6 +1203,12 @@ Exet.prototype.makeExetTab = function() {
               </div>
             </div>
           </div>
+          <div class="xet-dropdown-item" id="xet-manage-storage">
+            Manage storage (Used:
+            ${exetRevManager.inMB(exetRevManager.spaceUsed)} MB
+            Available: 
+              <span class="xet-red">${exetRevManager.inMB(exetRevManager.spaceUsedAtStart + exetRevManager.spaceLeftAtStart - exetRevManager.spaceUsed)}</span> MB)
+          </div>
         </div>
       </li>
       <li class="xet-dropdown">
@@ -1172,13 +1297,19 @@ Exet.prototype.makeExetTab = function() {
   this.revChooser = document.getElementById("xet-rev-chooser")
   let showPuzChooser = document.getElementById("xet-show-puz-chooser")
   showPuzChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(null, exet.revChooser, exetFromHistory);
+    exetRevManager.choosePuzRev(false, null, exet.revChooser, exetFromHistory);
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
   let showRevChooser = document.getElementById("xet-show-rev-chooser")
   showRevChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(this.puz, exet.revChooser, exetFromHistory);
+    exetRevManager.choosePuzRev(false, this.puz, exet.revChooser, exetFromHistory);
+    exetModals.showModal(exet.revChooser)
+    e.stopPropagation()
+  })
+  let manageStorage = document.getElementById("xet-manage-storage")
+  manageStorage.addEventListener('click', e => {
+    exetRevManager.choosePuzRev(true, null, exet.revChooser, null);
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
@@ -2431,7 +2562,7 @@ Exet.prototype.makeExolve = function(specs) {
     exetState = JSON.parse(exetState)
   }
   exetState.lastId = this.puz.id
-  window.localStorage.setItem(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
+  exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
 }
 
 Exet.prototype.updatePuzzle = function(revType=0) {

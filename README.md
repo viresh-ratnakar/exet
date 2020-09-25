@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.10 September 19 2020
+#### Version: Exet v0.12 September 24 2020
 
 #### Author: Viresh Ratnakar
 
@@ -263,6 +263,13 @@ downloading to something more meaningful.
 
 The "Open" menu lets you pick any old revision of any crossword. It also shows
 a preview of the puzzle revision that you select.
+
+Browsers typically limit the amount of local storage (5 MB in Chrome as of
+September 2020). When this limit is reached, Exet will warn you that it cannot
+save crossword revisions. You can use the "Manage storage" menu option in the
+"Open" menu to delete old revisions of some crosswords and/or entirely delete
+old crosswords (after downloading Exolve files with solutions as these files
+can be opened in Exet to recover a crossword completely).
 
 ## Supported crossword features
 

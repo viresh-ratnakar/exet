@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.12 September 24 2020
+
+- Add "Manage storage" menu option.
+- When selecting puzzle IDs and revisions, fix the non-intuitive behaviour
+  that we had where you could select a row and still hovering over another
+  row would highlight it in green.
+- Show sizes used for all puzzles as well as total storage used/free.
+
 ### Version: Exet v0.11 September 20 2020
 
 - Do not show "deadend" light choices in magenta anymore. We now load
