@@ -244,9 +244,13 @@ The "Save" menu lets you download or grab the puzzle in various ways:
   does not support many crossword features (afaik) such as barred grids.
   The software will alert you if it is not able to provide a .puz download.
 - **Download Exolve file w/ solutions (exet-exolve-solved.html)**: Download an
-  Exolve file that allows solvers to check/see solutions.
+  HTML file that uses Exolve and that allows solvers to check/see solutions.
+  Such files can also be opened by Exet from the "Open" menu and can be further
+  edited. This might be useful, for example, when you want to edit an old
+  crossword that you have deleted from Exet's limited local storage.
 - **Download Exolve file w/o solutions (exet-exolve-unsolved.html)**: Download
-  an Exolve file that does not allow solvers to check/see solutions.
+  an HTML file that uses Exolve and does not allow solvers to check/see
+  solutions.
 - **Copy Exolve widget code w/ solutions 📋**: Copy (into the clipboard)
   embeddable Exolve widget HTML code (with solvers able to check/see solutions).
 - **Copy Exolve widget code w/o solutions 📋**: Copy (into the clipboard)
@@ -257,7 +261,7 @@ In the first three "download" variants, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already
 exists a file with that name, the system will use a variant of the name
 as per its usual conventions. You should copy/rename the file after
-downloading to something more meaningful.
+downloading to some more meaningful folder and/or name.
 
 ### Going back to older versions
 
@@ -267,9 +271,10 @@ a preview of the puzzle revision that you select.
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
 September 2020). When this limit is reached, Exet will warn you that it cannot
 save crossword revisions. You can use the "Manage storage" menu option in the
-"Open" menu to delete old revisions of some crosswords and/or entirely delete
-old crosswords (after downloading Exolve files with solutions as these files
-can be opened in Exet to recover a crossword completely).
+"Open" menu at any time to delete old revisions of some crosswords and/or
+entirely delete old crosswords (after downloading Exolve files with solutions
+for them as these files can be opened in Exet to recover the crosswords
+completely).
 
 ## Supported crossword features
 
