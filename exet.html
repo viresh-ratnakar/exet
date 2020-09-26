@@ -2073,11 +2073,11 @@ Exet.prototype.makeWordParam = function(s) {
 }
 
 Exet.prototype.makeCharadeParam = function(s) {
-  return s.toLowerCase().replace(/\?/g, '').replace(/ /g, '')
+  return s.toLowerCase().replace(/\?/g, '').replace(/[^a-z]/g, '')
 }
 
 Exet.prototype.makeAnagramParam = function(s) {
-  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  s = this.makeCharadeParam(s)
   return "<" + s + ">"
 }
 
@@ -2086,7 +2086,7 @@ Exet.prototype.makeCAParam = function(s) {
 }
 
 Exet.prototype.makeAlternationParam = function(s) {
-  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  s = this.makeCharadeParam(s)
   let out = 'A%3F'
   for (let c of s) {
     out = out + c + 'A'
@@ -2095,13 +2095,13 @@ Exet.prototype.makeAlternationParam = function(s) {
 }
 
 Exet.prototype.makeHiddenParam = function(s) {
-  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  s = this.makeCharadeParam(s)
   if (s.length < 2) return s
   return 'A*"A' + s.charAt(0) + '"' + s.substr(1, s.length - 2) + '"' + s.charAt(s.length - 1) + 'A"A*'
 }
 
 Exet.prototype.makeRevHiddenParam = function(s) {
-  s = s.toLowerCase().replace(/\?/g, 'A').replace(/ /g, '')
+  s = this.makeCharadeParam(s)
   if (s.length < 2) return s
   let sr = ''
   for (let i = s.length - 1; i >= 0; i--) {
