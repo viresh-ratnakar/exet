@@ -326,4 +326,7 @@ to add any of the following features.
   that I had to fix a bug (the checksum computation needs to make sure that
   it does not overflow beyond 16 bits). I found the bug by looking at the
   [puzpy code](https://github.com/alexdej/puzpy).
+- The composite anagram builder was inspired by similar constructs in Qxw
+  as well as in
+  [martindemello.net/wgn.html](http://martindemello.net/wgn.html).
 
