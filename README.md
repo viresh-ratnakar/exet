@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.12 September 24 2020
+#### Version: Exet v0.13 September 26 2020
 
 #### Author: Viresh Ratnakar
 
@@ -134,15 +134,47 @@ and also shown in the menu):
 - Toggle block (.)
 - Toggle bar-after (|)
 - Toggle bar-under (\_)
+- Add automagic blocks (#)
 
-For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
+For the actions that modify the grid in non-cosmetic ways (.|\_#), symmetric
 changes are automatically applied to the other end of the grid.
 
 The "Open" menu allows you to start with blocked blank grids following a few
-checkquered templates. You can also open any existing HTML file that
-contains an puzzle in the Exolve format (when you save such a crossword
-after editing it, the saved Exolve file will replicate whatever is there before
-and after the Exolve part in the original HTML file that you opened).
+checkquered templates and the "completely blank" template. You will also
+see a checkbox when creating a new blank grid, to "Add automagic blocks,"
+and it will be checked by default (you can uncheck it if you do want to start
+with a basic chequered template or a completely blank template).
+
+Here's what "Add automagic blocks" does, whether you use it when creating a new
+blank grid or whether you invoke it on an existing grid:
+- It ensures that any added blocks continue to maintain symmetry and continue
+  to maintain full cell connectivity (i.e., there is a path from every white
+  cell to every other white cell, going through white cells only).
+- First, it looks at what kind of grid is being used or created: if an existing
+  grid has barred cells, then "Add automagic blocks" does not make any changes.
+- It makes 0 or 1 random change to each row, and then 0 or 1 random change to
+  each column, while maintaining certain grid properties as listed below.
+- If an existing grid is of the American variety with every white square
+  being a part of an across light as well as a down light (i.e., is "checked"),
+  then, ensure that:
+  - No light will be longer than 3 letters.
+  - Added blocks will ensure that every white square is checked.
+  - (Note that when you choose the "No blocks" menu choice while creating a new
+    blank grid, "Add automagic blocks" will create an American grid variety.)
+- Else, if an existing grid is of the British variety where the grid is chequered
+  but there are no two adjacent unchecked cells, then, ensure that:
+  - No light will be longer than 4 letters.
+  - There will be no two adjacent unchecked cells.
+  - No light will have more unchecked cells than checked cells.
+  - (Note that when you choose any of the chequered choices while creating a new
+    blank grid, "Add automagic blocks" will create a British grid variety.)
+- No cell where you've already entered a grid-fill letter will be turned into a
+  block.
+
+You can also open any existing HTML file that contains an puzzle in the Exolve
+format (when you save such a crossword after editing it, the saved Exolve file
+will replicate whatever is there before and after the Exolve part in the
+original HTML file that you opened).
 
 ### Filling the grid
 

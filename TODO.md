@@ -4,10 +4,8 @@
 - track used words
 - option for US dictionary
 - auto-fill
-- When a particular choice leads to purples, move it to deadends
-- Let users manage local storage used
-  - Delete specific revisions
-  - "Smart-delete" to purge excessive revisions
+- "Smart-delete" to purge excessive revisions
+- Don't use cookie-saved state
 
 - Persist scratchpad contents [Done]
 - write .puz [Done]
@@ -21,3 +19,6 @@
 - clear-all should clear hyphens etc. [unnecessary, now that enum-editing works and fillLight() does the right thing]
 - Open menus only with clicks, not with hovers [Done]
 - Load the most recent puzzle on start-up [Done]
+- When a particular choice leads to purples, move it to deadends [Done]
+- Let users manage local storage used [Done]
+  - Delete specific revisions [Done]

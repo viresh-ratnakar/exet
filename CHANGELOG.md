@@ -1,5 +1,16 @@
 # Changelog
 
+### Version: Exet v0.13 September 26 2020
+
+- Add options to "add automagic blocks" (with randomization). This can be
+  checked/unchecked when creating a new blank puzzle (checked by defualt) and
+  can also be invoked at any time from the Edit menu.
+- If the starting point is an American-style blocked grid (every white
+  square is checked across as well as down), then that property is maintained.
+- Else if the starting point is a British-style blocked grid (chequered,
+  and no consecutive unchecked cells), then that property is maintained.
+- Display across and down clue counts.
+
 ### Version: Exet v0.12 September 24 2020
 
 - Add "Manage storage" menu option.
