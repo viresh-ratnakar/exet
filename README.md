@@ -157,13 +157,13 @@ blank grid or whether you invoke it on an existing grid:
 - If an existing grid is of the American variety with every white square
   being a part of an across light as well as a down light (i.e., is "checked"),
   then, ensure that:
-  - Every light is be at least 3 letters in length.
+  - Every light is at least 3 letters in length.
   - Every white square is checked.
   - (Note that when you choose the "No blocks" menu choice while creating a new
     blank grid, "Add automagic blocks" will create an American grid variety.)
 - Else, if an existing grid is of the British variety where the grid is
   chequered but there are no two adjacent unchecked cells, then, ensure that:
-  - Every light is be at least 4 letters in length.
+  - Every light is at least 4 letters in length.
   - There are no two adjacent unchecked cells.
   - Lights have fewer than or equal to as many unchecked cells as checked cells,
     unless they have 9 or more letters, in which case they can have one more
