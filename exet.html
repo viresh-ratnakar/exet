@@ -2575,7 +2575,10 @@ Exet.prototype.gridChequeredOK = function(grid, w, h) {
         if (crossers[i][j] < 2) numUnches++
         else numChecked++
       }
-      if (numUnches > numChecked) {
+      if (numUnches > numChecked + 1) {
+        return false
+      }
+      if (numUnches == numChecked + 1 && numUnches < 5) {
         return false
       }
     }
@@ -2592,7 +2595,10 @@ Exet.prototype.gridChequeredOK = function(grid, w, h) {
         if (crossers[i][j] < 2) numUnches++
         else numChecked++
       }
-      if (numUnches > numChecked) {
+      if (numUnches > numChecked + 1) {
+        return false
+      }
+      if (numUnches == numChecked + 1 && numUnches < 5) {
         return false
       }
     }

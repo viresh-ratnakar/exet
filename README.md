@@ -165,7 +165,9 @@ blank grid or whether you invoke it on an existing grid:
   but there are no two adjacent unchecked cells, then, ensure that:
   - No light will be longer than 4 letters.
   - There will be no two adjacent unchecked cells.
-  - No light will have more unchecked cells than checked cells.
+  - Lights will have more unchecked cells than checked cells unless they have
+    9 or more letters, in which case they can have one more unchecked cell than
+    checked cells.
   - (Note that when you choose any of the chequered choices while creating a new
     blank grid, "Add automagic blocks" will create a British grid variety.)
 - No cell where you've already entered a grid-fill letter will be turned into a
