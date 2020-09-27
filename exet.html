@@ -2688,7 +2688,7 @@ Exet.prototype.gridConnected = function(grid, w, h) {
   return reachable.length == cells.length
 }
 
-Exet.prototype.automagicBlocksInner = function(chequered) {
+Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
   const minSpan = chequered ? 4 : 3
   let grid = this.puz.grid
   let w = this.puz.gridWidth
@@ -2774,37 +2774,39 @@ Exet.prototype.automagicBlocksInner = function(chequered) {
   if (numChanges > 0) {
     this.killInvalidatedClues()
   } else {
-    if (numCandidates == 0) {
-      alert('Add automagic blocks: found no further candidate cells for turning into blocks')
-    } else {
-      alert('Add automagic blocks: found some candidate cells for turning into blocks, but random numbers favoured no changes')
+    if (showAlerts) {
+      if (numCandidates == 0) {
+        alert('Add automagic blocks: found no further candidate cells for turning into blocks')
+      } else {
+        alert('Add automagic blocks: found some candidate cells for turning into blocks, but random numbers favoured no changes')
+      }
     }
   }
   return numChanges > 0;
 }
 
-Exet.prototype.automagicBlocks = function() {
+Exet.prototype.automagicBlocks = function(showAlerts=true) {
   let grid = this.puz.grid
   let w = this.puz.gridWidth
   let h = this.puz.gridHeight
   if (this.gridHasBars(grid, w, h)) {
-    alert('Cannot add automagic blocks when the grid has barred cells');
+    if (showAlerts) alert('Cannot add automagic blocks when the grid has barred cells');
     return false
   }
   if (!this.gridConnected(grid, w, h)) {
-    alert('Cannot add automagic blocks when the grid cells are not fully connected');
+    if (showAlerts) alert('Cannot add automagic blocks when the grid cells are not fully connected');
     return false
   }
   if (!this.gridSymmetric(grid, w, h)) {
-    alert('Cannot add automagic blocks when the grid is not fully symmetric');
+    if (showAlerts) alert('Cannot add automagic blocks when the grid is not fully symmetric');
     return false
   }
   if (this.gridUnchequeredOK(grid, w, h)) {
-    return this.automagicBlocksInner(false)
+    return this.automagicBlocksInner(false, showAlerts)
   } else  if (this.gridChequeredOK(grid, w, h)) {
-    return this.automagicBlocksInner(true)
+    return this.automagicBlocksInner(true, showAlerts)
   } else {
-    alert('Cannot add automagic blocks to the current grid');
+    if (showAlerts) alert('Cannot add automagic blocks to the current grid');
     return false
   }
   return false
@@ -3764,7 +3766,7 @@ function exetBlank(w=15, h=15, id='', automagic=false, checkered=true,
     return
   }
 
-  if (automagic && exet.automagicBlocks()) {
+  if (automagic && exet.automagicBlocks(false)) {
     exet.updatePuzzle(exetRevManager.REV_CREATED_AUTOBLOCK)
     return
   }

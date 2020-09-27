@@ -221,9 +221,10 @@ place right there. You can navigate through the clues using standard
 controls such as clicking on a cell or a clue, using the arrow keys, or
 using the tab and shift-tab keys.
 
-You can also edit the enum part of the clue (but the software will reset it
-if it does not add up. For example, if a light spans 10 cells, and you edit
-the anno to be "(5-4)," the software will reset it to "(10)."
+You can also edit the enum part of the clue, but the software will reset it
+if it does not add up to the needed number. For example, if a light spans 10
+cells, and you edit the anno to be "(5-4)," the software will reset it to
+"(10)."
 
 You can optionally provide annotations for clues. These annotations are used
 in cryptic crossword solutions, typically, to describe the cryptic wordplay.
