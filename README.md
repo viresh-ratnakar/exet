@@ -161,13 +161,13 @@ blank grid or whether you invoke it on an existing grid:
   - Added blocks will ensure that every white square is checked.
   - (Note that when you choose the "No blocks" menu choice while creating a new
     blank grid, "Add automagic blocks" will create an American grid variety.)
-- Else, if an existing grid is of the British variety where the grid is chequered
-  but there are no two adjacent unchecked cells, then, ensure that:
+- Else, if an existing grid is of the British variety where the grid is
+  chequered but there are no two adjacent unchecked cells, then, ensure that:
   - No light will be longer than 4 letters.
   - There will be no two adjacent unchecked cells.
-  - Lights will have more unchecked cells than checked cells unless they have
-    9 or more letters, in which case they can have one more unchecked cell than
-    checked cells.
+  - Lights will have fewer than or equal to unchecked cells than checked cells,
+    unless they have 9 or more letters, in which case they can have one more
+    unchecked cell than checked cells.
   - (Note that when you choose any of the chequered choices while creating a new
     blank grid, "Add automagic blocks" will create a British grid variety.)
 - No cell where you've already entered a grid-fill letter will be turned into a
