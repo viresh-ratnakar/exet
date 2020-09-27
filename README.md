@@ -140,8 +140,8 @@ For the actions that modify the grid in non-cosmetic ways (.|\_#), symmetric
 changes are automatically applied to the other end of the grid.
 
 The "Open" menu allows you to start with blocked blank grids following a few
-checkquered templates and the "completely blank" template. You will also
-see a checkbox when creating a new blank grid, to "Add automagic blocks,"
+checkquered templates and the completely blank "No blocks" template. You will
+also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
 and it will be checked by default (you can uncheck it if you do want to start
 with a basic chequered template or a completely blank template).
 
