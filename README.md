@@ -332,6 +332,12 @@ to add any of the following features.
 - Diagramless puzzles
 - Jigsaw puzzles
 
+After you make any such changes, you can open the edited file in Exet and
+continue to work on it further if you want to (it will show up as a revision
+to the same puzzle, as it will have the same exolve-id). The added features
+(preamble/nina etc.)  will then be visible in Exet and will be retained in all
+subsequent downloads (but you just won't be able to edit them within Exet).
+
 ## Not yet supported features
 
 ### Linked clues
