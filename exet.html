@@ -887,11 +887,6 @@ Exet.prototype.startNav = function(dir='A', row=0, col=0) {
 }
 
 Exet.prototype.setPuzzle = function(puz) {
-  if (puz.hasUnsolvedCells) {
-    console.log('Can only load puzzles that have solutions specified. Use ? ' +
-                'instead of 0 in grids under construction')
-    return false
-  }
   if (puz.hasDgmlessCells) {
     console.log('Diagramless cells not yet supported')
     return false
@@ -904,6 +899,7 @@ Exet.prototype.setPuzzle = function(puz) {
     console.log('Non-numeric clues not yet supported')
     return false
   }
+  let gridFillChanges = false
   for (let i = 0; i < puz.gridHeight; i++) {
     for (let j = 0; j < puz.gridWidth; j++) {
       let gridCell = puz.grid[i][j]
@@ -911,10 +907,18 @@ Exet.prototype.setPuzzle = function(puz) {
         console.log('Skipped-number cells not yet supported')
         return false
       }
+      if (gridCell.solution == '0') {
+        gridCell.solution = '?'
+        gridFillChanges = true
+      }
     }
   }
-
   this.puz = puz
+  if (gridFillChanges) {
+    this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+    return;
+  }
+
   puz.revealAll(false)
   puz.gridInput.addEventListener('keydown', this.handleKeyDown.bind(this));
   puz.gridInput.addEventListener('input', this.throttledGridInput.bind(this));
