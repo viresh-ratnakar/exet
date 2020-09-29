@@ -1,5 +1,20 @@
 # Changelog
 
+### Version: Exet v0.14 September 29 2020
+
+- Add the ability to specify a set of words/phrases (up to 100) to prefer
+  for filling the grid (referred to below as "preflex").
+- The preflex is saved in the revisions. If you save to an exolve file and
+  you load that file later, the preflex is taken from the last revision.
+- The preflex can be modified at any time. A status message shows how many
+  words it has and how many of those are used in the grid.
+- Remove words already used in the grid from suggestions for other lights.
+- When editing the enum, if you make a mistake and provide an enum that
+  does not add up to the right number of cells, the previous buggy behaviour
+  was to reset it to "(#)" (with # being the total number of cells). Now
+  fixed to reset it to whatever it was, before getting mangled (so, we do
+  not turn something like "(1,8)" into "(9)" when we accidentally edit it.
+
 ### Version: Exet v0.13 September 26 2020
 
 - Add options to "add automagic blocks" (with randomization). This can be

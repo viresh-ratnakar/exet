@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.13 September 26, 2020
+Current version: v0.14 September 29, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -163,7 +163,7 @@ Current version: v0.13 September 26, 2020
 }
 #xet-light-choices-box {  
   width: 30ch;
-  height: 400px;
+  height: 370px;
 }
 #xet-light-choices {  
   font-size: 16px;
@@ -384,6 +384,17 @@ Current version: v0.13 September 26, 2020
   animation-direction: alternate;
   animation-iteration-count: infinite;
 }
+.xet-preflex-editor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 8px;
+  z-index: 1;
+  background-color: white;
+  border: 1px solid gray;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  font-size: 12px;
+}
 </style>
 
 <title>Exet: Create a crossword</title>
@@ -439,6 +450,7 @@ function ExetRevManager() {
   this.REV_ENUM_CHANGE = 40
   this.REV_CLUE_CHANGE = 50
   this.REV_METADATA_CHANGE = 60
+  this.REV_PREFLEX_CHANGE = 70
 
   this.revMsgs = {}
   this.revMsgs[this.REV_LOADED_FROM_FILE] = "Loaded from a file"
@@ -450,6 +462,7 @@ function ExetRevManager() {
   this.revMsgs[this.REV_ENUM_CHANGE] = "Enum change"
   this.revMsgs[this.REV_CLUE_CHANGE] = "Clue or anno change"
   this.revMsgs[this.REV_METADATA_CHANGE] = "Metadata change"
+  this.revMsgs[this.REV_PREFLEX_CHANGE] = "Change in the list of preferred words"
 
   // State for throttled revision-saving
   this.throttleRevTimer = null;
@@ -782,7 +795,9 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
     let lastRev = stored.revs[stored.revs.length - 1]
     if (lastRev.exolve == exolve && lastRev.prefix == exet.prefix &&
         lastRev.suffix == exet.suffix) {
-      return
+      if (lastRev.preflex && JSON.stringify(lastRev.preflex) == JSON.stringify(exet.preflex)) {
+        return
+      }
     }
   }
   stored.maxRevNum++;
@@ -794,6 +809,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.exolve = exolve
   exetRev.scratchPad = exet.puz.scratchPad.value
   exetRev.navState = [exet.puz.currDir, exet.puz.currRow, exet.puz.currCol]
+  exetRev.preflex = exet.preflex
   stored.revs.push(exetRev)
   this.saveLocal(exet.puz.id, JSON.stringify(stored))
 };
@@ -835,6 +851,7 @@ function Exet() {
   this.prefix = ''
   this.suffix = ''
   this.otherSections = ''
+  this.preflex = []
 
   // Start in the Exet tab
   this.currTab = "exet"
@@ -842,6 +859,7 @@ function Exet() {
 
   // State for throttled handlers
   this.throttledGridTimer = null;
+  this.throttledPreflexTimer = null;
   this.throttledClueTimer = null;
   this.throttledMetadataTimer = null;
   this.throttledCharadeTimer = null;
@@ -1291,7 +1309,7 @@ Exet.prototype.makeExetTab = function() {
   </div>
 
   <div class="xet-controls-row xet-panel xet-high-tall-box">
-    <div class="xet-controls-col">
+    <div class="xet-controls-col" style="position:relative">
       <div>
         <span style="font-weight:bold" title="Please note that any lexicon in use by this software is inevitably likely to have some errors and omissions.">Choose grid-fill</span>
         <button class="xlv-small-button" style="padding:5px 4px" onclick="exet.puz.clearCurr()">Clear light</button>
@@ -1299,6 +1317,23 @@ Exet.prototype.makeExetTab = function() {
       <div class="xet-choices-box" id="xet-light-choices-box">
         <table id="xet-light-choices" class="xet-choices">
         </table>
+      </div>
+      <div title="You can provide up to 100 preferred words/phrases to try and use in the grid-fill">
+        <button class="xlv-small-button" style="padding:5px 4px" id="xet-edit-preflex">Set desired fills</button>
+        <span id="xet-preflex-used">0</span>/<span id="xet-preflex-size">${this.preflex.length}</span> used
+      </div>
+      <div class="xet-preflex-editor" id="xet-preflex-editor" style="display:none">
+        <div class="xet-blue">
+         Enter up to 100 preferred words/phrases.
+         <br>
+         <br>
+         Click anywhere outside this box to dismiss it.
+        </div>
+        <div class="xet-choices-box xet-mid-tall-box">
+          <textarea rows="100" cols="30" id="xet-preflex-input"
+            oninput="exet.throttledUpdatePreflex()"
+            class="xlv-answer"></textarea>
+        </div>
       </div>
     </div>
     <div class="xet-controls-col">
@@ -1322,6 +1357,21 @@ Exet.prototype.makeExetTab = function() {
   }
 
   this.lightChoices = document.getElementById("xet-light-choices")
+  this.preflexUsed = document.getElementById("xet-preflex-used")
+  this.preflexSize = document.getElementById("xet-preflex-size")
+  this.preflexEditor = document.getElementById("xet-preflex-editor")
+  this.preflexInput = document.getElementById("xet-preflex-input")
+  let preflexText = ''
+  for (let p of this.preflex) {
+    if (preflexText) preflexText += '\n'
+    preflexText += p
+  }
+  this.preflexInput.value = preflexText
+  document.getElementById("xet-edit-preflex").addEventListener('click', e=> {
+    exetModals.showModal(exet.preflexEditor)
+    e.stopPropagation()
+  })
+
   this.revChooser = document.getElementById("xet-rev-chooser")
   let showPuzChooser = document.getElementById("xet-show-puz-chooser")
   showPuzChooser.addEventListener('click', e => {
@@ -2402,15 +2452,20 @@ Exet.prototype.handleClueChange = function() {
   this.stripInputLF(currClueText)
   let clue = currClueText.innerText
   let clueSansEnum = clue
+  let oldEnum = ''
+  let enumPos = theClue.clue.lastIndexOf('(')
+  if (enumPos >= 0) {
+    oldEnum = theClue.clue.substr(enumPos).trim()
+  }
   let newEnum = ''
-  let enumPos = clue.lastIndexOf('(')
+  enumPos = clue.lastIndexOf('(')
   if (enumPos >= 0) {
     newEnum = clue.substr(enumPos).trim()
     clueSansEnum = clue.substr(0, enumPos).trim()
   }
   if (this.puz.parseEnum(newEnum).enumLen != expEnumLen) {
     if (expEnumLen > 0) {
-      newEnum = '(' + expEnumLen + ')'
+      newEnum = oldEnum || ('(' + expEnumLen + ')')
       clue = clueSansEnum + ' ' + newEnum
     } else {
       newEnum = ''
@@ -2419,11 +2474,6 @@ Exet.prototype.handleClueChange = function() {
     currClueText.innerText = clue
   }
 
-  let oldEnum = ''
-  enumPos = theClue.clue.lastIndexOf('(')
-  if (enumPos >= 0) {
-    oldEnum = theClue.clue.substr(enumPos).trim()
-  }
   theClue.clue = clue
   clueSpan.innerText = clue
 
@@ -2433,7 +2483,7 @@ Exet.prototype.handleClueChange = function() {
   this.puz.makeCurrClueVisible()
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {
-      // throttledSaveRev() got callsed already
+      // throttledSaveRev() got called already
       return
     }
   }
@@ -3103,10 +3153,22 @@ Exet.prototype.keyMatchesPhrase = function(key, phrase) {
   return true
 }
 
-Exet.prototype.getLexChoices = function(partialSol) {
+Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}) {
   let choices = []
   let key = this.makeLexKey(partialSol);
   if (!key) return choices
+  // First look at preferred choices
+  let seen = {}
+  if (this.preflexByLen[key.length]) {
+    for (idx of this.preflexByLen[key.length]) {
+      if (dontReuse[idx]) continue
+      let phrase = exetLexicon.lexicon[idx]
+      if (this.keyMatchesPhrase(key, phrase)) {
+        choices.push(idx)
+        seen[idx] = true
+      }
+    }
+  }
   let gkey = key;
   while (!exetLexicon.index[gkey]) {
     let ngkey = this.generalizeKey(gkey)
@@ -3115,9 +3177,11 @@ Exet.prototype.getLexChoices = function(partialSol) {
   }
   let indices = exetLexicon.index[gkey];
   for (let idx of indices) {
+    if (dontReuse[idx]) continue
     let phrase = exetLexicon.lexicon[idx]
-    if (this.keyMatchesPhrase(key, phrase)) {
+    if (this.keyMatchesPhrase(key, phrase) && !seen[idx]) {
       choices.push(idx)
+      if (limit > 0 && choices.length >= limit) break
     }
   }
   return choices;
@@ -3436,7 +3500,7 @@ Exet.prototype.findDeadendsByClue = function() {
     ci = theClue.parentClueIndex
     theClue = this.puz.clues[ci]
   }
-  if (!theClue.solution || theClue.solution.indexOf('?')) {
+  if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
     return false
   }
   let cells = this.cellsOfClue(theClue)
@@ -3599,10 +3663,32 @@ Exet.prototype.initViability = function() {
 }
 
 Exet.prototype.updateViability = function() {
+  preflexInUse = 0
+  let dontReuse = {}
+  for (let ci in this.puz.clues) {
+    let theClue = this.puz.clues[ci]
+    if (theClue.solution.indexOf('?') >= 0) {
+      continue
+    }
+    let key = this.makeLexKey(theClue.solution)
+    let choices = this.getLexChoices(key, 1, dontReuse)
+    if (choices.length > 0) {
+      let p = choices[0]
+      dontReuse[p] = true
+      if (this.preflexSet[p]) preflexInUse++
+    }
+  }
+  if (this.preflexUsed) {
+    this.preflexUsed.innerText = preflexInUse
+  }
   for (let ci in this.puz.clues) {
     let theClue = this.puz.clues[ci]
     let key = this.makeLexKey(theClue.solution)
-    theClue.lightChoices = this.getLexChoices(key)
+    if (theClue.solution.indexOf('?') < 0) {
+      theClue.lightChoices = this.getLexChoices(key, 1, {})
+    } else {
+      theClue.lightChoices = this.getLexChoices(key, 0, dontReuse)
+    }
   }
   this.updateFillChoices()
   this.startDeadendSweep()
@@ -3669,6 +3755,69 @@ Exet.prototype.fillLight = function(idx, ci='') {
   }
 }
 
+Exet.prototype.setPreflex = function(preflex) {
+  this.preflex = preflex
+  this.preflexSet = {}
+  if (this.preflexSize) {
+    this.preflexSize.innerText = preflex.length
+  }
+  while (exetLexicon.lexicon.length > exetLexicon.startLen) exetLexicon.lexicon.pop()
+  this.preflexByLen = {}
+  for (let p of this.preflex) {
+    let len = this.makeLexKey(p).length
+    let inLexicon = this.getLexChoices(p, 1)
+    if (inLexicon.length > 0) {
+      p = inLexicon[0]
+    } else  {
+      exetLexicon.lexicon.push(p)
+      p = exetLexicon.lexicon.length - 1
+    }
+    if (!this.preflexByLen[len]) this.preflexByLen[len] = []
+    this.preflexByLen[len].push(p)
+    this.preflexSet[p] = true
+  }
+}
+
+Exet.prototype.throttledUpdatePreflex = function() {
+  if (this.throttledPreflexTimer) {
+    clearTimeout(this.throttledPreflexTimer);
+  }
+  this.throttledPreflexTimer = setTimeout(() => {
+    this.updatePreflex()
+    this.throttledPreflexTimer = null;
+  }, this.inputLagMS);
+}
+
+Exet.prototype.updatePreflex = function() {
+  let preflexes = this.preflexInput.value.trim().split('\n')
+  let cleaned = ''
+  preflex = []
+  let seen = {}
+  for (let p of preflexes) {
+    p = p.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ')
+    if (!p) continue
+    let hash = this.javaHash(p.toLowerCase())
+    if (seen[hash]) continue
+    seen[hash] = true
+
+    if (cleaned) cleaned = cleaned + '\n'
+    cleaned = cleaned + p
+    preflex.push(p)
+    if (preflex.length >= 100) break
+  }
+  if (cleaned != this.preflexInput.value.trim()) {
+    let cursor = this.preflexInput.selectionStart
+    this.preflexInput.value = cleaned
+    this.preflexInput.selectionEnd = cursor
+  }
+  if (JSON.stringify(preflex) == JSON.stringify(this.preflex)) {
+    return
+  }
+  this.setPreflex(preflex)
+  this.updateViability()
+  exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
+}
+
 Exet.prototype.updateFillChoices = function() {
   if (!this.puz.currClueIndex) {
     return
@@ -3701,6 +3850,8 @@ Exet.prototype.updateFillChoices = function() {
 function exetFromHistory(exetRev) {
   exet.prefix = exetRev.prefix
   exet.suffix = exetRev.suffix
+  let preflex = exetRev.preflex || []
+  exet.setPreflex(preflex)
   exet.makeExolve(exetRev.exolve)
   if (exetRev.navState) {
     exet.startNav(exetRev.navState[0], exetRev.navState[1], exetRev.navState[2])
@@ -3763,6 +3914,7 @@ function exetBlank(w=15, h=15, id='', automagic=false, checkered=true,
     exolve-down:
   exolve-end
   `
+  exet.setPreflex([])
   exet.makeExolve(specs)
   exet.startNav()
   if (!exet.puz || !exet.puz.id) {
@@ -3790,9 +3942,21 @@ function exetLoadFile() {
     exet.prefix = fr.result.substring(0, start).trim()
     exet.suffix = fr.result.substring(end).trim()
     let specs = fr.result.substring(start, end)
+    exet.setPreflex([])
     exet.makeExolve(specs)
     exet.startNav()
     if (exet.puz && exet.puz.id) {
+      // See if this has a preflex, recover if so.
+      let stored = window.localStorage.getItem(exet.puz.id)
+      if (stored) {
+        stored = JSON.parse(stored)
+        if (stored.revs.length > 0) {
+          let lastRev = stored.revs[stored.revs.length - 1]
+          if (lastRev.preflex) {
+            exet.setPreflex(lastRev.preflex)
+          }
+        }
+      }
       exetRevManager.throttledSaveRev(
           exetRevManager.REV_LOADED_FROM_FILE,
           exetFileName);
@@ -3810,6 +3974,10 @@ let exet = new Exet;
 if (!window.localStorage) {
   throw "localStorage is not available!"
 }
+if (!exetLexicon) {
+  throw "No lexicon has been loaded!"
+}
+exetLexicon.startLen = exetLexicon.lexicon.length
 let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
 if (exetState) {
   exetState = JSON.parse(exetState)

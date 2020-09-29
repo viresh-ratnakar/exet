@@ -7,6 +7,8 @@
 - "Smart-delete" to purge excessive revisions
 - Don't use cookie-saved state
 
+- Add preferred words [Done]
+- When restoring an accidentally mangled enum, go back to what it was (so, (2,3) instead of (5), if (2,3) was in place). [Done]
 - Persist scratchpad contents [Done]
 - write .puz [Done]
 - copy widget html [Done]

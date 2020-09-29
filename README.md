@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.13 September 26 2020
+#### Version: Exet v0.14 September 29 2020
 
 #### Author: Viresh Ratnakar
 
@@ -213,6 +213,11 @@ When Exet determines (using its lexicon) that for some unfilled cell, exactly
 one letter choice is viable, it shows that letter choice in gray. You can press
 "=" (or use the Edit menu's "Accept forced fills" option) to accept all such
 forced letter suggestions.
+
+You can provide up to a 100 preferred words/phrases for using in the grid, by
+clicking on the button labelled "Set desired fills" in the Exet tab, just
+under the column that shows grid-fill suggestions. The words you provide here
+can be outside the lexicon too.
 
 ### Providing the clues
 
