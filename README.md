@@ -217,7 +217,9 @@ forced letter suggestions.
 You can provide up to a 100 preferred words/phrases for using in the grid, by
 clicking on the button labelled "Set desired fills" in the Exet tab, just
 under the column that shows grid-fill suggestions. The words you provide here
-can be outside the lexicon too.
+can be outside the lexicon too. These words will get shown as the top
+suggestions, whenever possible. Eventually, I'll add an auto-fill option,
+at which time this feature ought to be become much more compelling.
 
 ### Providing the clues
 
