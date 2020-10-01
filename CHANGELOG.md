@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.15 September 30 2020
+
+- In "add automagic blocks", NYT-style grids created were mostly leaving
+  long full-length column lights with no blocks in the 2nd and 3rd
+  columns. Made a couple of changes to reduce that (increased probability
+  of creating a block when there is only one choice in a row/col, and
+  alternate between rows and cols).
+
 ### Version: Exet v0.14 September 29 2020
 
 - Add the ability to specify a set of words/phrases (up to 100) to prefer
