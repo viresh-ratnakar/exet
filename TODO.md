@@ -1,12 +1,15 @@
 - code docs/cleanups
   - Move all styling to CSS
   - Make README.md more complete
-- track used words
 - option for US dictionary
-- auto-fill
 - "Smart-delete" to purge excessive revisions
 - Don't use cookie-saved state
+- When the clue has an enum like (4-3), only show fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
 
+- track used words [Done]
+- auto-fill [Done]
+- For filled lights, make sure the filled entry is shown in the choices panel (perhaps distinguishing out-of-lexicon entries, preflex entries) [Done]
+- Reset light-fill suggestions shown when you go to a filled light [Done]
 - Add preferred words [Done]
 - When restoring an accidentally mangled enum, go back to what it was (so, (2,3) instead of (5), if (2,3) was in place). [Done]
 - Persist scratchpad contents [Done]

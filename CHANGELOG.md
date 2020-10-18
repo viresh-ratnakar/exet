@@ -1,5 +1,20 @@
 # Changelog
 
+### Version: Exet v0.16 October 18 2020
+
+- Add autofill using beam search.
+  - Current best candidate is displayed as we go along
+  - Alternate between making choices for lights vs cells (lights every
+    4th step)
+  - Try to prefer any "preferred words/phrases" provided by having an
+    initial phase where we try to make choices for lights compatible
+    with some preferred words. Note that preferred words appear ahead
+    of other in computed lists of choices.
+- Add "undesired fills"
+- Add option to allow/disallow proper nouns.
+- Apart from passing "clear curr" and "clear all" to Exolve, also
+  take the implied actions in Exet.
+
 ### Version: Exet v0.15 September 30 2020
 
 - In "add automagic blocks", NYT-style grids created were mostly leaving

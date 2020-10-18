@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.15 September 30 2020
+#### Version: Exet v0.16 October 18 2020
 
 #### Author: Viresh Ratnakar
 
@@ -94,7 +94,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Quick walk-through
+## Crossword construction walk-through
 
 To use Exet, you simply open a link to `exet.html`, such as [this one on
 my site](https://viresh-ratnakar.github.io/exet.html), in a browser.
@@ -117,16 +117,15 @@ There are three phases in crossword construction:
 - Filling the grid
 - Providing the clues
 
-Of course, setters often go back and forth and can overlap the phases
-(and Exet certainly lets you do that). But a quick walk-through of
-Exet is perhaps best done by separating out and describing these
-phases.
+Of course, setters often go back and forth and can overlap the phases (and Exet
+certainly lets you do that). But a walk-through of Exet is perhaps best done by
+separating out and describing these phases.
 
 ### Constructing the grid
 
 You can navigate to any cell using the arrow keys or by clicking on it
 (including the dark, block cells). The following controls are all available
-from the "Edit" menu (as well as through keyboard shortcuts listed below
+from the "Edit" menu (as well as through some keyboard shortcuts listed below
 and also shown in the menu):
 
 - Toggle encircling (@)
@@ -134,7 +133,10 @@ and also shown in the menu):
 - Toggle block (.)
 - Toggle bar-after (|)
 - Toggle bar-under (\_)
+- Autofill
 - Add automagic blocks (#)
+- Accept autofilled entries (=)
+- Clear all the lights
 
 For the actions that modify the grid in non-cosmetic ways (.|\_#), symmetric
 changes are automatically applied to the other end of the grid.
@@ -197,7 +199,9 @@ in a state where absolutely no viable grid-fill is possible for some cells
 (at least from the lexicon the software is using), the viablots in such
 cells will be large and coloured purple. Your best recourse at that point is
 to back-track by clearing out some neighbouring grid-fills, or use some other
-lexicon source to find a word/phrase that works.
+lexicon source to find a word/phrase that works. Instead of filling in lots
+of large purple viablots, only a few are coloured in a stand-out fashion, and
+the rest are coloured in a non-distracting, near-transparent manner.
 
 The grid-fill suggestions shown for a light take into account a limited
 amount of look-ahead. What that means is that the software evaluates
@@ -215,11 +219,46 @@ one letter choice is viable, it shows that letter choice in gray. You can press
 forced letter suggestions.
 
 You can provide up to a 100 preferred words/phrases for using in the grid, by
-clicking on the button labelled "Set desired fills" in the Exet tab, just
+clicking on the button labelled "Set preferred fills" in the Exet tab, just
 under the column that shows grid-fill suggestions. The words you provide here
 can be outside the lexicon too. These words will get shown as the top
-suggestions, whenever possible. Eventually, I'll add an auto-fill option,
-at which time this feature ought to be become much more compelling.
+suggestions, whenever possible.
+
+Similarly, you can provide a set of words that you do *not* want to appear
+in the crossword, by clicking on the "Set undesired fills" button. Clicking on
+the "Set undesired fills" button also shows a checkbox for specifying whether
+or not you want to allow proper nouns to be used (allowed by default).
+
+### Autofill
+
+You can click on "Autofill" in the "Edit" menu to try to get the software to
+fill all remaining entries. This may take a little while, but you can watch
+the progress.
+
+From the Autofill menu panel, you can stop the Autofill. You can accept the
+Autofill suggestions by clicking on the "Accept" button, after Autofill
+concludes. You can also stop/resume the Autofill using buttons on this panel.
+
+Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
+I think my code for giving those words/phrases preferential treatment will
+need to be improved over time, as it currently typically only manages to
+get a small number of them in (while I can do a better job manually).
+
+Autofill also respects the "undesired fills" list as well the checkbox
+that toggles whether proper nouns are allowed.
+
+Autofill randomizes its choice to an extent. You can run it repeatedly
+to get slightly different results every time, until you are satisfied with
+the fills.
+
+A good way to make use of Autofill is stop it as soon as it picks a
+word that you do not like. You can then accept the suggestions and clear
+the word that you do not like (which will also add it to "undesired fills").
+Then, you can resume Autofill and repeat the process.
+
+Autofill needs a lot of improvement for American-style grids (where every square
+is doubly checked), as of October 2020: without intervention from the setter,
+Autofill over such grids tends to fail more often than not.
 
 ### Providing the clues
 
