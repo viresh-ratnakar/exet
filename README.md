@@ -229,7 +229,7 @@ in the crossword, by clicking on the "Set undesired fills" button. Clicking on
 the "Set undesired fills" button also shows a checkbox for specifying whether
 or not you want to allow proper nouns to be used (allowed by default).
 
-### Autofill
+#### Autofill
 
 You can click on "Autofill" in the "Edit" menu to try to get the software to
 fill all remaining entries. This may take a little while, but you can watch
