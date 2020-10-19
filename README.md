@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.16 October 18 2020
+#### Version: Exet v0.17 October 19 2020
 
 #### Author: Viresh Ratnakar
 
@@ -256,9 +256,10 @@ word that you do not like. You can then accept the suggestions and clear
 the word that you do not like (which will also add it to "undesired fills").
 Then, you can resume Autofill and repeat the process.
 
-Autofill needs a lot of improvement for American-style grids (where every square
-is doubly checked), as of October 2020: without intervention from the setter,
-Autofill over such grids tends to fail more often than not.
+Autofill may take a while (15+ minutes), especially for barred grids and
+American-style grids. I'll try to improve its performance. It does not
+do a great job of maximizing preferred grid-fills currently, which is also
+somthing I hope to improve.
 
 ### Providing the clues
 

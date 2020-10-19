@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.17 October 19 2020
+
+- Turn off chosing entire lights in the autofill beam search for now.
+  It works much better like this for American-style grids and for
+  barred grids.
+
 ### Version: Exet v0.16 October 18 2020
 
 - Add autofill using beam search.

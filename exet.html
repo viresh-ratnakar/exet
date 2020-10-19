@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.16 October 18, 2020
+Current version: v0.17 October 19, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.91"/>
@@ -3007,12 +3007,12 @@ Exet.prototype.setScore = function(fillState) {
   }
   if (numTotal > 0) {
     // Boost for filled fraction.
-    fillState.score += (5 * (numTotal - fillState.unfilled.length) / numTotal)
+    fillState.score += (20 * (numTotal - fillState.unfilled.length) / numTotal)
   }
   if (fillState.numPreflexUsed > 0) {
     console.assert(this.preflex.length > 0, this.preflex.length)
     // Boost for preflex used fraction.
-    fillState.score += (100 * (fillState.numPreflexUsed / this.preflex.length))
+    fillState.score += (20 * (fillState.numPreflexUsed / this.preflex.length))
   }
 }
 
@@ -3110,6 +3110,11 @@ Exet.prototype.addAutofillChildren = function(candidate) {
   let tryLight = (this.autofill.priorityCluesIndex <
                   Math.min(30, this.autofill.priorityClues.length)) ? true :
     this.autofill.step % 4 == 1
+  // TODO: turning tryLight to false seems to work better for barred and
+  // American-style grids, without hurting Brit-styled ones (except it gets
+  // fewer "preflex" entries in: need to fix that by having an initial phase
+  // that focuses on maximizing preflex usage, perhaps).
+  tryLight = false
 
   // Pick a random offset from 0,1,2,3
   let randOffset = Math.floor(Math.random() * Math.min(candidate.unfilled.length, 4))
@@ -3119,7 +3124,7 @@ Exet.prototype.addAutofillChildren = function(candidate) {
   let col = candidate.unfilled[cellIndex][1]
   let cell = candidate.grid[row][col]
 
-  let constrainerLimit = 500
+  let constrainerLimit = 2000
 
   let ci = ''
   let numChoices = exetLexicon.lexicon.length + 1
