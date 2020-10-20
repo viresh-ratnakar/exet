@@ -4587,12 +4587,12 @@ Exet.prototype.checkVersion = function() {
         return
       }
       let ver = this.responseText.trim()
-      if (!exet.versiontext) {
+      if (!exet.versionText) {
         exet.versionText = ver
         console.log(now + ": Initialized Exet version to " + ver)
       } else if (ver != exet.versionText) {
         this.warnVersion(ver)
-        console.log(now + ": Exet version warning on: " + exet.versionText + " needs update to " + ver)
+        console.log(now + ": Exet version: " + exet.versionText + " needs update to: " + ver)
       } else {
         console.log(now + ": Exet version verified to be current: " + ver)
       }
