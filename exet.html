@@ -4585,7 +4585,7 @@ Exet.prototype.checkVersion = function() {
         console.log("Version check request failed")
         return
       }
-      let ver = this.responseText
+      let ver = this.responseText.trim()
       if (!exet.versiontext) {
         exet.versionText = ver
         console.log("Initialized Exet version to " + ver)
