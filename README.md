@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.17 October 19 2020
+#### Version: Exet v0.18 October 19 2020
 
 #### Author: Viresh Ratnakar
 
@@ -14,6 +14,7 @@ repository and a couple of files from
 These are all the files needed:
 - [`exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.html),
 - [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
+- [`exet-version.txt`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-version.txt),
 - [`lufz-en-lexicon.js.`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
 - [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
 - [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
@@ -232,18 +233,13 @@ or not you want to allow proper nouns to be used (allowed by default).
 #### Autofill
 
 You can click on "Autofill" in the "Edit" menu to try to get the software to
-fill all remaining entries. This may take a little while, but you can watch
-the progress.
-
-From the Autofill menu panel, you can stop the Autofill. You can accept the
-Autofill suggestions by clicking on the "Accept" button, after Autofill
-concludes. You can also stop/resume the Autofill using buttons on this panel.
+fill all remaining entries. This may take a little while, but you can monitor
+the progress and intervene if needed: From the Autofill menu panel, you can
+click on "Pause"  to pause the Autofill (clicking on "Start" will resume it).
+You can accept or clear the Autofill suggestions by clicking on the "Accept"
+/ "Clear" buttons, respectively, when Autofill is paused or has finished.
 
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
-I think my code for giving those words/phrases preferential treatment will
-need to be improved over time, as it currently typically only manages to
-get a small number of them in (while I can do a better job manually).
-
 Autofill also respects the "undesired fills" list as well the checkbox
 that toggles whether proper nouns are allowed.
 
@@ -253,13 +249,11 @@ the fills.
 
 A good way to make use of Autofill is stop it as soon as it picks a
 word that you do not like. You can then accept the suggestions and clear
-the word that you do not like (which will also add it to "undesired fills").
-Then, you can resume Autofill and repeat the process.
+the word(s) that you do not like. Then, you can resume Autofill and repeat
+the process.
 
-Autofill may take a while (15+ minutes), especially for barred grids and
-American-style grids. I'll try to improve its performance. It does not
-do a great job of maximizing preferred grid-fills currently, which is also
-somthing I hope to improve.
+Autofill may take a while (5+ minutes), especially for barred grids and
+American-style grids. I'll try to improve its performance.
 
 ### Providing the clues
 

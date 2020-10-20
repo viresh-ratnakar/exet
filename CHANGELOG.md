@@ -1,5 +1,18 @@
 # Changelog
 
+### Version: Exet v0.18 October 19 2020
+
+- Improve beamsearch scoring: essentially use sum of log probs, treating
+  each cell viability as an independent probability. But add a heavy boost
+  for completed fraction.
+- With the improved scoring, preflex fills is working much better now,
+  after some more changes in this version: use a preliminary phase where
+  we just try to place each preflex entry somewhere.
+- "Try to get a pangram" is not really working. Take it out of scoring
+  and just move to using some heuristics. Will try to improve later.
+- Add a file called exet-version.txt and enable periodic version checking,
+  along with a prompt to reload to update older versions.
+
 ### Version: Exet v0.17 October 19 2020
 
 - Turn off chosing entire lights in the autofill beam search for now.
