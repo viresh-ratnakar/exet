@@ -4581,17 +4581,20 @@ Exet.prototype.checkVersion = function() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4) {
+      let now = (new Date()).toLocaleString()
       if (this.status < 200 || this.status > 299) {
-        console.log("Version check request failed")
+        console.log(now + ": Version check request failed")
         return
       }
       let ver = this.responseText.trim()
       if (!exet.versiontext) {
         exet.versionText = ver
-        console.log("Initialized Exet version to " + ver)
+        console.log(now + ": Initialized Exet version to " + ver)
       } else if (ver != exet.versionText) {
         this.warnVersion(ver)
-        console.log("Exet version warning on: " + exet.versionText + " needs update to " + ver)
+        console.log(now + ": Exet version warning on: " + exet.versionText + " needs update to " + ver)
+      } else {
+        console.log(now + ": Exet version verified to be current: " + ver)
       }
     }
   };
