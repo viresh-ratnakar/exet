@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.18 October 19, 2020
+Current version: v0.19 October 20, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.96"/>
@@ -4502,7 +4502,8 @@ Exet.prototype.renderUnpreflex = function() {
 
 Exet.prototype.updateUnpreflex = function() {
   let unpreflexes = this.unpreflexInput.value.trim().split('\n')
-  let unpreflex = {}
+  let saved = this.unpreflex
+  this.unpreflex = {}
   for (let p of unpreflexes) {
     p = p.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ')
     if (!p) continue
@@ -4512,17 +4513,16 @@ Exet.prototype.updateUnpreflex = function() {
     if (inLexicon.length != 1) {
       continue
     }
-    if (unpreflex[p]) {
+    if (this.unpreflex[p]) {
       continue
     }
     p = inLexicon[0]
-    unpreflex[p] = true
+    this.unpreflex[p] = true
   }
-  if (JSON.stringify(unpreflex) == JSON.stringify(this.unpreflex)) {
+  this.unpreflexSize.innerText = Object.keys(this.unpreflex).length
+  if (JSON.stringify(this.unpreflex) == JSON.stringify(saved)) {
     return
   }
-  this.unpreflex = unpreflex
-  this.renderUnpreflex()
   this.resetViability()
   exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
 }

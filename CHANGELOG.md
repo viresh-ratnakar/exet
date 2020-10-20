@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.19 October 20 2020
+
+- Bugfix: unpreflex update was buggy.
+
 ### Version: Exet v0.18 October 19 2020
 
 - Improve beamsearch scoring: essentially use sum of log probs, treating
