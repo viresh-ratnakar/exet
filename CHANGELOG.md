@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.20 October 23 2020
+
+- Minor style changes (avoid red/blue text in preflex panels, color the Pause
+  button reddish in the autofill panel, etc.).
+- Allow restricting to top k words by popularity.
+- Correctly set preflex settings in the autofill panel, after they change.
+- After clicking 'Start' in autofill, let UI update before starting
+  computations.
+
 ### Version: Exet v0.19 October 20 2020
 
 - Bugfix: unpreflex update was buggy.

@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.19 October 20, 2020
+Current version: v0.20 October 23, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.96"/>
@@ -113,10 +113,10 @@ Current version: v0.19 October 20, 2020
   height: 450px;
 }
 .xet-mid-tall-box {
-  height: 320px;
+  height: 325px;
 }
 .xet-low-tall-box {
-  height: 250px;
+  height: 240px;
 }
 .xet-anno {
   font-family: monospace;
@@ -406,6 +406,15 @@ Current version: v0.19 October 20, 2020
 #xet-outdated {
   color: red;
   font-weight: bold;
+}
+#xet-minpop {
+  text-align: right;
+}
+.xet-pink-button {
+  background-color: salmon !important;
+}
+.xet-pink-button:hover {
+  background-color: red !important;
 }
 </style>
 
@@ -818,7 +827,8 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
         lastRev.scratchPad == exet.puz.scratchPad.value &&
         lastRev.preflex && JSON.stringify(lastRev.preflex) == JSON.stringify(exet.preflex) &&
         lastRev.unpreflex && JSON.stringify(lastRev.unpreflex) == JSON.stringify(exet.unpreflex) &&
-        lastRev.noProperNouns == exet.noProperNouns) {
+        lastRev.noProperNouns == exet.noProperNouns &&
+        lastRev.minpop == exet.minpop) {
       return
     }
   }
@@ -834,6 +844,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.preflex = exet.preflex
   exetRev.unpreflex = exet.unpreflex
   exetRev.noProperNouns = exet.noProperNouns
+  exetRev.minpop = exet.minpop
   stored.revs.push(exetRev)
   this.saveLocal(exet.puz.id, JSON.stringify(stored))
 };
@@ -878,6 +889,7 @@ function Exet() {
   this.preflex = []
   this.unpreflex = {}
   this.noProperNouns = false
+  this.setMinpop(0)
 
   // Start in the Exet tab
   this.currTab = "exet"
@@ -905,6 +917,12 @@ function Exet() {
     this.allLetters[c.toUpperCase()] = true
   }
 };
+
+Exet.prototype.setMinpop = function(m) {
+  if (m < 0) m = 0
+  this.minpop = m
+  this.indexMinpop = Math.floor(exetLexicon.startLen * (100 - m) / 100)
+}
 
 Exet.prototype.startNav = function(dir='A', row=0, col=0) {
   if (!this.puz) return;
@@ -1339,9 +1357,15 @@ Exet.prototype.makeExetTab = function() {
               <div style="padding:4px" title="You can edit the list of preferred fills by clicking on the 'Set preferred fills' button">
                 Preferred fills used: <span id="xet-autofill-preflex-used">0</span> of <span id="xet-autofill-preflex-total">${this.preflex.length}</span>
               </div>
-              <div style="padding:4px" title="You can edit the list of undesired fill as well as allow/disallow proper nouns by clicking on the 'Set undesired fills' button">
-                Undesired fills: <span id="xet-autofill-unpreflex-total">${Object.keys(this.unpreflex).length}</span>
-                &nbsp; Proper nouns: <span id="xet-autofill-proper-nouns">${this.noProperNouns ? "disallowed" : "allowed"}</span>
+              <div title="You can edit the list of undesired fills, restrict fills by a popularity cutoff, and allow/disallow proper nouns by clicking on the 'Set fill exclusions' button">
+                <div style="padding:4px">
+                  Min popularity: <span id="xet-autofill-minpop">${this.minpop}</span> %ile
+                  (<span id="xet-autofill-index-minpop">${this.indexMinpop}</span> entries)
+                </div>
+                <div style="padding:4px" title="You can edit the list of undesired fills, restrict fills by a popularity cutoff, and allow/disallow proper nouns by clicking on the 'Set fill exclusions' button">
+                  Proper nouns: <span id="xet-autofill-proper-nouns">${this.noProperNouns ? "disallowed" : "allowed"}</span>&nbsp;
+                  Undesired fills: <span id="xet-autofill-unpreflex-total">${Object.keys(this.unpreflex).length}</span>
+                </div>
               </div>
               <div style="padding:4px">
                 Letters used: <span id="xet-autofill-pangram">0</span> of ${exetLexicon.letters.length}
@@ -1401,14 +1425,14 @@ Exet.prototype.makeExetTab = function() {
         <button class="xlv-small-button" style="padding:5px 4px" id="xet-edit-preflex">Set preferred fills</button>
         <span id="xet-preflex-used">0</span>/<span id="xet-preflex-size">${this.preflex.length}</span> used
       </div>
-      <div title="You can provide words/phrases to exclude from the grid-fill and you can check/uncheck an option to exclude proper nouns">
-        <button class="xlv-small-button" style="padding:5px 4px;color:chocolate" id="xet-edit-unpreflex">Set undesired fills</button>
+      <div title="You can provide words/phrases to exclude from the grid-fill, set a minimum popularity, and include/exclude proper nouns">
+        <button class="xlv-small-button" style="padding:5px 4px;color:chocolate" id="xet-edit-unpreflex">Set fill exclusions</button>
         <span id="xet-unpreflex-size">${Object.keys(this.unpreflex).length}</span> set
       </div>
       <div class="xet-preflex-editor" title="Click anywhere outside this box to dismiss it"
         id="xet-preflex-editor" style="display:none">
-       <div class="xet-blue">
-         Enter up to 100 preferred words/phrases.
+        <div>
+         List of preferred words/phrases (up to 100):
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <textarea rows="100" cols="30" id="xet-preflex-input"
@@ -1418,15 +1442,20 @@ Exet.prototype.makeExetTab = function() {
       </div>
       <div class="xet-preflex-editor" title="Click anywhere outside this box to dismiss it"
         id="xet-unpreflex-editor" style="display:none">
-        <div class="xet-red">
-         Words/phrases that you do not want to appear in the crossword.
-         <br>
-         <br>
+        <div>
+          Minimum popularity:
+          <input id="xet-minpop" name="xet-minpop" class="xlv-answer" size="4" maxlength="4" type="text"></input> %ile<br>
+          (exclude bottom <span id="xet-minpop-excl">${exetLexicon.startLen - this.indexMinpop}</span> of ${exetLexicon.startLen})
+          <br>
+          <br>
           Disallow proper nouns:
           <input id="xet-no-proper-nouns" name="xet-no-proper-nouns" value="no-proper-nouns" checked=false type="checkbox">
           </input>
+          <br>
+          <br>
+           List of words/phrases that you do not want as fills:
         </div>
-        <div class="xet-choices-box xet-mid-tall-box">
+        <div class="xet-choices-box xet-low-tall-box">
           <textarea rows="100" cols="30" id="xet-unpreflex-input"
             oninput="exet.throttledUpdateUnpreflex()"
             class="xlv-answer"></textarea>
@@ -1475,6 +1504,20 @@ Exet.prototype.makeExetTab = function() {
   document.getElementById("xet-edit-unpreflex").addEventListener('click', e=> {
     exetModals.showModal(exet.unpreflexEditor)
     e.stopPropagation()
+  })
+  this.minpopExclSpan = document.getElementById("xet-minpop-excl")
+  this.minpopInput = document.getElementById("xet-minpop")
+  this.minpopInput.value = this.minpop
+  this.minpopInput.addEventListener('change', e => {
+    if (isNaN(this.minpopInput.value) ||
+        this.minpopInput.value < 0 || this.minpopInput.value >= 100) {
+      this.minpopInput.value = this.minpop
+      return
+    }
+    this.setMinpop(this.minpopInput.value)
+    this.minpopExclSpan.innerText = (exetLexicon.startLen - this.indexMinpop)
+    this.resetViability()
+    exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
   })
   this.noProperNounsInput = document.getElementById("xet-no-proper-nouns")
   this.noProperNounsInput.checked = this.noProperNouns
@@ -3240,6 +3283,14 @@ Exet.prototype.getAutofillPriorityClues = function() {
   return pclues
 }
 
+Exet.prototype.updateAutofillPreflex = function() {
+  this.autofill.preflexTotalSpan.innerText = this.preflex.length
+  this.autofill.unpreflexTotalSpan.innerText = Object.keys(this.unpreflex).length
+  this.autofill.minpopSpan.innerText = this.minpop
+  this.autofill.indexMinpopSpan.innerText = this.indexMinpop
+  this.autofill.properNounsSpan.innerText = this.noProperNouns ? "disallowed" : "allowed"
+}
+
 Exet.prototype.startstopAutofill = function() {
   if (!this.autofill.running) {
     if (this.puz.numCellsToFill == this.puz.numCellsFilled) {
@@ -3264,9 +3315,7 @@ Exet.prototype.startstopAutofill = function() {
       this.viabilityUpdateTimer = null;
     }
 
-    this.autofill.preflexTotalSpan.innerText = this.preflex.length
-    this.autofill.unpreflexTotalSpan.innerText = Object.keys(this.unpreflex).length
-    this.autofill.properNounsSpan.innerText = this.noProperNouns ? "disallowed" : "allowed"
+    this.updateAutofillPreflex()
     this.autofill.running = true
     this.autofill.status = 'Running'
     this.autofill.accept.disabled = true
@@ -3274,6 +3323,7 @@ Exet.prototype.startstopAutofill = function() {
     this.autofill.statusSpan.innerText = this.autofill.status
     this.sweepIndicator.className = 'xet-sweeping-animated'
     this.autofill.startstop.innerText = 'Pause'
+    this.autofill.startstop.className = 'xlv-button xet-pink-button'
     let beamWidth = parseInt(this.autofill.beamWidthInput.value)
     if (isNaN(beamWidth) || beamWidth <= 0) {
       this.autofill.beamWidthInput.value = this.autofill.beamWidth
@@ -3281,11 +3331,17 @@ Exet.prototype.startstopAutofill = function() {
       this.autofill.beamWidth = beamWidth
     }
     this.autofill.boostPangram = this.autofill.pangramInput.checked
-    this.beamSearchStep()
+    if (this.autofill.throttledTimer) {
+      clearTimeout(this.autofill.throttledTimer)
+    }
+    this.autofill.throttledTimer = setTimeout(() => {
+      this.beamSearchStep();
+    }, this.autofill.lag);
   } else {
     this.autofill.running = false
     this.updateSweepInd()
     this.autofill.startstop.innerText = 'Start'
+    this.autofill.startstop.className = 'xlv-button'
     this.autofill.status = 'Stopped'
     this.autofill.accept.disabled = false
     this.autofill.clear.disabled = false
@@ -3298,6 +3354,7 @@ Exet.prototype.startstopAutofill = function() {
 Exet.prototype.resetAutofill = function(status) {
   this.autofill.candidates = []
   this.autofill.step = 0
+  this.updateAutofillPreflex()
   if (!this.autofill.running) {
     return
   }
@@ -3310,6 +3367,7 @@ Exet.prototype.resetAutofill = function(status) {
   this.autofill.running = false
   this.updateSweepInd()
   this.autofill.startstop.innerText = 'Start'
+  this.autofill.startstop.className = 'xlv-button'
 }
 
 Exet.prototype.updateAutofill = function(candidate) {
@@ -3365,6 +3423,7 @@ Exet.prototype.initAutofill = function() {
   this.autofill.startstop = document.getElementById("xet-autofill-startstop")
   if (this.autofill.running) {
     this.autofill.startstop.innerText = 'Pause'
+    this.autofill.startstop.className = 'xlv-button xet-pink-button'
   }
   this.autofill.startstop.addEventListener('click', this.startstopAutofill.bind(this))
 
@@ -3390,6 +3449,8 @@ Exet.prototype.initAutofill = function() {
   this.autofill.preflexTotalSpan = document.getElementById('xet-autofill-preflex-total')
   this.autofill.preflexUsedSpan = document.getElementById('xet-autofill-preflex-used')
   this.autofill.unpreflexTotalSpan = document.getElementById('xet-autofill-unpreflex-total')
+  this.autofill.minpopSpan = document.getElementById('xet-autofill-minpop')
+  this.autofill.indexMinpopSpan = document.getElementById('xet-autofill-index-minpop')
   this.autofill.properNounsSpan = document.getElementById('xet-autofill-proper-nouns')
   this.autofill.pangramSpan = document.getElementById('xet-autofill-pangram')
   if (this.autofill.candidates.length > 0) {
@@ -3727,7 +3788,7 @@ Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}) {
   let choices = []
   let key = this.makeLexKey(partialSol);
   if (!key) return choices
-  // First look at preferred choices
+  // First look at preferred choices (these may have idx >= this.indexMinpop)
   let seen = {}
   if (this.preflexByLen[key.length]) {
     for (idx of this.preflexByLen[key.length]) {
@@ -3747,6 +3808,7 @@ Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}) {
   }
   let indices = exetLexicon.index[gkey];
   for (let idx of indices) {
+    if (idx >= this.indexMinpop) break
     if (dontReuse[idx]) continue
     if (this.unpreflex[idx]) continue
     let phrase = exetLexicon.lexicon[idx]
@@ -4617,6 +4679,7 @@ function exetFromHistory(exetRev) {
   let preflex = exetRev.preflex || []
   exet.setPreflex(preflex)
   exet.unpreflex = exetRev.unpreflex || {}
+  exet.setMinpop(exetRev.minpop || 0)
   exet.noProperNouns = exetRev.noProperNouns || false
   exet.makeExolve(exetRev.exolve)
   if (exetRev.navState) {
@@ -4682,6 +4745,7 @@ function exetBlank(w=15, h=15, id='', automagic=false, checkered=true,
   `
   exet.setPreflex([])
   exet.unpreflex = {}
+  exet.setMinpop(0)
   exet.noProperNouns = false
   exet.makeExolve(specs)
   exet.startNav()
@@ -4712,6 +4776,7 @@ function exetLoadFile() {
     let specs = fr.result.substring(start, end)
     exet.setPreflex([])
     exet.unpreflex = {}
+    exet.setMinpop(0)
     exet.noProperNouns = false
     exet.makeExolve(specs)
     exet.startNav()
@@ -4728,6 +4793,7 @@ function exetLoadFile() {
           if (lastRev.unpreflex) {
             exet.unreflex = lastRev.unpreflex
           }
+          exet.setMinpop(lastRev.minpop || 0)
           exet.noProperNouns = lastRev.noProperNouns || false
         }
       }
@@ -4744,7 +4810,6 @@ function exetLoadFile() {
 let exetFileName = ''
 let exetRevManager = new ExetRevManager();
 let exetModals = new ExetModals();
-let exet = new Exet;
 if (!window.localStorage) {
   throw "localStorage is not available!"
 }
@@ -4752,6 +4817,9 @@ if (!exetLexicon) {
   throw "No lexicon has been loaded!"
 }
 exetLexicon.startLen = exetLexicon.lexicon.length
+
+let exet = new Exet;
+
 let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
 if (exetState) {
   exetState = JSON.parse(exetState)

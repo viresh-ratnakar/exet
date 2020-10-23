@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.19 October 20 2020
+#### Version: Exet v0.20 October 23 2020
 
 #### Author: Viresh Ratnakar
 
@@ -148,8 +148,13 @@ also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
 and it will be checked by default (you can uncheck it if you do want to start
 with a basic chequered template or a completely blank template).
 
-Here's what "Add automagic blocks" does, whether you use it when creating a new
-blank grid or whether you invoke it on an existing grid:
+"Add automagic blocks" essentially adds some blocks to the grid, while
+adhering to the British chequered format or the American format (whichever
+one the grid starts out with—a completely block-free starting point leads to the
+American variety). It can be used repeatedly.
+
+Here's what "Add automagic blocks" does, in detail (whether you use it when
+creating a new blank grid or whether you invoke it on an existing grid):
 - It ensures that any added blocks continue to maintain symmetry and continue
   to maintain full cell connectivity (i.e., there is a path from every white
   cell to every other white cell, going through white cells only).
@@ -221,14 +226,38 @@ forced letter suggestions.
 
 You can provide up to a 100 preferred words/phrases for using in the grid, by
 clicking on the button labelled "Set preferred fills" in the Exet tab, just
-under the column that shows grid-fill suggestions. The words you provide here
-can be outside the lexicon too. These words will get shown as the top
-suggestions, whenever possible.
+under the column that shows grid-fill suggestions. This opens up a panel in
+which you enter a set of preferred words/phrases (or edit the previously entered
+set).  The words you provide here can be outside the lexicon too. These words
+will get shown as the top suggestions, whenever possible. Clicking anywhere
+outside the panel of preferred fills will dismiss the panel.
 
 Similarly, you can provide a set of words that you do *not* want to appear
-in the crossword, by clicking on the "Set undesired fills" button. Clicking on
-the "Set undesired fills" button also shows a checkbox for specifying whether
-or not you want to allow proper nouns to be used (allowed by default).
+in the crossword, by clicking on the "Set fill exclusions" button. This
+will open up a panel in which you can specify the following:
+
+- A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.02 en Latin"
+  as of Oct 2020) has 250,556 entries. Providing a popularity threshold can
+  be useful to avoid obscure words as well as to make autofill go faster.
+  Here's a guide to the number of entries that you will limit to, at various
+  thresholds (recall that popularity is derived from occurrences in Wikipedia
+  articles):
+
+  | Threshold | #Entries | Last included entries    |
+  |-----------|----------|--------------------------|
+  |       0   | 250,556  | latirostral, Nance, Nancy |
+  |       25  | 187,917  | pseudoscopes, washpot, whackiest     |
+  |       50  | 125,278  | closed communities, forced sales, stannate |
+  |       60  | 100,222  | ensnares, raun, clerical collar      |
+  |       70  | 75,166  | leaseholder, delivery van, nays       |
+  |       80  | 50,111  | in deep water, booing, ecco           |
+  |       90  | 25,055  | solicitors, swifts, stele             |
+  |       95  | 12,527  | Green Party, popular music, commector |
+
+- Whether to exclude proper nouns.
+- An explicit list of words/phrases to exclude.
+
+Clicking anywhere outside the shown panel dismiss it.
 
 #### Autofill
 
@@ -240,10 +269,11 @@ You can accept or clear the Autofill suggestions by clicking on the "Accept"
 / "Clear" buttons, respectively, when Autofill is paused or has finished.
 
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
-Autofill also respects the "undesired fills" list as well the checkbox
-that toggles whether proper nouns are allowed.
+Autofill also respects the "fill exclusions" settings (min-popularity,
+exclusion of proper nouns, as well as any entries in the explicitly forbidden
+list).
 
-Autofill randomizes its choice to an extent. You can run it repeatedly
+Autofill randomizes its choices to an extent. You can run it repeatedly
 to get slightly different results every time, until you are satisfied with
 the fills.
 
@@ -252,8 +282,8 @@ word that you do not like. You can then accept the suggestions and clear
 the word(s) that you do not like. Then, you can resume Autofill and repeat
 the process.
 
-Autofill may take a while (5+ minutes), especially for barred grids and
-American-style grids. I'll try to improve its performance.
+Autofill may take a while (2+ minutes), especially for barred grids and
+American-style grids. I'll try to improve its performance over time.
 
 ### Providing the clues
 
