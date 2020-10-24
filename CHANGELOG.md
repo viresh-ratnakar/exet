@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.21 October 23 2020
+
+- Add a cache-busting random query string to the version-check request.
+- Reduce version-checking frequencey from 10min to 30min
+
 ### Version: Exet v0.20 October 23 2020
 
 - Minor style changes (avoid red/blue text in preflex panels, color the Pause

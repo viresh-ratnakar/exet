@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.20 October 23, 2020
+Current version: v0.21 October 23, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.96"/>
@@ -4660,7 +4660,9 @@ Exet.prototype.checkVersion = function() {
       }
     }
   };
-  xhttp.open("GET", "exet-version.txt", true);
+  let nocacheURI = "exet-version.txt?" +
+                   Math.random().toString(36).substring(2, 8)
+  xhttp.open("GET", nocacheURI, true);
   xhttp.send();
 }
 
@@ -4669,8 +4671,8 @@ Exet.prototype.initVersionChecking = function() {
   if (window.location.protocol == "file:") {
     return
   }
-  // Check every ten minutes
-  setInterval(this.checkVersion.bind(this), 10 * 60 * 1000)
+  // Check every 30 minutes
+  setInterval(this.checkVersion.bind(this), 30 * 60 * 1000)
 }
 
 function exetFromHistory(exetRev) {
