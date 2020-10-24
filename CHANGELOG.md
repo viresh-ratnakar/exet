@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.22 October 23 2020
+
+- Argh, roll-back the cache-busting in v0.21. Had jumped the gun because
+  v0.20 version-check was seemingly not working, but had never actually
+  pushed it to serving!
+
 ### Version: Exet v0.21 October 23 2020
 
 - Add a cache-busting random query string to the version-check request.
