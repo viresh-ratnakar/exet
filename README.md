@@ -257,7 +257,7 @@ will open up a panel in which you can specify the following:
 - Whether to exclude proper nouns.
 - An explicit list of words/phrases to exclude.
 
-Clicking anywhere outside the shown panel dismiss it.
+Clicking anywhere outside the shown panel dismisses it.
 
 #### Autofill
 
