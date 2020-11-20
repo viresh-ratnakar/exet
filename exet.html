@@ -1832,7 +1832,7 @@ Exet.prototype.updateAnalysis = function(elt) {
     html += `<li><b>Annotations provided</b>: ${info.annos} (${(unparented > -1 ? 100*info.annos/unparented : 0).toFixed(2)}%)
     ${this.plotStats(info.annotations)}</li>`
     html += `<li><b>Letters used</b>: ${this.plotStats(info.letters)}</li>`
-    html += `<li title="Popularity, when available in the lexicon, is the percentile by occurrence count over a large corpus such as Wikipedia"><b>Word/phrase popularities</b>: ${this.plotStats(info.popularities, 5)}</li>`
+    html += `<li title="Popularity, when available in the lexicon, is the percentile by occurrence count over a large corpus such as Wikipedia"><b>Word/phrase popularity percentiles</b>: ${this.plotStats(info.popularities, 5)}</li>`
     html += '</ul></div>'
   }
   elt.innerHTML = html
