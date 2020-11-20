@@ -1,5 +1,32 @@
 # Changelog
 
+### Version: Exet v0.23 November 19 2020
+
+- Add an Exet > Analysis tab. Clicking on this shows an analysis of the
+  grid, the grid-fill, and the clues.
+  - The analysis catches things like consecutive unches in the grid,
+    repetitions of words in clues, etc. It can be sliced by All/Across/Down
+    clues.
+  - The "anno" stats try to enmerate various clue types. Unfortunately,
+    there's no widely accepted  standard for specifying annos that I know of.
+    So, these stats are biased towards parsing how *I* specify annos, for now.
+    If you want this to be useful, please mimic my anno style :-) or give me
+    better ideas.
+  - Stats are shown as bar graphs. Hovering over the bars shows details
+    (for example, the specific clue numbers that have that stat value).
+- Alert instead of console.log(), on unsupported grids such as diagramless ones.
+- Consolidate dictionaries under a single tab. Add Chambers.
+- Move anagrams and alternations to separate tabs. And to the alternations tab,
+  add reversed alternations as well.
+- Show an alert confirming that widget code has been copied to the clipboard,
+  when the user clicks on the menu options for that.
+- Add the puzzle title to downloaded file names.
+- Slightly reduce the probability of automagic blocking not adding a block at
+  all to a row/col span.
+- When creating the very first grid (or otherwise having no previous grid to
+  load), add automagic blocks to chequered templates.
+- Change default puzzle title to just "Crossword" instead of "Exet Crossword."
+
 ### Version: Exet v0.22 October 23 2020
 
 - Argh, roll-back the cache-busting in v0.21. Had jumped the gun because

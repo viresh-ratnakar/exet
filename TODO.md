@@ -5,7 +5,6 @@
 - "Smart-delete" to purge excessive revisions
 - Don't use cookie-saved state
 - When the clue has an enum like (4-3), only show fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
-- improve "pangram boost"
 
 - track used words [Done]
 - auto-fill [Done]

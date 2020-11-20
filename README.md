@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.22 October 23 2020
+#### Version: Exet v0.23 November 19 2020
 
 #### Author: Viresh Ratnakar
 
@@ -32,7 +32,7 @@ from any modern browser. The experience may not be great on smaller screens
 like phones, though.
 
 Exet saves all revisions of all crosswords that you work on, in the browser's
-local storage.  Exet never sends your crosswords to wherever it is getting
+local storage. Exet never sends your crosswords to wherever it is getting
 served from.
 
 You can download the crosswords that you create with Exet in the
@@ -42,8 +42,8 @@ web site or blog, using Exolve (but see the
 [known caveats in the Exolve
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-widget)).
 
-As of September 2020, Exet only suggests English grid-fills (I'll add
-support for other languages eventually).
+As of now, Exet only suggests English grid-fills (I'll add support for other
+languages eventually).
 
 I welcome [bug reports and feature
 requests](https://github.com/viresh-ratnakar/exet/issues/new).
@@ -55,6 +55,7 @@ The list of words used by Exet for providing grid-fill suggestions is a
 modified version of the "UKACD" words list, which comes with its own
 copyight notice that is reproduced below. I made the following modifications
 to the UKACD words list:
+
 - Removed a few swear words.
 - Replaced all accented characters with non-accented ones.
 - Deleted all punctuation characters other than spaces, hyphens, and apostrophes.
@@ -62,7 +63,6 @@ to the UKACD words list:
 - Created an index of the lexicon suitable for use by my JavaScript
   code. Source code for the last two steps is available in my
   [Lufz GitHub repository](https://github.com/viresh-ratnakar/lufz).
-
 
 ```
 UKACD18
@@ -108,9 +108,11 @@ After it loads, your browser screen should look something like this:
 ![Screeshot of Exet upon starting up](starting-screenshot.png)
 
 Normally, Exet would start with the last crossword that you were working
-on. When you open it for the very first time, it creates a blank 15x15
-blocked grid (you can pass a URL option to default to a blank unblocked
-grid instead: exet.html?newgrid=blank).
+on. When you open Exet for the very first time, it creates a 15x15
+blocked grid of the British variety, with blocks added "automagically"
+(see below). You can pass a URL option to default to a completely blank grid
+as the first grid it creates:
+[exet.html?newgrid=blank](exet.html?newgrid=blank).
 
 There are three phases in crossword construction:
 
@@ -129,14 +131,14 @@ You can navigate to any cell using the arrow keys or by clicking on it
 from the "Edit" menu (as well as through some keyboard shortcuts listed below
 and also shown in the menu):
 
+- Add automagic blocks (#)
+- Autofill:
+- Accept autofilled entries (=)
 - Toggle encircling (@)
 - Toggle marking prefilled (!)
 - Toggle block (.)
 - Toggle bar-after (|)
 - Toggle bar-under (\_)
-- Autofill
-- Add automagic blocks (#)
-- Accept autofilled entries (=)
 - Clear all the lights
 
 For the actions that modify the grid in non-cosmetic ways (.|\_#), symmetric
@@ -146,12 +148,14 @@ The "Open" menu allows you to start with blocked blank grids following a few
 checkquered templates and the completely blank "No blocks" template. You will
 also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
 and it will be checked by default (you can uncheck it if you do want to start
-with a basic chequered template or a completely blank template).
+with a chequered template with no added blocks or with a completely blank
+template).
 
 "Add automagic blocks" essentially adds some blocks to the grid, while
-adhering to the British chequered format or the American format (whichever
-one the grid starts out with—a completely block-free starting point leads to the
-American variety). It can be used repeatedly.
+maintaining the British chequered format (that has no consecutive unchecked
+cells) or the American format (that has all cells checked), whichever of the
+two formats is the state of the grid at that time. "Add automagic blocks"
+can be used repeatedly.
 
 Here's what "Add automagic blocks" does, in detail (whether you use it when
 creating a new blank grid or whether you invoke it on an existing grid):
@@ -221,10 +225,10 @@ modified while such a sweep is going on.
 
 When Exet determines (using its lexicon) that for some unfilled cell, exactly
 one letter choice is viable, it shows that letter choice in gray. You can press
-"=" (or use the Edit menu's "Accept forced fills" option) to accept all such
-forced letter suggestions.
+"=" (or use the Edit menu's "Accept autofilled entries" option) to accept all
+such autofilled letter suggestions.
 
-You can provide up to a 100 preferred words/phrases for using in the grid, by
+You can provide up to 100 preferred words/phrases for using in the grid, by
 clicking on the button labelled "Set preferred fills" in the Exet tab, just
 under the column that shows grid-fill suggestions. This opens up a panel in
 which you enter a set of preferred words/phrases (or edit the previously entered
@@ -279,8 +283,9 @@ the fills.
 
 A good way to make use of Autofill is stop it as soon as it picks a
 word that you do not like. You can then accept the suggestions and clear
-the word(s) that you do not like. Then, you can resume Autofill and repeat
-the process.
+the word(s) that you do not like (you may also consider adding them to the
+"Set fill exclusions" list). Then, you can resume Autofill and repeat the
+process.
 
 Autofill may take a while (2+ minutes), especially for barred grids and
 American-style grids. I'll try to improve its performance over time.
@@ -302,15 +307,14 @@ in cryptic crossword solutions, typically, to describe the cryptic wordplay.
 
 When creating a clue for a word or a phrase, setters typically like to
 look at the definition of the word/phrase, look at its synonyms, examples of
-usage, pronunciation, and etymology. The following three tabs in Exet
-let you do that by using reputed online resources:
+usage, pronunciation, and etymology. The "Dictionaries" tab lets you do that
+by using reputed online resources, conveniently linking directly to the
+word/phrase in the current light:
 
-- **TFD**: [thefreedictionary.com](https://thefreedictionary.com)
-- **Google Dict**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev/api/v1/entries/en/test)
-- **Etym**: [www.etymonline.com](https://www.etymonline.com)
-
-In each case, clicking on the tab will directly open the online resource for the
-word/phrase in the current light.
+- **Chambers Dictionary & Thesaurus**: [https://chambers.co.uk](https://chambers.co.uk)
+- **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
+- **Google Dict**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
+- **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
 For cryptic crosswords, these additional tabs might be of use to setters. These
 are:
@@ -319,15 +323,16 @@ are:
   containers, wordplays for the current light, sorted in decreasing order of
   the average length of wordplay components.
 - **Anagrams...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
-  meaningful anagrams of the current light, as well as "alternation" wordplays
-  for the current light. Setters can tweak the wordplay as they choose. The
-  Nutrimatic anagrams may cover more possibilities than the anagrams shown in
-  the Charades tab, as the anagrams shown in the Charades tab are restricted
-  to words and phrases in the lexicon. Also shows a panel with possibilities for
-  composite anagrams (this can also be used for anagrams with deletions).
+  meaningful anagrams of the current light. The Nutrimatic anagrams may cover
+  more possibilities than the anagrams shown in the Charades tab, as the
+  anagrams shown in the Charades tab are restricted to words and phrases in the
+  lexicon. This tab also shows a panel with possibilities for composite
+  anagrams (which can also be used for creating anagrams with deletions).
 - **Hidden...**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay ppossibilities for the
   current light. Setters can tweak the wordplay as they choose.
+- **Alternations...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
+  "alternation" and "reversed alternation" wordplays for the current light.
 - **Lists**: This is not specific to the current light. This tab provides
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and acceptable cryptic abbreviations. The source is
@@ -344,17 +349,19 @@ empty.
 
 ### Downloading Exolve or .puz files
 
-The "Save" menu lets you download or grab the puzzle in various ways:
+The "Save" menu lets you download or grab the puzzle in various ways. In the
+following, a \* in a filename stands for the puzzle title preceded by a hyphen
+(unless the puzzle title is blank).
 
-- **Download PUZ file (exet.puz)**: Download a .puz file. Note that .puz
+- **Download PUZ file (exet\*.puz)**: Download a .puz file. Note that .puz
   does not support many crossword features (afaik) such as barred grids.
   The software will alert you if it is not able to provide a .puz download.
-- **Download Exolve file w/ solutions (exet-exolve-solved.html)**: Download an
+- **Download Exolve file w/ solutions (exet-exolve\*-solved.html)**: Download an
   HTML file that uses Exolve and that allows solvers to check/see solutions.
   Such files can also be opened by Exet from the "Open" menu and can be further
   edited. This might be useful, for example, when you want to edit an old
   crossword that you have deleted from Exet's limited local storage.
-- **Download Exolve file w/o solutions (exet-exolve-unsolved.html)**: Download
+- **Download Exolve file w/o solutions (exet-exolve\*-unsolved.html)**: Download
   an HTML file that uses Exolve and does not allow solvers to check/see
   solutions.
 - **Copy Exolve widget code w/ solutions 📋**: Copy (into the clipboard)
@@ -366,8 +373,7 @@ The "Save" menu lets you download or grab the puzzle in various ways:
 In the first three "download" variants, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already
 exists a file with that name, the system will use a variant of the name
-as per its usual conventions. You should copy/rename the file after
-downloading to some more meaningful folder and/or name.
+as per its usual conventions.
 
 ### Going back to older versions
 
@@ -382,9 +388,117 @@ entirely delete old crosswords (after downloading Exolve files with solutions
 for them as these files can be opened in Exet to recover the crosswords
 completely).
 
+## Analysis
+
+The Exet tab also has an "Analysis" link. When you click on that, a panel opens
+up, showing various analyses of the grid, the grid-fill, the clues, and the
+annotations. Here is an illustrative example of the kinds of analyses shown:
+
+> **Grid**
+> 
+> - 225 cells, dimensions: 15 × 15
+> - All light cells are connected
+> - Symmetric
+> - 70 (31.11%) blocked cells
+> - No bars
+> - No consecutive unches
+> 
+> **All/Across/Down Grid-fills and Clues**
+> 
+> - Number of lights: 29
+> - Filled lights: 29 (100.00%)
+> - Clues needed (excluding linked "child" lights): 29
+> - Clues set: 29 (100.00%)
+> 
+> - Light lengths:
+> 
+>   - 2	occurrences of	4	
+>   - 4	occurrences of	5	
+>   - 6	occurrences of	6	
+> 
+>     ...
+> 
+>   Distinct values: 8
+> 
+>   Range: 4 - 15, Average: 7.3, Median: 7
+> 
+> - Words repeated in clues:
+> 
+>   - 6	×	of	
+>   - 4	×	to	
+>   - 3	×	perhaps	
+>   - 2	×	wild	
+> 
+>     ...
+> 
+>   Distinct values: 23
+> 
+> - Annotations provided: 29 (100.00%)
+> 
+>   - 6	×	charade or other	
+>   - 3	×	anagram around	
+>   - 3	×	anagram	
+>   - 2	×	in	
+>   - 2	×	in anagram	
+> 
+>     ...
+> 
+>   Distinct values: 17
+> 
+> - Letters used:
+> 
+>   - 20	×	E	
+>   - 15	×	A	
+>   - 13	×	I	
+> 
+>     ...
+> 
+>   Distinct values: 21
+> 
+> - Word/phrase popularities:
+> 
+> 
+>   - 3	occurrences of	65	
+> 
+>     ...
+> 
+>   - 2	occurrences of	90	
+>   - 7	occurrences of	95	
+>   - 3	occurrences of	100	
+> 
+>   Distinct values: 13
+> 
+>   Range: 0 - 100, Average: 75.3, Median: 85
+
+### A few notes about these analyses:
+
+- You can toggle between "All" and "Across" and "Down" when looking at the
+  analyses of grid-fills and clues/annotations.
+- All histograms are shown with adjoining bar graphs.
+- You can hover the mouse over the bars to see details (lists of relevant
+  clues/lights).
+- The analysis of annotations is a somwehat experimental feature that
+  tries to provide a breakdown of clue types by assuming a specific
+  annotation style in which clue type names and cryptic wordplay operations
+  are interspersed with indicators, fodders shown within parantheses or curly
+  braces. For example:
+
+  - \~{Old car}\~ part, later redesigned to limit wastage, essentially (10)
+     PARTLATER\* {... redesigned} around {... to limit ...} (-was)T(-age)
+     {... essentially}.
+  - \~{Instrument}\~ platform's bottom aboard rickety boat leaked water (10)
+    (-platfor)M {...'s bottom} in {aboard} BOAT\* {rickety ...} + URINE
+    {leaked water}.
+
+  Note that the definition part is marked above with \~{...}\~, as per the
+  Exolve convention.
+
 ## Supported crossword features
 
 ### Annotations
+
+As noted in the "Analysis" section, the definition part of a cryptic clue
+can be marked with  \~{...}\~ in the clue itself.
 
 ### Hyphens and spaces
 
@@ -412,6 +526,8 @@ subsequent downloads (but you just won't be able to edit them within Exet).
 ## Not yet supported features
 
 ### Linked clues
+
+### Diagramless puzzles
 
 ### Auto-fill
 
