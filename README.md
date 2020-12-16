@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.23 November 19 2020
+#### Version: Exet v0.24 December 15 2020
 
 #### Author: Viresh Ratnakar
 
@@ -374,6 +374,23 @@ In the first three "download" variants, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already
 exists a file with that name, the system will use a variant of the name
 as per its usual conventions.
+
+The Save menu also lets you change a couple of settings:
+
+- **Show enums in clues**: You can turn this off to download American-style
+  puzzles that do not show enums in clues.
+- **Exolve URL prefix**: You can change this to your own custom location
+  of the `exolve-m.css` and `exolve-m.js` files in downloaded Exolve files.
+  You can press the Escape key inside the text entry area to revert to the
+  default value of `https://viresh-ratnakar.github.io/`. Note also that if you
+  load an existing HTML file containing an Exolve-formatted puzzle, then when
+  you modify the puzzle and download as Exolve subsequently, the downloaded
+  file will simply copy everything (other than the modified puzzle specs)
+  from the original file, including the URL prefix (i.e., this setting will
+  not get used).
+
+These Save settings are sticky: Exet saves their current values in local
+storage.
 
 ### Going back to older versions
 

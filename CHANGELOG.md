@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.24 December 15 2020
+
+- Bug fix in saving .puz: circles section header (GEXT) wasn't getting written.
+- Avoid fancy quotes/emdash/ellipsis when saving as .puz.
+- Saving options added:
+  - Skip enums
+  - Specify URL prefix for exolve files.
+
 ### Version: Exet v0.23 November 19 2020
 
 - Add an Exet > Analysis tab. Clicking on this shows an analysis of the

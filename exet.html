@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.23 November 19, 2020
+Current version: v0.24 December 15, 2020
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.96"/>
@@ -256,6 +256,7 @@ Current version: v0.23 November 19, 2020
   left: 100%;
 }
 .xet-dropdown-item,
+.xet-dropdown-div,
 .xet-dropdown-subitem {
   margin: 0;
   padding: 15px;
@@ -1013,8 +1014,8 @@ Exet.prototype.setPuzzle = function(puz) {
         '<head>\n' +
         '<meta charset="utf-8"/>\n' +
         '<meta name="viewport" content="width=device-width, initial-scale=1"/>\n' +
-        '<link rel="stylesheet" type="text/css" href="https://viresh-ratnakar.github.io/exolve-m.css"/>\n' +
-        '<script src="https://viresh-ratnakar.github.io/exolve-m.js"><\/script>\n' +
+        '<link rel="stylesheet" type="text/css" href="' + exetState.exolveUrl + 'exolve-m.css"/>\n' +
+        '<script src="' + exetState.exolveUrl + 'exolve-m.js"><\/script>\n' +
         '<\/head>\n' +
         '<body>\n' +
         '<script>\n' +
@@ -1323,6 +1324,23 @@ Exet.prototype.makeExetTab = function() {
       <li class="xet-dropdown">
         <div class="xet-dropbtn" title="Click to save, with some formatting options">Save</div>
         <div class="xet-dropdown-content" title="The * shown in file names will be replaced by '-[title]', if there is a non-empty puzzle title">
+          <div class="xet-dropdown-div">
+           <p><b>Settings</b></p>
+            <p title="Set this option for American-style grids that do not show enums in clues">
+              Show enums in clues:
+              <input id="xet-show-enums" name="xet-show-enums"
+                ${exetState.showEnums ? "checked=true" : ""} value="show-enums" type="checkbox">
+              </input>
+            </p>
+            <p title="Change this to your own URL prefix for exolve-m.js and exolve-m.css. Only used when saving as Exolve if the Exolve data did not already have these URLs. Press Esc after clicking in the box to revert to default.">
+              Exolve URL prefix:
+              <input id="xet-xlv-url-prefix" name="xet-xlv-url-prefix"
+                value="${exetState.exolveUrl}"
+                placeholder="Press Esc after clicking in the box to revert to default"
+                type="text" size="60" maxlength="100">
+              </input>
+            </p>
+          </div>
           <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">Download PUZ file (exet*.puz)</div>
           <div class="xet-dropdown-item" onclick="exet.download(true)">Download Exolve file w/ solutions (exet-exolve*-solved.html)</div>
           <div class="xet-dropdown-item" onclick="exet.download(false)">Download Exolve file w/o solutions (exet-exolve*-unsolved.html)</div>
@@ -1475,7 +1493,7 @@ Exet.prototype.makeExetTab = function() {
           <br>
           <br>
           Disallow proper nouns:
-          <input id="xet-no-proper-nouns" name="xet-no-proper-nouns" value="no-proper-nouns" checked=false type="checkbox">
+          <input id="xet-no-proper-nouns" name="xet-no-proper-nouns" value="no-proper-nouns" type="checkbox">
           </input>
           <br>
           <br>
@@ -1575,6 +1593,30 @@ Exet.prototype.makeExetTab = function() {
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
+
+  // Saving options
+  let showEnums = document.getElementById("xet-show-enums")
+  showEnums.addEventListener('change', e => {
+    exetState.showEnums = showEnums.checked ? true : false;
+    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
+  });
+  let exolveUrl = document.getElementById("xet-xlv-url-prefix")
+  exolveUrl.addEventListener('change', e => {
+    exolveUrl.value = exolveUrl.value.trim();
+    if (exolveUrl.value.length > 0 &&
+        exolveUrl.value[exolveUrl.value.length - 1] != '/') {
+      exolveUrl.value = exolveUrl.value + '/';
+    }
+    exetState.exolveUrl = exolveUrl.value;
+    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
+  });
+  exolveUrl.addEventListener('keyup', e => {
+    if (e.key == "Escape") {
+      exolveUrl.value = "https://viresh-ratnakar.github.io/";
+      exetState.exolveUrl = exolveUrl.value;
+      exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
+    }
+  });
 
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
@@ -2450,8 +2492,8 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
   const inp = document.getElementById(inpid);
 
   let prefix = '' +
-      '<link rel="stylesheet" type="text/css" href="https://viresh-ratnakar.github.io/exolve-m.css"/>\n' +
-      '<script src="https://viresh-ratnakar.github.io/exolve-m.js">\n' +
+      '<link rel="stylesheet" type="text/css" href="' + exetState.exolveUrl + 'exolve-m.css"/>\n' +
+      '<script src="' + exetState.exolveUrl + 'exolve-m.js">\n' +
       '<\/script>\n' +
       '<div id="exolve">\n' +
       '<\/div>\n' +
@@ -2596,7 +2638,7 @@ Exet.prototype.getDotPuz = function() {
       alert('This puzzle has linked clues and cannot be saved as .PUZ');
       return null
     }
-    let utf8Clue = encoder.encode(theClue.clueSpan.innerText.replace(/\s+/g,' ').trim())
+    let utf8Clue = encoder.encode(this.showClue(theClue.clueSpan.innerText.replace(/\s+/g,' '), true, false))
     clueOffsets.push(offset)
     clueLens.push(utf8Clue.length)
     for (let x of utf8Clue) {
@@ -2610,7 +2652,7 @@ Exet.prototype.getDotPuz = function() {
   let gextOffset = -1
   if (circleLocs.length > 0) {
     gextOffset = offset
-    let secName = "GEXT"
+    const secName = encoder.encode('GEXT');
     for (let x of secName) {
       buffer[offset++] = x
     }
@@ -4044,12 +4086,6 @@ Exet.prototype.makeExolve = function(specs) {
   }
 
   this.handleTabClick(this.currTab);
-  let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
-  if (!exetState) {
-    exetState = {}
-  } else {
-    exetState = JSON.parse(exetState)
-  }
   exetState.lastId = this.puz.id
   exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
 }
@@ -4133,6 +4169,24 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid
 }
 
+Exet.prototype.showClue = function(clue, replaceFancy=false, forExolve=true) {
+  clue = clue.trim()
+  if (replaceFancy) {
+    clue = clue.replace(/[\u2014]/g, "--").
+           replace(/[\u2018\u2019]/g, "'").
+           replace(/[\u201C\u201D]/g, '"').
+           replace(/[\u2026]/g, '...');
+  }
+  if (exetState.showEnums) {
+    return clue;
+  }
+  const idx = clue.lastIndexOf('(');
+  if (idx < 0 || clue[clue.length - 1] != ')') {
+    return clue;
+  }
+  return forExolve ? (clue + '*') : clue.substr(0, idx)
+}
+
 Exet.prototype.getClues = function(dir, solved=true) {
   if (!this.puz) {
     return ''
@@ -4143,7 +4197,7 @@ Exet.prototype.getClues = function(dir, solved=true) {
     if (clue.dir != dir) {
       continue
     }
-    clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + clue.clue
+    clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + this.showClue(clue.clue)
     if (solved && clue.solution) {
       clues = clues + ' [' + clue.solution + ']'
     }
@@ -5255,8 +5309,17 @@ let exet = new Exet;
 let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
 if (exetState) {
   exetState = JSON.parse(exetState)
-  let id = exetState.lastId
-  let saved = window.localStorage.getItem(id)
+} else {
+  exetState = {};
+}
+if (!exetState.hasOwnProperty('showEnums')) {
+  exetState.showEnums = true;
+}
+if (!exetState.hasOwnProperty('exolveUrl')) {
+  exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
+}
+if (exetState.lastId) {
+  let saved = window.localStorage.getItem(exetState.lastId)
   if (saved) {
     saved = JSON.parse(saved)
     if (saved.revs.length > 0) {
