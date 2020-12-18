@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.25 December 18 2020
+
+- Actually use iso-8859-1 encoding (as required by the format) for .puz files.
+
 ### Version: Exet v0.24 December 15 2020
 
 - Bug fix in saving .puz: circles section header (GEXT) wasn't getting written.
