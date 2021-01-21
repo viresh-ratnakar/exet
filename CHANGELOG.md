@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.26 January 20 2021
+
+- Allow individual "Toggle block/bar" actions to temporarily suspend symmetry
+  enforcement.
+- Do not clutter up Exolve's local storage by saving state there (Exet
+  revisions anyway save state).
+- Slightly increase the weight of grid fullness in autofill.
+
 ### Version: Exet v0.25 December 18 2020
 
 - Actually use iso-8859-1 encoding (as required by the format) for .puz files.

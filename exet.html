@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.25 December 18, 2020
+Current version: v0.26 January 20 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v0.96"/>
@@ -753,7 +753,7 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage=false, puz, elt, 
 };
 
 Exet.prototype.renderPreview = function(spec, eltId) {
-  let newPuz = new Exolve(spec, eltId, null, false, 0, 400)
+  let newPuz = new Exolve(spec, eltId, null, false, 0, 400, false)
   document.getElementById(`${newPuz.prefix}-controls-etc`).style.display = 'none'
   document.getElementById(`${newPuz.prefix}-curr-clue-parent`).style.display = 'none'
   newPuz.revealAll(false)
@@ -1424,9 +1424,25 @@ Exet.prototype.makeExetTab = function() {
           <hr>
           <div class="xet-dropdown-item" onclick="exet.handleKeyDown('@')">Toggle encircling (@)</div>
           <div class="xet-dropdown-item" onclick="exet.handleKeyDown('!')">Toggle marking prefilled (!)</div>
-          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('.')">Toggle block (.)</div>
-          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('|')">Toggle bar-after (|)</div>
-          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('_')">Toggle bar-under (_)</div>
+          <hr>
+          <hr>
+          <table>
+            <tr>
+              <td>
+              <div class="xet-dropdown-item" onclick="exet.handleKeyDown('.')">Toggle block (.)</div>
+              <div class="xet-dropdown-item" onclick="exet.handleKeyDown('|')">Toggle bar-after (|)</div>
+              <div class="xet-dropdown-item" onclick="exet.handleKeyDown('_')">Toggle bar-under (_)</div>
+              </td>
+              <td style="max-width:140px;padding:4px 10px"
+                title="If you check this, then the next Toggle block/bar will not automatically do the same on the symmetric cell">
+                <input id="xet-asymmetry-ok" name="xet-asymmetry-ok"
+                  value="asymmetric" type="checkbox" style="margin:6px 0">
+                </input>
+                <br>
+                <i>Do not force symmetry on the next "Toggle block/bar"</i>
+              </td>
+            </tr>
+          </table>
           <hr>
           <hr>
           <div class="xet-dropdown-item" onclick="exet.clearAll()">Clear all the lights!</div>
@@ -1617,6 +1633,9 @@ Exet.prototype.makeExetTab = function() {
       exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
     }
   });
+
+  // Editing options
+  this.asymOK = document.getElementById("xet-asymmetry-ok")
 
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
@@ -3537,7 +3556,7 @@ Exet.prototype.setScore = function(fillState) {
   fillState.scoreV /= 100
   fillState.score += fillState.scoreV
 
-  fillState.scoreF = 15 * (numLights - fillState.unfilled.length) / 100
+  fillState.scoreF = 25 * (numLights - fillState.unfilled.length) / 100
   fillState.score += fillState.scoreF
 }
 
@@ -3957,30 +3976,36 @@ Exet.prototype.handleKeyDown = function(e) {
   let col = this.puz.currCol
   if (key == '.') {
     gridCell.isLight = !gridCell.isLight
-    let symRow = this.puz.gridHeight - 1 - row
-    let symCol = this.puz.gridWidth - 1 - col
-    let symCell = this.puz.grid[symRow][symCol]
-    symCell.isLight = gridCell.isLight
+    if (!this.asymOK.checked) {
+      let symRow = this.puz.gridHeight - 1 - row
+      let symCol = this.puz.gridWidth - 1 - col
+      let symCell = this.puz.grid[symRow][symCol]
+      symCell.isLight = gridCell.isLight
+    }
     this.killInvalidatedClues()
   } else if (key == '|') {
     if (col >= this.gridWidth - 1) {
       return
     }
     gridCell.hasBarAfter = !gridCell.hasBarAfter
-    let symRow = this.puz.gridHeight - 1 - row
-    let symCol = this.puz.gridWidth - 2 - col
-    let symCell = this.puz.grid[symRow][symCol]
-    symCell.hasBarAfter = gridCell.hasBarAfter
+    if (!this.asymOK.checked) {
+      let symRow = this.puz.gridHeight - 1 - row
+      let symCol = this.puz.gridWidth - 2 - col
+      let symCell = this.puz.grid[symRow][symCol]
+      symCell.hasBarAfter = gridCell.hasBarAfter
+    }
     this.killInvalidatedClues()
   } else if (key == '_') {
     if (row >= this.gridHeight - 1) {
       return
     }
     gridCell.hasBarUnder = !gridCell.hasBarUnder
-    let symRow = this.puz.gridHeight - 2 - row
-    let symCol = this.puz.gridWidth - 1 - col
-    let symCell = this.puz.grid[symRow][symCol]
-    symCell.hasBarUnder = gridCell.hasBarUnder
+    if (!this.asymOK.checked) {
+      let symRow = this.puz.gridHeight - 2 - row
+      let symCol = this.puz.gridWidth - 1 - col
+      let symCell = this.puz.grid[symRow][symCol]
+      symCell.hasBarUnder = gridCell.hasBarUnder
+    }
     this.killInvalidatedClues()
   } else if (key == '#') {
     if (!this.automagicBlocks()) {
@@ -4055,7 +4080,7 @@ Exet.prototype.killInvalidatedClues = function(row, col) {
   let tempId = this.puz.id + '-temp'
   let specs = this.getExolve(tempId, true)
   document.getElementById("xet-temp").innerHTML = ''
-  let newPuz = new Exolve(specs, "xet-temp", null, false)
+  let newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false)
   for (let ci in this.puz.clues) {
     if (!newPuz.clues[ci] ||
         !newPuz.sameCells(newPuz.clues[ci].cells, this.puz.clues[ci].cells)) {
@@ -4073,7 +4098,7 @@ Exet.prototype.makeExolve = function(specs) {
     delete exolvePuzzles[this.puz.id]
   }
   try {
-    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false)
+    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, 0, 0, false)
   } catch (err) {
     this.puz = null
     alert('Could not create/parse Exolve puzzle. Please reload and retry. The JavaScript console might show some diagnostic messages.')

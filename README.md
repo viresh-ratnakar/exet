@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.25 December 18 2020
+#### Version: Exet v0.26 January 20 2021
 
 #### Author: Viresh Ratnakar
 
@@ -142,7 +142,10 @@ and also shown in the menu):
 - Clear all the lights
 
 For the actions that modify the grid in non-cosmetic ways (.|\_#), symmetric
-changes are automatically applied to the other end of the grid.
+changes are automatically applied to the other end of the grid. This can be
+turned off for an individual "Toggle bar/block" action by checking the
+"Do not force symmetry on the next 'Toggle block/bar'" checkbox in the Edit
+menu.
 
 The "Open" menu allows you to start with blocked blank grids following a few
 checkquered templates and the completely blank "No blocks" template. You will
