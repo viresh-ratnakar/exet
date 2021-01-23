@@ -3,9 +3,9 @@
   - Make README.md more complete
 - option for US dictionary
 - "Smart-delete" to purge excessive revisions
-- Don't use cookie-saved state
 - When the clue has an enum like (4-3), only show fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
 
+- Don't use cookie-saved state [Done]
 - track used words [Done]
 - auto-fill [Done]
 - For filled lights, make sure the filled entry is shown in the choices panel (perhaps distinguishing out-of-lexicon entries, preflex entries) [Done]

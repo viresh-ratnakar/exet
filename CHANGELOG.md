@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Exet v0.27 January 22 2021
+
+- Add support for linked clues. You can create linked clues and you can
+  break up an existing group of linked clues. The interface for these actions
+  is brought up by clicking on the clue number of the current clue above the
+  grid.
+
 ### Version: Exet v0.26 January 20 2021
 
 - Allow individual "Toggle block/bar" actions to temporarily suspend symmetry

@@ -29,11 +29,11 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.26 January 20 2021
+Current version: v0.27 January 22 2021
 -->
 
-<link rel="stylesheet" type="text/css" href="exolve-m.css?v0.96"/>
-<script src="exolve-m.js?v0.96"></script>
+<link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
+<script src="exolve-m.js?v1.00"></script>
 <script src="lufz-en-lexicon.js"></script>
 
 <style>
@@ -123,11 +123,26 @@ Current version: v0.26 January 20 2021
   font-size: 14px;
   color: darkgreen;
 }
+.xlv-curr-clue-label {
+  cursor: pointer;
+}
 .xlv-curr-clue {
   font-family: monospace;
   font-weight: normal;
   font-size: 14px;
   padding: 2px 2px 4px 2px;
+}
+.xet-linking {
+  position: absolute;
+  top: -50px;
+  z-index: 1;
+  background-color: white;
+  border: 1px solid dodgerblue;
+  padding: 8px;
+  color: darkgreen;
+}
+#xet-unlink {
+  padding: 4px;
 }
 .xet-red {
   color: red;
@@ -1064,15 +1079,9 @@ Exet.prototype.setPuzzle = function(puz) {
     let clue = puz.clues[idx]
     if (clue.dir == 'A') numA++
     else if (clue.dir == 'D') numD++
-    if (clue.parentClueIndex) {
-      continue
-    }
     if (!clue.clue) {
-      clue.clue = 'TO DO: provide clue'
-      if (clue.cells.length > 0) {
-        clue.clue = clue.clue + ' (' + clue.cells.length + ')'
-      }
       clueChanges = true
+      clue.clue = this.todoClue(idx);
     }
   }
   if (clueChanges) {
@@ -1767,8 +1776,12 @@ Exet.prototype.getLightInfos = function() {
     }
     let label = theClue.label + theClue.dir.toLowerCase()
     if (theClue.solution && theClue.solution.indexOf('?') < 0) {
-      allInfo.filled += (1 + theClue.childrenClueIndices.length)
-      dirInfo.filled += (1 + theClue.childrenClueIndices.length)
+      let numChildren = 0
+      if (theClue.childrenClueIndices) {
+        numChildren = theClue.childrenClueIndices.length
+      }
+      allInfo.filled += (1 + numChildren)
+      dirInfo.filled += (1 + numChildren)
       let lexl = exetLexicon.lexicon.length
       let index = lexl
       let fillClue = this.fillState.clues[ci]
@@ -1786,8 +1799,12 @@ Exet.prototype.getLightInfos = function() {
     if (depunctClue && theClue.clue.indexOf('TO DO') < 0 &&
         theClue.clue.indexOf('TODO') < 0 &&
         theClue.clue.indexOf('TO-DO') < 0) {
-      allInfo.set += (1 + theClue.childrenClueIndices.length)
-      dirInfo.set += (1 + theClue.childrenClueIndices.length)
+      let numChildren = 0
+      if (theClue.childrenClueIndices) {
+        numChildren = theClue.childrenClueIndices.length
+      }
+      allInfo.set += (1 + numChildren)
+      dirInfo.set += (1 + numChildren)
       let words = depunctClue.split(' ')
       for (let word of words) {
         this.addStat(allInfo.words, word, label)
@@ -1795,8 +1812,12 @@ Exet.prototype.getLightInfos = function() {
       }
     }
     if (theClue.anno) {
-      allInfo.annos += (1 + theClue.childrenClueIndices.length)
-      dirInfo.annos += (1 + theClue.childrenClueIndices.length)
+      let numChildren = 0
+      if (theClue.childrenClueIndices) {
+        numChildren = theClue.childrenClueIndices.length
+      }
+      allInfo.annos += (1 + numChildren)
+      dirInfo.annos += (1 + numChildren)
       let anno = this.essenceOfAnno(theClue.anno)
       if (anno) {
         this.addStat(allInfo.annotations, anno, label)
@@ -2812,6 +2833,27 @@ Exet.prototype.makeRevHiddenParam = function(s) {
   return 'A*"A' + sr.charAt(0) + '"' + sr.substr(1, sr.length - 2) + '"' + sr.charAt(sr.length - 1) + 'A"A*'
 }
 
+Exet.prototype.currClueIndex = function() {
+  return this.puz.clueOrParentIndex(this.puz.currClueIndex);
+}
+
+Exet.prototype.todoClue = function(ci) {
+  const clue = this.puz.clues[ci]
+  if (!clue) {
+    return '';
+  }
+  if (clue.parentClueIndex) {
+    const parent = this.puz.clues[clue.parentClueIndex];
+    return 'See ' + parent.label + parent.dir.toLowerCase();
+  }
+  let ret = 'TO DO: provide clue'
+  let cells = this.cellsOfClue(clue)
+  if (cells.length > 0) {
+    ret = ret + ' (' + cells.length + ')'
+  }
+  return ret;
+}
+
 Exet.prototype.handleTabClick = function(id) {
   let tab = this.tabs[id]
   if (!tab) {
@@ -2835,7 +2877,7 @@ Exet.prototype.handleTabClick = function(id) {
     return
   }
 
-  let ci = this.puz.currClueIndex
+  let ci = this.currClueIndex()
   if (!ci) {
     return
   }
@@ -2928,7 +2970,7 @@ Exet.prototype.arrowNav = function(key) {
 }
 
 Exet.prototype.scrollCluesIfNeeded = function() {
-  let clue = this.puz.clues[this.puz.currClueIndex]
+  let clue = this.puz.clues[this.currClueIndex()]
   if (!clue) return
   let elt = clue.clueTR
   if (!elt) return
@@ -2959,7 +3001,7 @@ Exet.prototype.replaceHandlers = function() {
       exet.scrollCluesIfNeeded()
       exet.makeClueEditable()
       exet.updateFillChoices()
-      exet.startDeadendSweep(exet.puz.currClueIndex)
+      exet.startDeadendSweep(exet.currClueIndex());
       exet.handleTabClick(exet.currTab)
       return ret
     };
@@ -3004,10 +3046,11 @@ Exet.prototype.replaceHandlers = function() {
 }
 
 Exet.prototype.makeClueEditable = function() {
-  if (!this.puz.currClueIndex || !this.puz.currClue) {
+  let ci = this.currClueIndex();
+  if (!ci) {
     return
   }
-  let theClue = this.puz.clues[this.puz.currClueIndex]
+  let theClue = this.puz.clues[ci]
   if (!theClue) {
     return
   }
@@ -3036,6 +3079,36 @@ Exet.prototype.makeClueEditable = function() {
   inCurrAnno.innerText = theClue.anno
   this.puz.currClue.appendChild(inCurrAnno)
   inCurrAnno.addEventListener('input', handler)
+
+  this.puz.currClue.insertAdjacentHTML('afterbegin', `
+    <div id="xet-linking" class="xet-linking">
+    <button id="xet-add-linked" class="xlv-small-button">Add</button>
+    <input id="xet-add-linked-num" name="xet-add-linked-num"
+      title="Enter a clue number, optionally followed by A/D"
+          class="xlv-answer" size="4" type="text"></input>
+    as a linked clue.
+    </div>
+    `);
+  let addLinked = document.getElementById("xet-add-linked");
+  addLinked.addEventListener('click', this.addLinkedClue.bind(this));
+  const linking = document.getElementById('xet-linking');
+  linking.style.display = 'none';
+  if (theClue.childrenClueIndices && theClue.childrenClueIndices.length > 0) {
+    linking.insertAdjacentHTML('beforeend', `
+      &nbsp;
+      <button class="xlv-small-button" id="xet-unlink" style="color:red">
+      Break linked clues
+      </button>`)
+    let unlink = document.getElementById("xet-unlink");
+    unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
+  }
+  let ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`)
+  ccLabel.title = 'Click to add or break up linked clues';
+  ccLabel.addEventListener('click', e => {
+    exetModals.showModal(linking)
+    e.stopPropagation()
+  });
+
   this.puz.makeCurrClueVisible()
 }
 
@@ -3050,14 +3123,14 @@ Exet.prototype.throttledClueChange = function() {
 }
 
 Exet.prototype.handleClueChange = function() {
-  if (!this.puz.currClueIndex) {
+  let ci = this.currClueIndex()
+  if (!ci) {
     return
   }
   let currClueText = document.getElementById('xet-clue')
   if (!currClueText) {
     return
   }
-  let ci = this.puz.currClueIndex
   let theClue = this.puz.clues[ci]
   if (!theClue) {
     return
@@ -3078,13 +3151,7 @@ Exet.prototype.handleClueChange = function() {
   if (!theClue.annoSpan) {
     return
   }
-  let expEnumLen = 0
-  if (!theClue.parentClueIndex) {
-    let linked = this.puz.getLinkedClues(ci)
-    for (let lci of linked) {
-      expEnumLen = expEnumLen + this.puz.clues[lci].cells.length
-    }
-  }
+  let expEnumLen = this.cellsOfClue(theClue).length
   this.stripInputLF(currClueText)
   let clue = currClueText.innerText
   let clueSansEnum = clue
@@ -3695,7 +3762,7 @@ Exet.prototype.addAutofillChildren = function(candidate) {
       this.addAutofillChildren(candidate)
       return
     }
-    let cells = theClue.cells
+    let cells = this.cellsOfClue(theClue)
     for (let lchoice of toTryAndViable) {
       let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
       let child = new ExetFillState(candidate)
@@ -3874,7 +3941,8 @@ Exet.prototype.updateAutofill = function(candidate) {
     let theClue = this.fillState.clues[ci]
     console.assert(theClue, ci)
     theClue.lChoices = lChoices
-    for (let c of theClue.cells) {
+    let cells = this.cellsOfClue(theClue)
+    for (let c of cells) {
       let row = c[0]
       let col = c[1]
       this.fillState.grid[row][col].cChoices =
@@ -4084,6 +4152,13 @@ Exet.prototype.killInvalidatedClues = function(row, col) {
   for (let ci in this.puz.clues) {
     if (!newPuz.clues[ci] ||
         !newPuz.sameCells(newPuz.clues[ci].cells, this.puz.clues[ci].cells)) {
+      let theClue = this.puz.clues[ci];
+      if (theClue.parentClueIndex) {
+        this.unlinkClue(theClue.parentClueIndex);
+      } else if (theClue.childrenClueIndices &&
+                 theClue.childrenClueIndices.length > 0) {
+        this.unlinkClue(ci);
+      }
       delete this.puz.clues[ci]
     }
   }
@@ -4117,14 +4192,111 @@ Exet.prototype.makeExolve = function(specs) {
   exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
 }
 
+Exet.prototype.unlinkClue = function(ci) {
+  let theClue = this.puz.clues[ci];
+  if (!theClue || !theClue.childrenClueIndices ||
+      theClue.childrenClueIndices.length == 0) {
+    return;
+  }
+  for (let cci of theClue.childrenClueIndices) {
+    const cClue = this.puz.clues[cci];
+    delete cClue.parentClueIndex
+    cClue.clue = this.todoClue(cci);
+    cClue.solution = ''
+    cClue.anno = ''
+  }
+  theClue.childrenClueIndices = [];
+  theClue.displayLabel = theClue.label;
+  theClue.clue = this.todoClue(ci);
+  theClue.solution = ''
+  theClue.anno = ''
+}
+
+Exet.prototype.unlinkCurrClue = function() {
+  if (!this.puz) return
+  let ci = this.currClueIndex()
+  this.unlinkClue(ci);
+  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+}
+
+Exet.prototype.addLinkedClue = function() {
+  if (!this.puz) return
+  let ci = this.currClueIndex()
+  let theClue = this.puz.clues[ci];
+  if (!theClue) return;
+  const num = document.getElementById("xet-add-linked-num");
+  if (!num) return;
+  let parsed = this.puz.parseClueLabel(num.value);
+  if (!parsed.label) {
+    alert('Please provide a clue number');
+    return
+  }
+  let aClue = this.puz.clues['A' + parsed.label];
+  let dClue = this.puz.clues['D' + parsed.label];
+  let dispDir = ''
+  if (!parsed.dir) {
+    if (aClue && !dClue) {
+      parsed.dir = 'A';
+    } else if (dClue && !aClue) {
+      parsed.dir = 'D';
+    } else if (!aClue && !dClue) {
+      alert('There is no ' + parsed.label + ' Across/Down clue');
+      return
+    } else {
+      parsed.dir = theClue.dir
+    }
+  } else {
+    if (parsed.dir == 'A') {
+      if (!aClue) {
+        alert('There is no ' + parsed.label + ' Across clue');
+        return
+      }
+      if (dClue && theClue.dir != 'A') dispDir = 'a';
+    } else if (parsed.dir == 'D') {
+      if (!dClue) {
+        alert('There is no ' + parsed.label + ' Down clue');
+        return
+      }
+      if (aClue && theClue.dir != 'D') dispDir = 'd';
+    } else {
+      alert('Unsupported direction: ' + parsed.dir)
+      return
+    }
+  }
+  const cci = parsed.dir + parsed.label
+  if (cci == ci) {
+    alert('Cannot link a clue to itself');
+    return;
+  }
+  const cClue = this.puz.clues[cci];
+  if (cClue.parentClueIndex) {
+    alert(parsed.label + parsed.dir +
+          ' is already part of another linked clue');
+    return
+  }
+  if (cClue.childrenClueIndices && cClue.childrenClueIndices.length > 0) {
+    alert(parsed.label + parsed.dir + ' is itself a linked clue');
+    return
+  }
+  cClue.parentClueIndex = ci
+  cClue.clue = this.todoClue(cci);
+  cClue.solution = ''
+  cClue.anno = ''
+  theClue.childrenClueIndices.push(cci)
+  theClue.displayLabel = theClue.displayLabel + ', ' + parsed.label + dispDir;
+  theClue.clue = this.todoClue(ci);
+  theClue.solution = ''
+  theClue.anno = ''
+  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+}
+
 Exet.prototype.clearCurr = function() {
   if (!this.puz) return
   exet.puz.clearCurr()
-  ci = this.puz.currClueIndex
-  this.puz.clues[ci].clue = ''
+  ci = this.currClueIndex()
+  this.puz.clues[ci].clue = this.todoClue(ci);
   this.puz.clues[ci].solution = ''
   this.puz.clues[ci].anno = ''
-  let lChoices = this.fillState.clues[ci].lChoices
   this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
 }
 
@@ -4132,7 +4304,7 @@ Exet.prototype.clearAll = function() {
   if (!this.puz) return
   if (exet.puz.clearAll()) {
     for (let ci in this.puz.clues) {
-      this.puz.clues[ci].clue = ''
+      this.puz.clues[ci].clue = this.todoClue(ci)
       this.puz.clues[ci].solution = ''
       this.puz.clues[ci].anno = ''
     }
@@ -4219,6 +4391,9 @@ Exet.prototype.getClues = function(dir, solved=true) {
       continue
     }
     clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + this.showClue(clue.clue)
+    if (clue.parentClueIndex) {
+      continue
+    }
     if (solved && clue.solution) {
       clues = clues + ' [' + clue.solution + ']'
     }
@@ -4417,10 +4592,12 @@ function ExetFillState(obj) {
     this.clues[ci] = {}
     let thisClue = this.clues[ci]
     thisClue.solution = theClue.solution
-    if (theClue.parentIndex) thisClue.parentIndex = theClue.parentIndex
-    thisClue.childrenClueIndices = theClue.childrenClueIndices
+    thisClue.parentClueIndex = theClue.parentClueIndex || null;
+    thisClue.childrenClueIndices = theClue.childrenClueIndices || []
     thisClue.dir = theClue.dir
+    thisClue.index = theClue.index
     thisClue.cells = theClue.cells
+    thisClue.enumLen = theClue.enumLen
     thisClue.lChoices = theClue.lChoices || []
   }
 }
@@ -4430,6 +4607,9 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
   let dontReuse = {}
   for (let ci in this.puz.clues) {
     let theClue = this.puz.clues[ci]
+    if (theClue.parentClueIndex) {
+      continue;
+    }
     if (theClue.solution.indexOf('?') >= 0) {
       continue
     }
@@ -4444,10 +4624,11 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
   let changes = 0;
   for (let ci in fillState.clues) {
     let theClue = fillState.clues[ci]
-    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+    if (theClue.parentClueIndex ||
+        !theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue
     }
-    let cells = theClue.cells
+    let cells = this.cellsOfClue(theClue);
     let toConsider = (limit <= 0) ? theClue.lChoices.length :
         Math.min(limit, theClue.lChoices.length)
     let choices = theClue.lChoices.slice(0, toConsider)
@@ -4466,6 +4647,7 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
       let viable = true
       for (let i = 0; i < key.length; i++) {
         let cell = cells[i]
+        console.assert(cell && cell.length == 2, ci, i);
         let gridCell = fillState.grid[cell[0]][cell[1]]
         let letter = key.charAt(i).toUpperCase()
         if (gridCell.solution == '?' && !gridCell.cChoices[letter]) {
@@ -4639,10 +4821,11 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
     changes = 0
     for (let ci in tempFillState.clues) {
       let theClue = tempFillState.clues[ci]
-      if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      if (theClue.parentClueIndex ||
+          !theClue.solution || theClue.solution.indexOf('?') < 0) {
         continue
       }
-      let cells = theClue.cells
+      let cells = this.cellsOfClue(theClue);
       let cellChoiceSets = []
       for (let cell of cells) {
         cellChoiceSets.push({})
@@ -4669,10 +4852,11 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
     }
     for (let ci in tempFillState.clues) {
       let theClue = tempFillState.clues[ci]
-      if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      if (theClue.parentClueIndex ||
+          !theClue.solution || theClue.solution.indexOf('?') < 0) {
         continue
       }
-      let cells = theClue.cells
+      let cells = this.cellsOfClue(theClue)
       let tempClue = tempClues[ci]
       if (tempClue.lChoices.length > this.sweepMaxChoicesSmall) {
         continue
@@ -4683,13 +4867,13 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
         let lchoice = choices[i]
         let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
         let viable = true
-        for (let i = 0; i < key.length; i++) {
-          let cell = cells[i]
+        for (let j = 0; j < key.length; j++) {
+          let cell = cells[j]
           let gridCell = tempFillState.grid[cell[0]][cell[1]]
           if (gridCell.solution != '?') {
             continue
           }
-          let letter = key.charAt(i).toUpperCase()
+          let letter = key.charAt(j).toUpperCase()
           if (!gridCell.cChoices[letter]) {
             viable = false
             break
@@ -4719,10 +4903,11 @@ Exet.prototype.findDeadendsByClue = function() {
   if (!theClue) {
     return false
   }
-  if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+  if (theClue.parentClueIndex ||
+      !theClue.solution || theClue.solution.indexOf('?') < 0) {
     return false
   }
-  let cells = theClue.cells
+  let cells = this.cellsOfClue(theClue)
   if (this.deadendClueLightCheck >= theClue.lChoices.length ||
       cells.length == 0) {
     return false
@@ -4921,7 +5106,7 @@ Exet.prototype.resetViability = function() {
 Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   let updateIfChanged = false
   if (!ci && this.puz) {
-    ci = this.puz.currClueIndex
+    ci = this.currClueIndex()
     updateIfChanged = true
   }
   if (!ci) {
@@ -4929,8 +5114,10 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   }
   let solution = exetLexicon.lexicon[idx]
   let theClue = this.puz.clues[ci]
+  let cells = this.cellsOfClue(theClue);
   if (!theClue || !solution ||
-      this.makeLexKey(solution).length != theClue.cells.length) {
+      theClue.parentClueIndex ||
+      this.makeLexKey(solution).length != cells.length) {
     return
   }
   solution = solution.toUpperCase()
@@ -4950,7 +5137,7 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
     }
     if (c >= 'A' && c <= 'Z') {
       enumPart++
-      let cell = theClue.cells[solIndex++]
+      let cell = cells[solIndex++]
       let gridCell = this.puz.grid[cell[0]][cell[1]]
       if (gridCell.currLetter != c || gridCell.solution != c) {
         gridCell.currLetter = c
@@ -5097,16 +5284,17 @@ Exet.prototype.updateUnpreflex = function() {
 }
 
 Exet.prototype.updateFillChoices = function() {
-  if (!this.puz.currClueIndex) {
+  let ci = this.currClueIndex();
+  if (!ci) {
     return
   }
-  let theClue = this.fillState.clues[this.puz.currClueIndex]
-  console.assert(theClue && theClue.lChoices, this.puz.currClueIndex)
+  let gridClue = this.puz.clues[ci]
+  let theClue = this.fillState.clues[ci]
+  console.assert(theClue && theClue.lChoices, ci)
 
   let html = ''
   if (theClue.lChoices.length == 0) {
     // Maybe the light was filled from outside the lexicon
-    let gridClue = this.puz.clues[this.puz.currClueIndex]
     if (gridClue.solution.indexOf('?') < 0) {
       html = `<tr><td>${gridClue.solution}</td></tr>`
     }
@@ -5122,7 +5310,7 @@ Exet.prototype.updateFillChoices = function() {
       if (numShown >= this.shownLightChoices) break;
     }
   }
-  let htmlHash = this.javaHash(html + this.puz.currClueIndex)
+  let htmlHash = this.javaHash(html + ci)
   if (this.shownChoicesHash && this.shownChoicesHash == htmlHash) {
     return
   }

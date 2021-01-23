@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.26 January 20 2021
+#### Version: Exet v0.27 January 22 2021
 
 #### Author: Viresh Ratnakar
 
@@ -265,6 +265,19 @@ will open up a panel in which you can specify the following:
 - An explicit list of words/phrases to exclude.
 
 Clicking anywhere outside the shown panel dismisses it.
+
+#### Linked clues
+
+You can link clues, creating sequences of lights that make up a single solution
+that is clued using the "parent" clue (the first one in the sequence). To
+create such linkages, you can click on the clue number of the current clue,
+which will bring up a panel through which you can add a linked clue to the
+current clue. The same panel also provides a button for breaking up a group
+of previously linked clues. When you break up a group of linked clues, any
+existing clue text from them will also get deleted.
+
+Grid-fill suggestions as well as autofill work as you might expect with linked
+clues.
 
 #### Autofill
 
