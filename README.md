@@ -558,11 +558,7 @@ subsequent downloads (but you just won't be able to edit them within Exet).
 
 ## Not yet supported features
 
-### Linked clues
-
 ### Diagramless puzzles
-
-### Auto-fill
 
 ### Other languages and lexicons
 
