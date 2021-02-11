@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.29 February 11 2021
+
+- CSS tweaks to get things to look OK in Firefox.
+
 ### Version: Exet v0.28 February 10 2021
 
 - Add support for printing/saving as PDF.

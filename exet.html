@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.28 February 10 2021
+Current version: v0.29 February 11 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -163,10 +163,14 @@ Current version: v0.28 February 10 2021
   flex-flow: row wrap;
   justify-content: left;
 }
+.xet-scratch-pad,
 .xet-controls-col {
   display: flex;
   flex-flow: column wrap;
   align-items: flex-start;
+}
+.xet-scratch-pad {
+  padding: 0 0 6px;
 }
 .xet-choices-box {  
   overflow-y: auto;
@@ -323,10 +327,10 @@ Current version: v0.28 February 10 2021
   padding: 4px 0 0 0;
 }
 .xet-frame .xlv-clues {
-  width: 630px;
+  width: 610px;
 }
 .xet-clues {
-  width: 640px;
+  width: 625px;
 }
 .xet-rev-chooser {
   position: absolute;
@@ -354,7 +358,7 @@ Current version: v0.28 February 10 2021
   margin: 4px 0;
 }
 #xet-scratch-pad {
-  margin: 0 6px 6px;
+  margin: 0 6px 0 0;
 }
 .xet-icon {
   padding: 0;
@@ -1545,7 +1549,7 @@ Exet.prototype.makeExetTab = function() {
       </div>
     </div>
     <div class="xet-controls-col">
-      <div id="xet-scratch-pad" class="xet-controls-col">
+      <div id="xet-scratch-pad" class="xet-scratch-pad">
       </div>
     </div>
   </div>
@@ -1662,7 +1666,7 @@ Exet.prototype.makeExetTab = function() {
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
   this.puz.scratchPad.rows = "3"
-  this.puz.scratchPad.cols = "82"
+  this.puz.scratchPad.cols = "79"
   const scratchPLabel = document.getElementById(this.puz.prefix + '-shuffle')
   scratchPLabel.style.padding = '8px 0'
   scratchP.appendChild(scratchPLabel)
