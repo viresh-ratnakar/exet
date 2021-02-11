@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.27 January 22 2021
+#### Version: Exet v0.28 February 10 2021
 
 #### Author: Viresh Ratnakar
 
@@ -372,19 +372,23 @@ following, a \* in a filename stands for the puzzle title preceded by a hyphen
 - **Download PUZ file (exet\*.puz)**: Download a .puz file. Note that .puz
   does not support many crossword features (afaik) such as barred grids.
   The software will alert you if it is not able to provide a .puz download.
-- **Download Exolve file w/ solutions (exet-exolve\*-solved.html)**: Download an
-  HTML file that uses Exolve and that allows solvers to check/see solutions.
+- **Download Exolve file with solutions (exet-exolve\*-solved.html)**: Download
+  an HTML file that uses Exolve and that allows solvers to check/see solutions.
   Such files can also be opened by Exet from the "Open" menu and can be further
   edited. This might be useful, for example, when you want to edit an old
   crossword that you have deleted from Exet's limited local storage.
-- **Download Exolve file w/o solutions (exet-exolve\*-unsolved.html)**: Download
-  an HTML file that uses Exolve and does not allow solvers to check/see
+- **Download Exolve file without solutions (exet-exolve\*-unsolved.html)**:
+  Download an HTML file that uses Exolve and does not allow solvers to check/see
   solutions.
-- **Copy Exolve widget code w/ solutions 📋**: Copy (into the clipboard)
+- **Copy Exolve widget code with solutions 📋**: Copy (into the clipboard)
   embeddable Exolve widget HTML code (with solvers able to check/see solutions).
-- **Copy Exolve widget code w/o solutions 📋**: Copy (into the clipboard)
+- **Copy Exolve widget code without solutions 📋**: Copy (into the clipboard)
   embeddable Exolve widget HTML code (with solvers not able to check/see
   solutions).
+- **Print or download PDF file with solutions**: Print the crossword, or save
+  it as a PDF file, in a compact, two-column format, with solutions.
+- **Print or download PDF file without solutions**: Print the crossword, or save
+  it as a PDF file, in a compact, two-column format, without solutions.
 
 In the first three "download" variants, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already

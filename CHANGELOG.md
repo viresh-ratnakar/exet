@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.28 February 10 2021
+
+- Add support for printing/saving as PDF.
+- Minor CSS tweaks.
+
 ### Version: Exet v0.27 January 22 2021
 
 - Add support for linked clues. You can create linked clues and you can

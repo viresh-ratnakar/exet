@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.27 January 22 2021
+Current version: v0.28 February 10 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -322,9 +322,8 @@ Current version: v0.27 January 22 2021
 .xlv-frame .xlv-clues td:not(:first-child) {
   padding: 4px 0 0 0;
 }
-.xet-frame .xlv-clues,
-.xet-frame .xlv-clues-box {
-  width: 634px;
+.xet-frame .xlv-clues {
+  width: 630px;
 }
 .xet-clues {
   width: 640px;
@@ -999,6 +998,11 @@ Exet.prototype.setPuzzle = function(puz) {
     alert('Non-numeric clues not yet supported')
     return false
   }
+  if (puz.columnarLayout) {
+    puz.columnarLayout = false;
+    puz.gridcluesContainer.className = 'xlv-grid-and-clues-flex'
+    puz.cluesContainer.className = 'xlv-clues xlv-clues-flex'
+  }
   let gridFillChanges = false
   for (let i = 0; i < puz.gridHeight; i++) {
     for (let j = 0; j < puz.gridWidth; j++) {
@@ -1178,6 +1182,12 @@ Exet.prototype.setPuzzle = function(puz) {
   this.setter.style.display = ''
   this.xetSetter = document.getElementById('xet-setter')
 
+  // Make clues-box divs wider
+  const cbs = document.getElementsByClassName('xlv-clues-box')
+  for (let x = 0; x < cbs.length; x++) {
+    cbs[x].style.width = '600px'
+  }
+
   let aLabel = document.getElementById(`${this.puz.prefix}-across-label`)
   aLabel.insertAdjacentHTML('beforeend', ` (${numA} clues)`)
   let dLabel = document.getElementById(`${this.puz.prefix}-down-label`)
@@ -1350,21 +1360,24 @@ Exet.prototype.makeExetTab = function() {
               </input>
             </p>
           </div>
+          <hr>
+          <div class="xet-dropdown-item" onclick="exet.download(true)">Download Exolve file with solutions (exet-exolve*-solved.html)</div>
+          <div class="xet-dropdown-item" onclick="exet.download(false)">Download Exolve file without solutions (exet-exolve*-unsolved.html)</div>
           <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">Download PUZ file (exet*.puz)</div>
-          <div class="xet-dropdown-item" onclick="exet.download(true)">Download Exolve file w/ solutions (exet-exolve*-solved.html)</div>
-          <div class="xet-dropdown-item" onclick="exet.download(false)">Download Exolve file w/o solutions (exet-exolve*-unsolved.html)</div>
-          <div class="xet-dropdown-item" onclick="exet.toClipboard(true, 'xet-xlv-widget')">Copy Exolve widget code w/ solutions &#128203;
+          <div class="xet-dropdown-item" onclick="exet.toClipboard(true, 'xet-xlv-widget')">Copy Exolve widget code with solutions &#128203;
             <div class="xet-dropdown-submenu">
               <textarea rows="100" cols="80" id="xet-xlv-widget">
               </textarea>
             </div>
           </div>
-          <div class="xet-dropdown-item" onclick="exet.toClipboard(false, 'xet-xlv-widget-nosol')">Copy Exolve widget code w/o solutions &#128203;
+          <div class="xet-dropdown-item" onclick="exet.toClipboard(false, 'xet-xlv-widget-nosol')">Copy Exolve widget code without solutions &#128203;
             <div class="xet-dropdown-submenu">
               <textarea rows="100" cols="80" id="xet-xlv-widget-nosol">
               </textarea>
             </div>
           </div>
+          <div class="xet-dropdown-item" onclick="exet.print(true)">Print or download PDF file with solutions</div>
+          <div class="xet-dropdown-item" onclick="exet.print(false)">Print or download PDF file without solutions</div>
         </div>
       </li>
       <li class="xet-dropdown">
@@ -2525,6 +2538,37 @@ Exet.prototype.download = function(solved=true) {
   a.click();
   window.URL.revokeObjectURL(a.href);
   document.body.removeChild(a);
+  exetModals.hide()
+}
+
+Exet.prototype.print = function(solved=true) {
+  const revealer = solved ?
+    `exolvePuzzles['${this.puz.id}'].revealAll(false);` :
+    `exolvePuzzles['${this.puz.id}'].clearAll(false);`;
+  const html = '' +
+        '<!DOCTYPE html>\n' +
+        '<html lang="en">\n' +
+        '<head>\n' +
+        '<meta charset="utf-8"/>\n' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1"/>\n' +
+        '<link rel="stylesheet" type="text/css" href="exolve-m.css"/>\n' +
+        '<script src="exolve-m.js"><\/script>\n' +
+        '<\/head>\n' +
+        '<body ' +
+        'onload="' +
+        revealer +
+        'window.print();window.close();">\n' +
+        '<script>\n' +
+        'createExolve(`' +  '\n' +
+        this.getExolve('', false, solved) +
+        '`);\n' +
+        '<\/script>\n' +
+        '<\/body>\n' +
+        '<\/html>\n'
+  const pwin = window.open('', '', 'left=0,top=0');
+  pwin.document.write(html);
+  pwin.document.close();
+  pwin.focus();
   exetModals.hide()
 }
 
