@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.29 February 11 2021
+Current version: v0.30 February 15 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -2032,6 +2032,7 @@ Exet.prototype.updateMetadata = function() {
     clearTimeout(this.throttledMetadataTimer);
   }
   this.throttledMetadataTimer = setTimeout(() => {
+    this.saveCursor()
     if (this.xetTitle) {
       this.stripInputLF(this.xetTitle)
       this.puz.title = this.xetTitle.innerText
@@ -2044,6 +2045,7 @@ Exet.prototype.updateMetadata = function() {
       this.stripInputLF(this.xetCopyright)
       this.puz.copyright = this.xetCopyright.innerText
     }
+    this.restoreCursor()
     this.throttledMetadataTimer = null;
     exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
   }, 2000);
@@ -3199,6 +3201,9 @@ Exet.prototype.handleClueChange = function() {
   if (!theClue.annoSpan) {
     return
   }
+
+  this.saveCursor()
+
   let expEnumLen = this.cellsOfClue(theClue).length
   this.stripInputLF(currClueText)
   let clue = currClueText.innerText
@@ -3235,6 +3240,9 @@ Exet.prototype.handleClueChange = function() {
   this.puz.revealClueAnno(ci)
 
   this.puz.makeCurrClueVisible()
+
+  this.restoreCursor()
+
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {
       // throttledSaveRev() got called already
@@ -4360,6 +4368,34 @@ Exet.prototype.clearAll = function() {
   }
 }
 
+Exet.prototype.saveCursor = function() {
+  this.savedCaretPos = 0
+  this.savedCaretPosId = ''
+  let sel = window.getSelection();
+  if (!sel) {
+    return
+  }
+  if (sel.rangeCount) {
+    let range = sel.getRangeAt(0);
+    parentNode = range.commonAncestorContainer.parentNode
+    if (parentNode) {
+      this.savedCaretPosId = parentNode.id
+      this.savedCaretPos = range.endOffset
+    }
+  }
+}
+
+Exet.prototype.restoreCursor = function() {
+  if (this.savedCaretPosId) {
+    const elt = document.getElementById(this.savedCaretPosId)
+    if (elt && elt.firstChild) {
+      window.getSelection().collapse(elt.firstChild, this.savedCaretPos)
+    }
+  }
+  this.savedCaretPos = 0
+  this.savedCaretPosId = ''
+}
+
 Exet.prototype.updatePuzzle = function(revType=0) {
   if (revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
       revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
@@ -4370,6 +4406,7 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   let dir = this.puz.currDir
   let scratch = this.puz.scratchPad.value
   this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
+  this.saveCursor()
 
   let exolve = this.getExolve()
   this.makeExolve(exolve)
@@ -4378,6 +4415,7 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   this.puz.currRow = row
   this.puz.currCol = col
   this.puz.scratchPad.value = scratch
+  this.restoreCursor()
   if (this.puz.currCellIsValid()) {
     if (this.puz.grid[row][col].isLight) {
       this.puz.activateCell(row, col)
@@ -5486,6 +5524,8 @@ function exetBlank(w=15, h=15, id='', automagic=false, chequered=true,
     exolve-down:
   exolve-end
   `
+  exet.prefix = ''
+  exet.suffix = ''
   exet.setPreflex([])
   exet.unpreflex = {}
   exet.setMinpop(0)

@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.30 February 15 2021
+
+- A recent Chrome update makes the cursor jump to the start after a
+  clue span's innerText is set. Work around that by saving the cursor
+  position and restoring it.
+- Bug fix: new blank puzzles were getting prefix/suffix carried over
+  from the last exolve file loaded. Reset them to blank.
+
 ### Version: Exet v0.29 February 11 2021
 
 - CSS tweaks to get things to look OK in Firefox.
