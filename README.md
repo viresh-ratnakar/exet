@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.30 February 15 2021
+#### Version: Exet v0.31 February 26 2021
 
 #### Author: Viresh Ratnakar
 
@@ -24,16 +24,16 @@ These are all the files needed:
   [`tl-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/tl-unches.png),
   [`no-blocks.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-blocks.png).
 
-Exet comes with a permissive MIT license. The full license notice is provided
-in the [`LICENSE`](license) file.
+Exet comes with a permissive MIT license. The full license notice is provided in
+the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
 
 Exet has no library/package/software dependencies. You should be able to use it
-from any modern browser. The experience may not be great on smaller screens
-like phones, though.
+from any modern browser. The experience may not be great on smaller screens like
+phones, though.
 
 Exet saves all revisions of all crosswords that you work on, in the browser's
-local storage. Exet never sends your crosswords to wherever it is getting
-served from.
+local storage (you can back up the entire local storage into a file). Exet never
+sends your crosswords to wherever it is getting served from.
 
 You can download the crosswords that you create with Exet in the
 [Exolve](https://github.com/viresh-ratnakar/exolve) format or in the .puz
@@ -53,8 +53,8 @@ You may contact me via email too, at viresh at gmail dot com.
 
 The list of words used by Exet for providing grid-fill suggestions is a
 modified version of the "UKACD" words list, which comes with its own
-copyight notice that is reproduced below. I made the following modifications
-to the UKACD words list:
+copyight notice that is reproduced near the bottom of this page. I made the
+following modifications to the UKACD words list:
 
 - Removed a few swear words.
 - Replaced all accented characters with non-accented ones.
@@ -63,37 +63,6 @@ to the UKACD words list:
 - Created an index of the lexicon suitable for use by my JavaScript
   code. Source code for the last two steps is available in my
   [Lufz GitHub repository](https://github.com/viresh-ratnakar/lufz).
-
-```
-UKACD18
-Copyright (c) 2009 J Ross Beresford
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-
-3. The name of the author may not be used to endorse or promote products
-   derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-```
 
 ## Crossword construction walk-through
 
@@ -425,6 +394,18 @@ entirely delete old crosswords (after downloading Exolve files with solutions
 for them as these files can be opened in Exet to recover the crosswords
 completely).
 
+### Backing up the revisions stored in local storage
+
+The "Open" menu also has a "Save all revisions to file" option, which saves the
+entire revision history to a JSON file (named exet-revisions-_timestamp_.json),
+as a way of having a back-up beyond the browser's local storage. Apart from
+using as a back-up mechanism, you can also use this to transfer all the
+crosswords that you're working on to a different computer. The companion option,
+"Merge saved revisions file," lets you read a saved JSON file, merging all
+revision state from it. This allows limiting to just the latest version of each
+crossword (instead of its full revision history). The revisions are _merged_: in
+the sense that if a revision already exists then it is not duplicated.
+
 ## Analysis
 
 The Exet tab also has an "Analysis" link. When you click on that, a panel opens
@@ -590,4 +571,68 @@ subsequent downloads (but you just won't be able to edit them within Exet).
 - The composite anagram builder was inspired by similar constructs in Qxw
   as well as in
   [martindemello.net/wgn.html](http://martindemello.net/wgn.html).
+
+## Copyright notices
+
+### UKACD18
+
+```
+UKACD18
+Copyright (c) 2009 J Ross Beresford
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+3. The name of the author may not be used to endorse or promote products
+   derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+### Exet
+
+```
+MIT License
+
+Copyright (c) 2020 Viresh Ratnakar
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The latest code and documentation for Exet can be found at:
+https://github.com/viresh-ratnakar/exet
+```
 

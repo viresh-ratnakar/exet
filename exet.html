@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.30 February 15 2021
+Current version: v0.31 February 26 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -911,6 +911,132 @@ ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
   }, this.saveLagMS);
 }
 
+ExetRevManager.prototype.saveAllRevisions = function() {
+  const storage = {}
+  for (let idx = 0; idx < window.localStorage.length; idx++) {
+    let id = window.localStorage.key(idx)
+    if (id == this.SPECIAL_KEY) {
+      continue
+    }
+    let storedRevsBlob = window.localStorage.getItem(id)
+    let storedRevs = null
+    try {
+      storedRevs = JSON.parse(storedRevsBlob)
+    } catch (err) {
+      continue
+    }
+    if (!storedRevs || !storedRevs['revs']) {
+      continue
+    }
+    storage[id] = storedRevs
+  }
+  const json = JSON.stringify(storage, null, 2)
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.href = window.URL.createObjectURL(
+    new Blob([json], {type: 'text/json'})
+  );
+  let filename = `exet-revisions-${(new Date()).toISOString()}.json`
+  a.setAttribute('download', filename)
+  a.click();
+  window.URL.revokeObjectURL(a.href);
+  document.body.removeChild(a);
+  exetModals.hide()
+}
+
+ExetRevManager.prototype.mergeRevisionsFile = function() {
+  exetModals.hide()
+  let fr = new FileReader(); 
+  fr.onload = function(){ 
+    let allSavedRevs = {}
+    try {
+      allSavedRevs = JSON.parse(fr.result)
+    } catch (err) {
+      alert('Could not parse the saved revisions file')
+      return
+    }
+    existingRevs = {}
+    for (let idx = 0; idx < window.localStorage.length; idx++) {
+      let id = window.localStorage.key(idx)
+      if (id == this.SPECIAL_KEY) {
+        continue
+      }
+      let storedRevsBlob = window.localStorage.getItem(id)
+      let storedRevs = null
+      try {
+        storedRevs = JSON.parse(storedRevsBlob)
+      } catch (err) {
+        continue
+      }
+      if (!storedRevs || !storedRevs['revs']) {
+        continue
+      }
+      for (rev of storedRevs['revs']) {
+        const revHash = exet.javaHash(JSON.stringify(rev))
+        existingRevs[revHash] = true
+      }
+    }
+    let numRevs = 0
+    let numRevsMerged = 0
+    let numDupRevs = 0
+    let numNonLatest = 0
+    const mergeOnlyLatest = document.getElementById(
+      'xet-merge-only-latest-revs').checked ? true : false;
+    for (let id in allSavedRevs) {
+      savedRevs = allSavedRevs[id]['revs']
+      if (!savedRevs || savedRevs.length == 0) {
+        continue
+      }
+      const start = mergeOnlyLatest ? savedRevs.length - 1 : 0
+      if (mergeOnlyLatest) {
+        numNonLatest += savedRevs.length - 1
+      }
+      revsToSplice = []
+      for (let i = start; i < savedRevs.length; i++) {
+        numRevs++
+        const rev = savedRevs[i]
+        const revHash = exet.javaHash(JSON.stringify(rev))
+        if (existingRevs[revHash]) {
+          numDupRevs++
+          continue
+        }
+        revsToSplice.push(rev) 
+      }
+      if (revsToSplice.length == 0) {
+        continue
+      }
+      let stored = window.localStorage.getItem(id)
+      if (stored) {
+        try {
+          stored = JSON.parse(stored)
+        } catch (err) {
+          console.log('Skipped an id in merging as JSON.parse() failed, id: ' + id)
+          continue;
+        }
+      }
+      if (!stored) {
+        stored = { id: id, maxRevNum: 0, revs: [] }
+      }
+      for (rev of revsToSplice) {
+        stored['revs'].push(rev)
+      }
+      stored['revs'].sort((r1, r2) => r1.timestamp - r2.timestamp);
+      for (rev of stored['revs']) {
+        if (rev.revNum > stored.maxRevNum) {
+          stored.maxRevNum = rev.revNum
+        }
+      }
+      exetRevManager.saveLocal(id, JSON.stringify(stored))
+      numRevsMerged += revsToSplice.length
+    }
+    const ignored = (numNonLatest > 0) ? `Ignored ${numNonLatest} non-latest revisions.` : '';
+    alert(`From ${numRevs} revisions considered across ${Object.keys(allSavedRevs).length} crosswords, merged ${numRevsMerged} revisions. There were ${numDupRevs} revisions that already existed. ${ignored}`);
+  } 
+  let f = document.getElementById('xet-merge-revs-file').files[0]
+  fr.readAsText(f)
+}
+
 function ExetRev(id, title, revNum, revType, timestamp, details="") {
   this.id = id;
   this.title = title
@@ -922,6 +1048,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
+  this.version = 'v0.31 February 26 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1022,14 +1149,8 @@ Exet.prototype.setPuzzle = function(puz) {
     }
   }
   this.puz = puz
-  if (gridFillChanges) {
-    this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
-    return;
-  }
-
   puz.revealAll(false)
-  puz.gridInput.addEventListener('keydown', this.handleKeyDown.bind(this));
-  puz.gridInput.addEventListener('input', this.throttledGridInput.bind(this));
+
   if (!this.prefix && !this.suffix) {
     this.prefix = '' +
         '<!DOCTYPE html>\n' +
@@ -1078,8 +1199,18 @@ Exet.prototype.setPuzzle = function(puz) {
         l >= puz.downFirstLine - 1 && l <= puz.downLastLine) {
       continue
     }
+    if (puz.makerFirstLine && puz.makerLastLine &&
+        l >= puz.makerFirstLine - 1 && l <= puz.makerLastLine) {
+      continue
+    }
     this.otherSections = this.otherSections + puz.specLines[l] + '\n'
   }
+
+  if (gridFillChanges) {
+    this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+    return;
+  }
+
   let clueChanges = false
   let numA = 0
   let numD = 0
@@ -1088,14 +1219,26 @@ Exet.prototype.setPuzzle = function(puz) {
     if (clue.dir == 'A') numA++
     else if (clue.dir == 'D') numD++
     if (!clue.clue) {
-      clueChanges = true
       clue.clue = this.todoClue(idx);
+      clueChanges = true
+    }
+    // Restore enum possibly hidden by *
+    const parseEnum = this.puz.parseEnum(clue.clue)
+    if (parseEnum.enumLen == 0 && clue.enumStr) {
+      clue.clue += ' ' + clue.enumStr
+      clueChanges = true
     }
   }
   if (clueChanges) {
     this.updatePuzzle(exetRevManager.REV_CLUE_CHANGE)
     return;
   }
+
+  // No more updatePuzzle() calls below inside this function: we're
+  // satisfied with what we have and do not need to tweak it.
+
+  puz.gridInput.addEventListener('keydown', this.handleKeyDown.bind(this));
+  puz.gridInput.addEventListener('input', this.throttledGridInput.bind(this));
 
   this.tabs = {
     "exet": {
@@ -1108,7 +1251,7 @@ Exet.prototype.setPuzzle = function(puz) {
     "dicts": {
       id: "dicts",
       display: "Dictionaries",
-      hover: "Chambers, The Free Dictionary, Google, Etymonline: definitions, roots, synonyms, encycolopedia...",
+      hover: "Chambers, The Free Dictionary, Onelook, Google, Etymonline: definitions, roots, synonyms, encycolopedia...",
       sections: [],
     },
     "wordplay0": {
@@ -1245,6 +1388,11 @@ Exet.prototype.setPuzzle = function(puz) {
   // Display lexicon info
   const status = document.getElementById(`${this.puz.prefix}-status`)
   status.insertAdjacentHTML('beforeend', `<span> Lexicon: ${exetLexicon.id} ${exetLexicon.language} ${exetLexicon.script}.</span>`)
+  // Make the puzzle ID visible.
+  const idDiv = document.getElementById(this.puz.prefix + '-id')
+  if (idDiv) {
+    status.insertAdjacentElement('beforebegin', idDiv)
+  }
 
   // Display sweeping activity indicator
   const gridParent = document.getElementById(`${this.puz.prefix}-grid-parent`)
@@ -1336,11 +1484,22 @@ Exet.prototype.makeExetTab = function() {
               </div>
             </div>
           </div>
+          <hr>
+          <hr>
           <div class="xet-dropdown-item" id="xet-manage-storage">
-            Manage storage (Used:
+            Manage local storage (Used:
             ${exetRevManager.inMB(exetRevManager.spaceUsed)} MB
             Available: 
               <span class="xet-red">${exetRevManager.inMB(exetRevManager.spaceUsedAtStart + exetRevManager.spaceLeftAtStart - exetRevManager.spaceUsed)}</span> MB)
+          </div>
+          <div class="xet-dropdown-item" onclick="exetRevManager.saveAllRevisions()">Save all revisions to file (exet-revisions-<i>timestamp</i>.json)</div>
+          <div class="xet-dropdown-item">
+            Merge saved revisions file:
+            <input id="xet-merge-revs-file" onchange="exetRevManager.mergeRevisionsFile()" type="file" accept=".json"></input><br>
+            <input id="xet-merge-only-latest-revs" name="xet-merge-only-latest-revs"
+              checked=true value="merge-only-latest-revs" type="checkbox">
+            </input>
+            Take only the latest revision per crossword
           </div>
         </div>
       </li>
@@ -1348,7 +1507,7 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropbtn" title="Click to save, with some formatting options">Save</div>
         <div class="xet-dropdown-content" title="The * shown in file names will be replaced by '-[title]', if there is a non-empty puzzle title">
           <div class="xet-dropdown-div">
-           <p><b>Settings</b></p>
+            <p><b>Settings:</b></p>
             <p title="Set this option for American-style grids that do not show enums in clues">
               Show enums in clues:
               <input id="xet-show-enums" name="xet-show-enums"
@@ -2063,20 +2222,30 @@ Exet.prototype.indsTabNav = function() {
 Exet.prototype.makeIndsTab = function(panelH) {
   let inds = [
     {name: "Please select", url: ""},
+    {name: "separator"},
     {name: "Crossword Unclued's anagram indicators",
      url: "https://www.crosswordunclued.com/2008/09/anagram-indicators.html"},
     {name: "Crossword Unclued's hidden words indicators",
      url: "https://www.crosswordunclued.com/2009/03/hidden-word-indicators.html"},
-    {name: "Crossword Unclued's containment indicators",
-     url: "https://www.crosswordunclued.com/2009/02/container-and-content-indicators.html"},
     {name: "Crossword Unclued's reversal indicators",
      url: "https://www.crosswordunclued.com/2009/07/reversal-indicators.html"},
     {name: "Crossword Unclued's homophone indicators",
      url: "https://www.crosswordunclued.com/2009/02/homophone-indicators.html"},
+    {name: "separator"},
+    {name: "Highlight Press's deletion and letter-picking indicators",
+     url: "https://www.highlightpress.com.au/subtractions.html"},
     {name: "Crossword Unclued's deletion indicators",
      url: "https://www.crosswordunclued.com/2009/04/deletion-indicators.html"},
     {name: "Crossword Unclued's letter-picking indicators",
      url: "https://www.crosswordunclued.com/2009/04/letter-sequence-indicators.html"},
+    {name: "separator"},
+    {name: "Highlight Press's containment indicators",
+     url: "https://www.highlightpress.com.au/containers.html"},
+    {name: "Crossword Unclued's containment indicators",
+     url: "https://www.crosswordunclued.com/2009/02/container-and-content-indicators.html"},
+    {name: "separator"},
+    {name: "Mythic beasts list of abbreviations",
+     url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
     {name: "Crossword Unclued's list of abbreviations",
      url: "https://www.crosswordunclued.com/2008/10/cryptic-abbreviations.html"},
     {name: "Wikipedia's list of abbreviations",
@@ -2088,6 +2257,14 @@ Exet.prototype.makeIndsTab = function(panelH) {
   <select name="xet-inds-select" id="xet-inds-select"
     onchange="exet.indsTabNav()">`
   for (let ind of inds) {
+    if (ind.name == "separator") {
+      html = html + '<option disabled>' +
+        '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
+        '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
+        '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
+        '</option>'; 
+      continue;
+    }
     html = html + `
     <option value="${ind.url}">${ind.name}</option>`
   }
@@ -2119,6 +2296,7 @@ Exet.prototype.makeDictsTab = function(panelH) {
     {url: "https://chambers.co.uk/search/?title=21st&query=", name: "Chambers"},
     {url: "https://chambers.co.uk/search/?title=thes&query=", name: "Chambers Thesaurus"},
     {url: "https://thefreedictionary.com/", name: "The Free Dictionary"},
+    {url: "https://onelook.com/?w=", name: "Onelook"},
     {url: "https://api.dictionaryapi.dev/api/v1/entries/en/", name: "Google Dictionary"},
     {url: "https://www.etymonline.com/search?q=", name: "Etymonline"},
   ]
@@ -2529,7 +2707,7 @@ Exet.prototype.populateFrame = function() {
 }
 
 Exet.prototype.download = function(solved=true) {
-  let html = this.getHTML(solved)
+  let html = this.getHTML(solved, exetState.showEnums)
   const a = document.createElement("a");
   a.style.display = "none";
   document.body.appendChild(a);
@@ -2566,7 +2744,7 @@ Exet.prototype.print = function(solved=true) {
         'window.print();window.close();">\n' +
         '<script>\n' +
         'createExolve(`' +  '\n' +
-        this.getExolve('', false, solved) +
+        this.getExolve('', false, solved, exetState.showEnums) +
         '`);\n' +
         '<\/script>\n' +
         '<\/body>\n' +
@@ -2592,7 +2770,7 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
   let suffix = '' +
       '  `);\n' +
       '<\/script>\n'
-  inp.value = prefix + this.getExolve('', false, solved) + suffix
+  inp.value = prefix + this.getExolve('', false, solved, exetState.showEnums) + suffix
 
   inp.select();
   inp.setSelectionRange(0, 99999);
@@ -2734,7 +2912,8 @@ Exet.prototype.getDotPuz = function() {
       }
       const startOffset = offset;
       clueOffsets.push(startOffset);
-      offset = this.enc8859(this.showClue(theClue.clueSpan.innerText.replace(/\s+/g,' '), false), buffer, offset);
+      offset = this.enc8859(this.showClue(theClue.clueSpan.innerText.replace(/\s+/g,' '),
+        false, exetState.showEnums), buffer, offset);
       clueLens.push(offset - startOffset);
       buffer[offset++] = 0
     }
@@ -4454,9 +4633,9 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid
 }
 
-Exet.prototype.showClue = function(clue, forExolve=true) {
+Exet.prototype.showClue = function(clue, forExolve=true, showEnums=true) {
   clue = clue.trim()
-  if (exetState.showEnums) {
+  if (showEnums) {
     return clue;
   }
   const idx = clue.lastIndexOf('(');
@@ -4466,7 +4645,7 @@ Exet.prototype.showClue = function(clue, forExolve=true) {
   return forExolve ? (clue + '*') : clue.substr(0, idx)
 }
 
-Exet.prototype.getClues = function(dir, solved=true) {
+Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   if (!this.puz) {
     return ''
   }
@@ -4476,7 +4655,7 @@ Exet.prototype.getClues = function(dir, solved=true) {
     if (clue.dir != dir) {
       continue
     }
-    clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + this.showClue(clue.clue)
+    clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + this.showClue(clue.clue, true, showEnums)
     if (clue.parentClueIndex) {
       continue
     }
@@ -4490,7 +4669,12 @@ Exet.prototype.getClues = function(dir, solved=true) {
   return clues
 }
 
-Exet.prototype.getExolve = function(id='', skipClues=false, solved=true) {
+Exet.prototype.getExolve = function(id='', skipClues=false, solved=true, showEnums=true) {
+  maker = `
+    Software: <a target="_blank" href="http://exet.app">Exet</a><br>
+    Version: ${this.version}<br>
+    Lexicon: ${exetLexicon.id}<br>
+    Timestamp: ${(new Date()).toString()}<br>`
   return `  ${this.otherSections}
   exolve-id: ${(id ? id : this.puz.id)}` +
   (this.puz.title ? `
@@ -4499,16 +4683,17 @@ Exet.prototype.getExolve = function(id='', skipClues=false, solved=true) {
   exolve-setter: ${this.puz.setter}` : '') +
   (this.puz.copyright ? `
   exolve-copyright: ${this.puz.copyright}` : '') + `
+  exolve-maker: ${maker}
   exolve-grid: ${this.getGrid(solved)}` +
   (!skipClues ? `
-  exolve-across: ${this.getClues('A', solved)}
-  exolve-down: ${this.getClues('D', solved)}` : '') + `
+  exolve-across: ${this.getClues('A', solved, showEnums)}
+  exolve-down: ${this.getClues('D', solved, showEnums)}` : '') + `
   exolve-end
   `
 }
 
-Exet.prototype.getHTML = function(solved=true) {
-  return this.prefix + '\n' + this.getExolve('', false, solved) + '\n' + this.suffix
+Exet.prototype.getHTML = function(solved=true, showEnums=true) {
+  return this.prefix + '\n' + this.getExolve('', false, solved, showEnums) + '\n' + this.suffix
 }
 
 Exet.prototype.makeLexKey = function(partialSol) {
@@ -5405,7 +5590,7 @@ Exet.prototype.updateFillChoices = function() {
   let trs = this.lChoices.getElementsByTagName('tr')
   let lim = Math.min(theClue.lChoices.length, trs.length)
   for (let i = 0; i < lim; i++) {
-    trs[i].addEventListener('click', this.fillLight.bind(this, theClue.lChoices[i], ''))
+    trs[i].addEventListener('click', this.fillLight.bind(this, theClue.lChoices[i], '', exetRevManager.REV_GRIDFILL_CHANGE))
   }
 }
 
@@ -5556,6 +5741,7 @@ function exetLoadFile() {
     end += 'exolve-end'.length
     exet.prefix = fr.result.substring(0, start).trim()
     exet.suffix = fr.result.substring(end).trim()
+    exet.otherSections = ''
     let specs = fr.result.substring(start, end)
     exet.setPreflex([])
     exet.unpreflex = {}
@@ -5582,15 +5768,14 @@ function exetLoadFile() {
       }
       exetRevManager.throttledSaveRev(
           exetRevManager.REV_LOADED_FROM_FILE,
-          exetFileName);
+          exet.exolveFile);
     }
   } 
   let f = document.getElementById('xet-file').files[0]
-  exetFileName = f.name
+  exet.exolveFile = f.name
   fr.readAsText(f)
 }
 
-let exetFileName = ''
 let exetRevManager = new ExetRevManager();
 let exetModals = new ExetModals();
 if (!window.localStorage) {

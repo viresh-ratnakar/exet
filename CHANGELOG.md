@@ -1,5 +1,19 @@
 # Changelog
 
+### Version: Exet v0.31 February 26 2021
+
+- Add menu entries to (1) save entire local storage revision history to a file,
+  and (2) merge revision history from a file saved like this. Useful for
+  back-up as well as transferring to a different computer.
+- Make puzzle id visible under the grid.
+- Add exolve-maker sections to puzzles saved as Exolve.
+- Recover enums from loaded Exolve files where enums have been suppressed using
+  asterisks.
+- Bug-fix: revision wasn't getting saved after fillLight()'s grid-fill change.
+- Bug-fix: when reading an exolve file with missing clues/enums, updatePuzzle()
+  was getting too soon—before `otherSections` had been set.
+- Add several new reference lists as well as the Onelook dictionary.
+
 ### Version: Exet v0.30 February 15 2021
 
 - A recent Chrome update makes the cursor jump to the start after a

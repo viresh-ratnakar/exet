@@ -5,6 +5,9 @@
 - "Smart-delete" to purge excessive revisions
 - When the clue has an enum like (4-3), only show fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
 
+- Bulk-save [Done]
+- Check why * after enum disappears when a file with enums hidden is loaded [Done]
+- Is enum hiding working in print/pdf? [Done]
 - Don't use cookie-saved state [Done]
 - track used words [Done]
 - auto-fill [Done]
