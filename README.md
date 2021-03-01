@@ -29,7 +29,8 @@ the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
 
 Exet has no library/package/software dependencies. You should be able to use it
 from any modern browser. The experience may not be great on smaller screens like
-phones, though.
+phones, though. I would recommend using Chrome or Firefox on a desktop or laptop
+computer, with Page zoom set to fill up your screen (125% for my setup).
 
 Exet saves all revisions of all crosswords that you work on, in the browser's
 local storage (you can back up the entire local storage into a file). Exet never
