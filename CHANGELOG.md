@@ -1,5 +1,15 @@
 # Changelog
 
+### Version: Exet v0.32 March 6 2021
+
+- Keep track of clues in [DRAFT] mode, which is the default for a new grid
+  or a cleared light. A [DRAFT] button is shown when editing the current
+  clue, and it can be clicked to toggle draft mode for that clue. Clues in
+  draft mode also get their clue number shown in gray in the list of clues. 
+- The "Save" menu shows warnings when the crossword has unfilled lights or
+  has clues still in draft mode.
+- Some other minor tweaks.
+
 ### Version: Exet v0.31 February 26 2021
 
 - Add menu entries to (1) save entire local storage revision history to a file,

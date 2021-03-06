@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.31 February 26 2021
+#### Version: Exet v0.32 March 6 2021
 
 #### Author: Viresh Ratnakar
 
@@ -70,7 +70,7 @@ following modifications to the UKACD words list:
 To use Exet, you simply open a link to `exet.html`, such as [this one on
 my site](https://viresh-ratnakar.github.io/exet.html), in a browser.
 
-The first time you open Exet, it might take a while to load, as it fetches
+The first time you open Exet, it might take a few seconds to load, as it fetches
 a large (19 MB) lexicon file. I'll try to improve this in the future.
 
 After it loads, your browser screen should look something like this:
@@ -128,35 +128,8 @@ template).
 maintaining the British chequered format (that has no consecutive unchecked
 cells) or the American format (that has all cells checked), whichever of the
 two formats is the state of the grid at that time. "Add automagic blocks"
-can be used repeatedly.
-
-Here's what "Add automagic blocks" does, in detail (whether you use it when
-creating a new blank grid or whether you invoke it on an existing grid):
-- It ensures that any added blocks continue to maintain symmetry and continue
-  to maintain full cell connectivity (i.e., there is a path from every white
-  cell to every other white cell, going through white cells only).
-- First, it looks at what kind of grid is being used or created: if an existing
-  grid has barred cells, then "Add automagic blocks" does not make any changes.
-- It makes 0 or 1 random change to each row, and then 0 or 1 random change to
-  each column, while maintaining certain grid properties as listed below.
-- If an existing grid is of the American variety with every white square
-  being a part of an across light as well as a down light (i.e., is "checked"),
-  then, ensure that:
-  - Every light is at least 3 letters in length.
-  - Every white square is checked.
-  - (Note that when you choose the "No blocks" menu choice while creating a new
-    blank grid, "Add automagic blocks" will create an American grid variety.)
-- Else, if an existing grid is of the British variety where the grid is
-  chequered but there are no two adjacent unchecked cells, then, ensure that:
-  - Every light is at least 4 letters in length.
-  - There are no two adjacent unchecked cells.
-  - Lights have fewer than or equal to as many unchecked cells as checked cells,
-    unless they have 9 or more letters, in which case they can have one more
-    unchecked cell than checked cells.
-  - (Note that when you choose any of the chequered choices while creating a new
-    blank grid, "Add automagic blocks" will create a British grid variety.)
-- No cell where you've already entered a grid-fill letter will be turned into a
-  block.
+can be used repeatedly. More details on what "Add automagic blocks" does
+are [provided in the appendix](#automagic-blocks).
 
 You can also open any existing HTML file that contains an puzzle in the Exolve
 format (when you save such a crossword after editing it, the saved Exolve file
@@ -283,6 +256,16 @@ place right there. You can navigate through the clues using standard
 controls such as clicking on a cell or a clue, using the arrow keys, or
 using the tab and shift-tab keys.
 
+When you create a new crossword, all clues are set to be in "draft" mode and
+are shown with a distinctive `[DRAFT]` marker. You should clear this marker
+when you have set a clue and are satisfied with it. You can clear the marker
+by clicking on the `[DRAFT]` marker for the current clue (above the grid).
+You can always put a clue back in draft mode (if you realize it has some
+issues), by clicking again on the ~~`[DRAFT]`~~ marker above the current clue.
+In the clues list in the Exet panel (to the right of the grid), clues in
+draft mode get shown with a `[DRAFT]` marker and their clue numbers get shown
+coloured gray.
+
 You can also edit the enum part of the clue, but the software will reset it
 if it does not add up to the needed number. For example, if a light spans 10
 cells, and you edit the anno to be "(5-4)," the software will reset it to
@@ -336,18 +319,18 @@ empty.
 ### Downloading Exolve or .puz files
 
 The "Save" menu lets you download or grab the puzzle in various ways. In the
-following, a \* in a filename stands for the puzzle title preceded by a hyphen
-(unless the puzzle title is blank).
+following, \<title\> in a filename stands for the puzzle title.
 
-- **Download PUZ file (exet\*.puz)**: Download a .puz file. Note that .puz
-  does not support many crossword features (afaik) such as barred grids.
+- **Download PUZ file (exet-\<title\>.puz)**: Download a .puz file. Note that
+  .puz does not support many crossword features (afaik) such as barred grids.
   The software will alert you if it is not able to provide a .puz download.
-- **Download Exolve file with solutions (exet-exolve\*-solved.html)**: Download
-  an HTML file that uses Exolve and that allows solvers to check/see solutions.
-  Such files can also be opened by Exet from the "Open" menu and can be further
-  edited. This might be useful, for example, when you want to edit an old
-  crossword that you have deleted from Exet's limited local storage.
-- **Download Exolve file without solutions (exet-exolve\*-unsolved.html)**:
+- **Download Exolve file with solutions (exet-exolve-\<title\>-solved.html)**:
+  Download an HTML file that uses Exolve and that allows solvers to check/see
+  solutions.  Such files can also be opened by Exet from the "Open" menu and
+  can be further edited. This might be useful, for example, when you want to
+  edit an old crossword that you have deleted from Exet's limited local storage.
+- **Download Exolve file without solutions
+  (exet-exolve-\<title\>-unsolved.html)**:
   Download an HTML file that uses Exolve and does not allow solvers to check/see
   solutions.
 - **Copy Exolve widget code with solutions 📋**: Copy (into the clipboard)
@@ -381,6 +364,12 @@ The Save menu also lets you change a couple of settings:
 
 These Save settings are sticky: Exet saves their current values in local
 storage.
+
+The Save menu shows warning messages if the crossword has unfilled entries
+or has clues still in `[DRAFT]` mode. For clues in `[DRAFT]` mode, the
+prefix "[DRAFT] " is shown in the downloaded/printed versions of the crossword
+(as noted earlier, you can clear the `[DRAFT]` marker from the current clue
+by clicking on it, when it is being edited above the grid).
 
 ### Going back to older versions
 
@@ -425,21 +414,18 @@ annotations. Here is an illustrative example of the kinds of analyses shown:
 > **All/Across/Down Grid-fills and Clues**
 > 
 > - Number of lights: 29
-> - Filled lights: 29 (100.00%)
-> - Clues needed (excluding linked "child" lights): 29
-> - Clues set: 29 (100.00%)
+> - Number of words/phrases: 29
 > 
-> - Light lengths:
-> 
+> - Word/phrase lengths:
 >   - 2	occurrences of	4	
 >   - 4	occurrences of	5	
 >   - 6	occurrences of	6	
-> 
 >     ...
-> 
 >   Distinct values: 8
-> 
 >   Range: 4 - 15, Average: 7.3, Median: 7
+> 
+> - Filled words/phrases: 29 (100.00%)
+> - Clues set (i.e., not \[DRAFT\]): 29 (100.00%)
 > 
 > - Words repeated in clues:
 > 
@@ -572,6 +558,38 @@ subsequent downloads (but you just won't be able to edit them within Exet).
 - The composite anagram builder was inspired by similar constructs in Qxw
   as well as in
   [martindemello.net/wgn.html](http://martindemello.net/wgn.html).
+
+## Appendix
+
+### Automagic blocks
+
+Here's what "Add automagic blocks" does, in detail (whether you use it when
+creating a new blank grid or whether you invoke it on an existing grid):
+- It ensures that any added blocks continue to maintain symmetry and continue
+  to maintain full cell connectivity (i.e., there is a path from every white
+  cell to every other white cell, going through white cells only).
+- First, it looks at what kind of grid is being used or created: if an existing
+  grid has barred cells, then "Add automagic blocks" does not make any changes.
+- It makes 0 or 1 random change to each row, and then 0 or 1 random change to
+  each column, while maintaining certain grid properties as listed below.
+- If an existing grid is of the American variety with every white square
+  being a part of an across light as well as a down light (i.e., is "checked"),
+  then, ensure that:
+  - Every light is at least 3 letters in length.
+  - Every white square is checked.
+  - (Note that when you choose the "No blocks" menu choice while creating a new
+    blank grid, "Add automagic blocks" will create an American grid variety.)
+- Else, if an existing grid is of the British variety where the grid is
+  chequered but there are no two adjacent unchecked cells, then, ensure that:
+  - Every light is at least 4 letters in length.
+  - There are no two adjacent unchecked cells.
+  - Lights have fewer than or equal to as many unchecked cells as checked cells,
+    unless they have 9 or more letters, in which case they can have one more
+    unchecked cell than checked cells.
+  - (Note that when you choose any of the chequered choices while creating a new
+    blank grid, "Add automagic blocks" will create a British grid variety.)
+- No cell where you've already entered a grid-fill letter will be turned into a
+  block.
 
 ## Copyright notices
 
