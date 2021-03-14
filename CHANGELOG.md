@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.33 March 13 2021
+
+- Move the min popularity score threshold setting to a more prominent
+  place (along with the "disallow proper nouns" setting), above the
+  clues table (reduce the width of the rarely-used scratch pad to
+  accommodate).
+- Set default min popularity to 85%ile instead of 0.
+- Clean up the code, limiting exet.html to 80 columns.
+
 ### Version: Exet v0.32 March 6 2021
 
 - Keep track of clues in [DRAFT] mode, which is the default for a new grid

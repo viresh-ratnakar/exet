@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.32 March 6 2021
+#### Version: Exet v0.33 March 13 2021
 
 #### Author: Viresh Ratnakar
 
@@ -147,6 +147,32 @@ these, the clue enum is automatically adjusted. For example, for 1A, if you
 pick "birds of a feather," then the enum will automatically change to
 (5,2,1,7).
 
+To the right of the fill suggestions table, near the top, you have some
+settings that control the nature of fill suggestions. These are:
+
+- A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.02 en Latin"
+  as of Oct 2020) has 250,556 entries. Providing a popularity threshold can
+  be useful to avoid obscure words as well as to make autofill go faster.
+  If you are an experienced setter, you may want to set this to 0 to see the
+  widest possible set of choices for each fill. This threshold is set to 85 by
+  default. Here's a guide to the number of entries that you will limit to, at
+  various thresholds (recall that popularity is derived from occurrences in
+  Wikipedia articles):
+
+  | Threshold | #Entries | Last included entries    |
+  |-----------|----------|--------------------------|
+  |       0   | 250,556  | latirostral, Nance, Nancy             |
+  |       25  | 187,917  | pseudoscopes, washpot, whackiest      |
+  |       50  | 125,278  | closed communities, forced sales, stannate |
+  |       60  | 100,222  | ensnares, raun, clerical collar       |
+  |       70  |  75,166  | leaseholder, delivery van, nays       |
+  |       80  |  50,111  | in deep water, booing, ecco           |
+  |    **85** |**37,583**|**searchlights, Barranquilla, spaniel**|
+  |       90  |  25,055  | solicitors, swifts, stele             |
+  |       95  |  12,527  | Green Party, popular music, connector |
+
+- Whether to exclude proper nouns.
+
 As you progress through filling the grid, the software will try to help by
 showing viability indicators (I call them "viablots"). These are red circles
 that appear in light cells that have only a few available grid-fill choices.
@@ -183,31 +209,10 @@ will get shown as the top suggestions, whenever possible. Clicking anywhere
 outside the panel of preferred fills will dismiss the panel.
 
 Similarly, you can provide a set of words that you do *not* want to appear
-in the crossword, by clicking on the "Set fill exclusions" button. This
-will open up a panel in which you can specify the following:
+in the crossword, by clicking on the "Set fill exclusions" button.
 
-- A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.02 en Latin"
-  as of Oct 2020) has 250,556 entries. Providing a popularity threshold can
-  be useful to avoid obscure words as well as to make autofill go faster.
-  Here's a guide to the number of entries that you will limit to, at various
-  thresholds (recall that popularity is derived from occurrences in Wikipedia
-  articles):
-
-  | Threshold | #Entries | Last included entries    |
-  |-----------|----------|--------------------------|
-  |       0   | 250,556  | latirostral, Nance, Nancy |
-  |       25  | 187,917  | pseudoscopes, washpot, whackiest     |
-  |       50  | 125,278  | closed communities, forced sales, stannate |
-  |       60  | 100,222  | ensnares, raun, clerical collar      |
-  |       70  | 75,166  | leaseholder, delivery van, nays       |
-  |       80  | 50,111  | in deep water, booing, ecco           |
-  |       90  | 25,055  | solicitors, swifts, stele             |
-  |       95  | 12,527  | Green Party, popular music, commector |
-
-- Whether to exclude proper nouns.
-- An explicit list of words/phrases to exclude.
-
-Clicking anywhere outside the shown panel dismisses it.
+Clicking anywhere outside the shown panel (for preferred fills or fill
+exclusions) dismisses it.
 
 #### Linked clues
 
@@ -282,7 +287,8 @@ word/phrase in the current light:
 
 - **Chambers Dictionary & Thesaurus**: [https://chambers.co.uk](https://chambers.co.uk)
 - **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
-- **Google Dict**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
+- **Onelook**: [onelook.com](https://onelook.com)
+- **Google Dictionary**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
 For cryptic crosswords, these additional tabs might be of use to setters. These
