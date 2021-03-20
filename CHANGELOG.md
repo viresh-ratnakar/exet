@@ -1,5 +1,17 @@
 # Changelog
 
+### Version: Exet v0.34 March 19 2021
+
+- Add some convenient "rich" formatting UI for clue/anno. When you
+  select some text in the clue/anno, you get format buttons as well as
+  keyboard shortcuts that let you set/unset the following:
+  - Clue: def, italic, clear
+  - Anno: italic, bold, underline, strikethrough, toggle-case,
+    alternates, clear
+- The implementation has some minor idiosyncrasies, noted in README.md.
+- Bug-fix: show changes to anno HTML immediately in the clues list.
+- Do not allow adding junk text after the enum in the clue.
+
 ### Version: Exet v0.33 March 13 2021
 
 - Move the min popularity score threshold setting to a more prominent

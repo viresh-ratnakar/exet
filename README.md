@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.33 March 13 2021
+#### Version: Exet v0.34 March 19 2021
 
 #### Author: Viresh Ratnakar
 
@@ -214,19 +214,6 @@ in the crossword, by clicking on the "Set fill exclusions" button.
 Clicking anywhere outside the shown panel (for preferred fills or fill
 exclusions) dismisses it.
 
-#### Linked clues
-
-You can link clues, creating sequences of lights that make up a single solution
-that is clued using the "parent" clue (the first one in the sequence). To
-create such linkages, you can click on the clue number of the current clue,
-which will bring up a panel through which you can add a linked clue to the
-current clue. The same panel also provides a button for breaking up a group
-of previously linked clues. When you break up a group of linked clues, any
-existing clue text from them will also get deleted.
-
-Grid-fill suggestions as well as autofill work as you might expect with linked
-clues.
-
 #### Autofill
 
 You can click on "Autofill" in the "Edit" menu to try to get the software to
@@ -276,8 +263,87 @@ if it does not add up to the needed number. For example, if a light spans 10
 cells, and you edit the anno to be "(5-4)," the software will reset it to
 "(10)."
 
-You can optionally provide annotations for clues. These annotations are used
-in cryptic crossword solutions, typically, to describe the cryptic wordplay.
+You can optionally provide annotations for clues. These annotations are
+typically used in cryptic crosswords to describe the cryptic wordplay when
+a solution to a clue is revealed.
+
+#### Formatting clues and annotations
+
+Note that when editing the current clue or annotation, you are working with
+raw HTML, and you can use any HTML tags for specialized formatting if you want
+to. In particular, if you want to present a clue in verse form (a style
+occasionally seen in jigsaw-style cryptic crosswords), you can insert
+linebreaks by inserting `<br>` tags. Generally speaking though, clues in most
+publications tend to _not_ make use of fancy formatting (except for some
+italicization in some cases).
+
+Annotations, on the other hand, _should_ make use of rich formatting, to
+illustrate cryptic wordplay elements clearly.
+
+You can wrap one or more parts of the clue using the special `~{...}~`
+"def wrapper" that Exolve supports, for marking the "definition part" in a
+cryptic clue. The wrapped text gets shown distinctively (with a green
+underline, usually) when the solver reveals the solution to the clue.
+
+The clues and the annotations are shown in the clues lists (to the right of
+the grid, in the Exet tab)  with all the HTML markup properly rendered (and
+all "def wrappers" shown in their revealed state).
+
+When you select some text in the current clue or annotation, you can make use
+of some formatting shortcuts via helper buttons that appear above and to
+the right of the current clue above the grid. Hovering the mouse over a helper
+button will show a preview of the changes it will make when clicked. The
+following screenshot shows an example:
+
+![Screeshot of rich formatting helpers](exet-format.png)
+
+Some of these formatting shortcuts can also be applied with special keystrokes
+after selecting some text in the current clue or annotation. Here is the list
+of supported formatting shortcuts along with details including keystrokes (when
+applicable).
+
+| Format | Keystrokes | Context | Notes          |
+|--------|------------|---------|----------------|
+| Def | Ctrl-D | Clue | Toggles wrapping/unwrapping in the def wrapper, `~{...}~` |
+| _I_      | Ctrl-I | Clue/Anno | Toggles wrapping/unwrapping in `<i>...</i>` |
+| *B*        | Ctrl-B | Anno | Toggles wrapping/unwrapping in `<b>...</b>` |
+| <u>U</u>   | Ctrl-U | Anno | Toggles wrapping/unwrapping in `<u>...</u>` |
+| ~S~ | Ctrl-S | Anno | Toggles wrapping/unwrapping in `<s>...</s>` |
+| CAPs   |  | Anno | Toggles capitalization of letters |
+| CaSe   |  | Anno | Marks every odd letter as bold and in upper case |
+| ~_*T*_~   |  | Clue/Anno | Clears formatting |
+
+This feature is not intended to be a fancy WYSIWYG editor, and has some
+idiosyncrasies:
+
+- If you select some text that already contains some HTML tags (or the def
+  wrapper), you do not get any shortcuts for adding more tags to it. However, you get a shortcut
+  button for clearing the formatting in such a selection. Format clearing
+  only gets rid of tags that are fully matched with closing tags within the
+  selected text.
+- If you select some text that is fully enclosed within a `<b>..</b>`,
+  `<i>..</i>`, `<u>..</u>`, `<s>..</s>` tag, or in the `~{..}~` def wrapper,
+  then the shortcut for that particular format will toggle it, clearing away
+  the existing formatting of that specific type. However, it will do that by
+  simply removing the enclosing tags, _even if you have not selected all the
+  text enclosed by them_. This is to avoid the complication of having to
+  close/reopen any other markup that might alos be enclosing the current
+  selection.
+
+#### Linked clues
+
+You can link clues, creating sequences of lights that make up a single solution
+that is clued using the "parent" clue (the first one in the sequence). To
+create such linkages, you can click on the clue number of the current clue,
+which will bring up a panel through which you can add a linked clue to the
+current clue. The same panel also provides a button for breaking up a group
+of previously linked clues. When you break up a group of linked clues, any
+existing clue text from them will also get deleted.
+
+Grid-fill suggestions as well as autofill work as you might expect with linked
+clues.
+
+#### Resources for clues
 
 When creating a clue for a word or a phrase, setters typically like to
 look at the definition of the word/phrase, look at its synonyms, examples of
@@ -291,8 +357,8 @@ word/phrase in the current light:
 - **Google Dictionary**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
-For cryptic crosswords, these additional tabs might be of use to setters. These
-are:
+For cryptic crosswords, there are some additional tabs that setters may find
+useful. These are:
 
 - **Charades...**: Shows candidate charade wordplays, including anagrams and
   containers, wordplays for the current light, sorted in decreasing order of
@@ -330,6 +396,9 @@ following, \<title\> in a filename stands for the puzzle title.
 - **Download PUZ file (exet-\<title\>.puz)**: Download a .puz file. Note that
   .puz does not support many crossword features (afaik) such as barred grids.
   The software will alert you if it is not able to provide a .puz download.
+  Note also that when exporting the crossword in the .puz format, any rich
+  formatting in clues will get stripped out as the .puz format does not support
+  it (.puz does not support annotations either).
 - **Download Exolve file with solutions (exet-exolve-\<title\>-solved.html)**:
   Download an HTML file that uses Exolve and that allows solvers to check/see
   solutions.  Such files can also be opened by Exet from the "Open" menu and
