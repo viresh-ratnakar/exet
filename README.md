@@ -327,7 +327,7 @@ idiosyncrasies:
   the existing formatting of that specific type. However, it will do that by
   simply removing the enclosing tags, _even if you have not selected all the
   text enclosed by them_. This is to avoid the complication of having to
-  close/reopen any other markup that might alos be enclosing the current
+  close/reopen any other markup that might also be enclosing the current
   selection.
 
 #### Linked clues
