@@ -306,11 +306,11 @@ applicable).
 |--------|------------|---------|----------------|
 | Def | Ctrl-D | Clue | Toggles wrapping/unwrapping in the def wrapper, `~{...}~` |
 | _I_      | Ctrl-I | Clue/Anno | Toggles wrapping/unwrapping in `<i>...</i>` |
-| *B*        | Ctrl-B | Anno | Toggles wrapping/unwrapping in `<b>...</b>` |
+| **B**        | Ctrl-B | Anno | Toggles wrapping/unwrapping in `<b>...</b>` |
 | <u>U</u>   | Ctrl-U | Anno | Toggles wrapping/unwrapping in `<u>...</u>` |
 | ~S~ | Ctrl-S | Anno | Toggles wrapping/unwrapping in `<s>...</s>` |
 | CAPs   |  | Anno | Toggles capitalization of letters |
-| CaSe   |  | Anno | Marks every odd letter as bold and in upper case |
+| **A**l**T**s   |  | Anno | Marks every odd letter as bold and in upper case |
 | ~_*T*_~   |  | Clue/Anno | Clears formatting |
 
 This feature is not intended to be a fancy WYSIWYG editor, and has some
