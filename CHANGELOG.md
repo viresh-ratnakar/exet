@@ -1,5 +1,24 @@
 # Changelog
 
+### Version: Exet v0.35 March 21 2021
+
+- Follow-up tweaks/fixes to the new formatting UI.
+- Fixes for narrow layouts:
+  - Limit the width of the format preview panel so that it does not get cut.
+  - Exolve v1.09 has already made long clue+anno panels get a vertical scroll
+    bar.
+  - When the clue panel overlaps with title/setter/preamble, colour them
+    gray to reduce clutter. Clicking on them will restore them (as it
+    would hide the current clue, a change pushed out in Exolve v1.09 for
+    setter/preamble -- was already the case for title).
+- After smart-formatting, continue to show the selection as highlighted (this
+  requires a bit of book-keeping to track changes needed to the selection after
+  formatting, now implemented).
+- Since this continues to activate the smart-editing buttons, order the buttons
+  so that the same type is likely to show up in the same spot. Specifically,
+  for b/i/u/s/def, the do/undo buttons now show up in the same spot.
+- In the format preview panel, show the selected text highlighted.
+
 ### Version: Exet v0.34 March 19 2021
 
 - Add some convenient "rich" formatting UI for clue/anno. When you

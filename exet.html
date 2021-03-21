@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.34 March 19 2021
+Current version: v0.35 March 21 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -163,11 +163,13 @@ Current version: v0.34 March 19 2021
 #xet-unlink {
   padding: 4px;
 }
+.xet-blur *,
+.xet-blur {
+  color: lightgray !important;
+}
 .xet-format {
   position: absolute;
   z-index: 2;
-  top: -32px;
-  right: 0;
   background-color: white;
 }
 .xet-format-label {
@@ -195,12 +197,15 @@ Current version: v0.34 March 19 2021
 #xet-format .xet-format-option-active .xlv-small-button {
   background-color: #e1e1e1;
 }
+#xet-format .xet-format-option-active .xlv-small-button:hover {
+  background-color: lightsalmon;
+}
 .xet-format-option-active .xlv-small-button:hover .xet-format-panel,
 .xet-format-option .xlv-small-button:hover .xet-format-panel {
   display: block;
 }
 .xet-format-panel {
-  margin: 0 4px;
+  margin: 0;
   padding: 4px;
   display: block;
   text-align: left;
@@ -208,16 +213,20 @@ Current version: v0.34 March 19 2021
   background-color: white;
   z-index: 2;
   left: 100%;
-  top: 0;
+  top: 4px;
   border: 1px solid dodgerblue;
   box-sizing: border-box;
   color: black;
   display: none;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-  width: 500px;
+  width: 280px;
 }
 .xet-format-preview {
-  margin: 4px 8px;
+  margin: 8px 8px;
+}
+.xet-format-selection {
+  background-color: #3399FF;
+  color: white;
 }
 .xet-small-action {
   text-align: right;
@@ -1203,6 +1212,18 @@ function Exet() {
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
      '</option>'; 
+  this.TOP_CLEARANCE = 36;
+  this.formatTags = {
+    clear: {inClue: [true, false]},
+    def: {open: '~{', close: '}~', inClue: [true]},
+    i: {open: '<i>', close: '</i>', inClue: [true, false]},
+    b: {open: '<b>', close: '</b>', inClue: [false]},
+    u: {open: '<u>', close: '</u>', inClue: [false]},
+    s: {open: '<s>', close: '</s>', inClue: [false]},
+    caps: {inClue: [false]},
+    alt: {inClue: [false]},
+  }
+
 
   // Start in the Exet tab
   this.currTab = "exet"
@@ -3598,6 +3619,7 @@ Exet.prototype.replaceHandlers = function() {
       let ret = exet.cnavToInnerSaved.apply(exet.puz, arguments);
       exet.scrollCluesIfNeeded()
       exet.makeClueEditable()
+      exet.reposition()
       exet.renderClue()
       exet.updateFillChoices()
       exet.startDeadendSweep(exet.currClueIndex());
@@ -3624,6 +3646,13 @@ Exet.prototype.replaceHandlers = function() {
         gridCell.darkness.style.fill = 'transparent'
       }
       exet.dccSaved.apply(exet.puz);
+    };
+  })();
+  this.puz.deactivateCurrClue = (function() {
+    exet.dcclueSaved = exet.puz.deactivateCurrClue;
+    return function() {
+      exet.dcclueSaved.apply(exet.puz);
+      exet.reposition()
     };
   })();
   this.puz.handleKeyUpInner = (function() {
@@ -3729,16 +3758,54 @@ Exet.prototype.hideDefTags = function(s) {
   return s.replace(/\}~/g, '')
 }
 
-Exet.prototype.updateFormat = function(inClue, text, modText, unTagging) {
-  const elt = document.getElementById(inClue ? 'xet-clue' : 'xet-anno')
-  const delta = unTagging ? Math.ceil((modText.length - text.length) / 2) :
-      modText.length - text.length
+Exet.prototype.updateFormat = function(inClue, text, modText, deltaStart, deltaEnd) {
+  const elt = this.savedCursorElt
+  if (!elt) return
   elt.focus()
-  this.saveCursor()
-  this.savedCaretPos += delta
   elt.innerText = modText
+  this.savedCursorStart += deltaStart
+  this.savedCursorEnd += deltaEnd
   this.restoreCursor()
   this.handleClueChange()
+}
+
+Exet.prototype.reposition = function() {
+  const clueBox = this.puz.currClue.getBoundingClientRect()
+  const preamble = document.getElementById(this.puz.prefix + '-preamble')
+  const preambleBox = preamble.getBoundingClientRect()
+  if (preambleBox.bottom >= clueBox.top && preambleBox.left <= clueBox.right) {
+    preamble.className = 'xet-blur xlv-preamble'
+  } else {
+    preamble.className = 'xlv-preamble'
+  }
+  const setterBox = this.xetSetter.getBoundingClientRect()
+  if (setterBox.bottom >= clueBox.top && setterBox.left <= clueBox.right) {
+    this.setter.className = 'xet-blur xlv-setter'
+  } else {
+    this.setter.className = 'xlv-setter'
+  }
+  const titleBox = this.xetTitle.getBoundingClientRect()
+  if (titleBox.bottom >= clueBox.top && titleBox.left <= clueBox.right) {
+    this.title.className = 'xet-blur xlv-title'
+  } else {
+    this.title.className = 'xlv-title'
+  }
+
+  const xetFormat = document.getElementById('xet-format')
+  if (!xetFormat) {
+    return
+  }
+  const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
+  const previewWidth = Math.min(480, (clueParentBox.width - clueBox.width) / 2);
+
+  for (let tag of Object.keys(this.formatTags)) {
+    const preview = document.getElementById('xet-format-' + tag + '-preview')
+    preview.style.width = previewWidth + 'px';
+  }
+
+  xetFormat.style.top = (-32 + clueBox.top - clueParentBox.top) + 'px';
+  xetFormat.style.right = (clueParentBox.width -
+      clueBox.width - clueBox.left) + 'px';
 }
 
 Exet.prototype.maybeShowFormat = function() {
@@ -3747,25 +3814,21 @@ Exet.prototype.maybeShowFormat = function() {
     return
   }
   xetFormat.style.display = 'none'
-  let sel = window.getSelection();
-  if (!sel) {
+  this.saveCursor()
+  if (!this.savedCursorElt ||
+      this.savedCursorId != 'xet-clue' && this.savedCursorId != 'xet-anno') {
     return
   }
-  let node = sel.focusNode
-  while (node && !node.id) {
-    node = node.parentNode
-  }
-  if (!node || (node.id != 'xet-clue' && node.id != 'xet-anno')) {
-    return
-  }
-  const inClue = (node.id == 'xet-clue')
-  const text = node.innerText
-  let start = (sel.anchorNode == sel.focusNode) ? sel.anchorOffset : 0
-  let end = sel.focusOffset
+  const inClue = (this.savedCursorId == 'xet-clue')
+  let text = this.savedCursorElt.innerText
+  let start = this.savedCursorStart;
+  let end = this.savedCursorEnd;
+  let reversed = false
   if (start > end) {
     let temp = start
     start = end
     end = temp
+    reversed = true
   }
   const sub = text.substring(start, end)
   const prefix = text.substr(0, start)
@@ -3786,54 +3849,42 @@ Exet.prototype.maybeShowFormat = function() {
     return
   }
 
-  const tags = {
-    clear: {inClue: [true, false]},
-    def: {open: '~{', close: '}~', inClue: [true]},
-    i: {open: '<i>', close: '</i>', inClue: [true, false]},
-    b: {open: '<b>', close: '</b>', inClue: [false]},
-    u: {open: '<u>', close: '</u>', inClue: [false]},
-    s: {open: '<s>', close: '</s>', inClue: [false]},
-    caps: {inClue: [false]},
-    alt: {inClue: [false]},
-  }
-
   let onlyClear = sub.indexOf('<') >= 0 || sub.indexOf('>') >= 0 ||
     (inClue &&
       (sub.indexOf('~') >= 0 || sub.indexOf('{') >= 0 || sub.indexOf('}') >= 0))
 
-  let numActive = 0
-  for (let tag of Object.keys(tags)) {
+  numActive = 0;
+  for (let tag of Object.keys(this.formatTags)) {
     const opt = document.getElementById('xet-format-' + tag)
     opt.style.display = 'none'
-    const props = tags[tag]
+    const props = this.formatTags[tag]
     if (!props.inClue.includes(inClue)) continue
     let modText = text
+    let modPrefix = prefix
+    let modSub = sub
+    let modSuffix = suffix
     let heading = ''
-    let unTagging = false;
+    let deltaStart = 0;
+    let deltaEnd = 0;
     if (tag == 'clear') {
       if (!onlyClear) continue
-      const cleared = this.deTag(sub, inClue)
-      if (cleared == sub) {
-        continue
-      }
-      modText = prefix + cleared + suffix
       heading = 'Clear paired format tags within selection:'
+      modSub = this.deTag(sub, inClue)
     } else if (tag == 'caps') {
       if (onlyClear) continue
       heading = 'Toggle letter capitalizaton in selection:'
-      let subToggle = ''
+      modSub = ''
       for (let c of sub) {
         const uc = c.toUpperCase()
         const lc = c.toLowerCase()
-        if (c == uc) subToggle += lc;
-        else subToggle += uc;
+        if (c == uc) modSub += lc;
+        else modSub += uc;
       }
-      modText = prefix + subToggle + suffix
     } else if (tag == 'alt') {
       if (onlyClear) continue
       if (this.isInTag(lprefix, lsuffix, '<b>', '</b>')) continue
       heading = 'Make alternate letters in selection bold and in upper case:'
-      let modSub = ''
+      modSub = ''
       let odd = true
       for (let c of sub) {
         const lc = c.toLowerCase()
@@ -3845,50 +3896,61 @@ Exet.prototype.maybeShowFormat = function() {
           modSub += c
         }
       }
-      modText = prefix + modSub + suffix
     } else {
       if (onlyClear) continue
       const inTag = this.isInTag(lprefix, lsuffix, props.open, props.close)
       if (inTag) {
-        opt.className = 'xet-format-option-active'
-        modText = prefix.substr(0, inTag[0]) +
-          prefix.substr(inTag[0] + props.open.length) +
-          sub +
-          suffix.substr(0, inTag[1]) +
-          suffix.substr(inTag[1] + props.close.length)
         heading = 'Clear selection\'s enclosing "' + tag + '" tag:'
-        unTagging = true
+        opt.className = 'xet-format-option-active'
+        modPrefix = prefix.substr(0, inTag[0]) +
+          prefix.substr(inTag[0] + props.open.length);
+        modSuffix = suffix.substr(0, inTag[1]) +
+          suffix.substr(inTag[1] + props.close.length)
       } else {
-        opt.className = 'xet-format-option'
-        modText = prefix + props.open + sub + props.close + suffix
         heading = 'Wrap selection in "' + tag + '" tag:'
+        opt.className = 'xet-format-option'
+        modPrefix = prefix + props.open
+        modSuffix = props.close + suffix
       }
     }
+    modText = modPrefix + modSub + modSuffix
     if (modText == text) continue
+    deltaStart = modPrefix.length - prefix.length
+    deltaEnd = (modPrefix.length + modSub.length) -
+               (prefix.length + sub.length)
     const preview = document.getElementById('xet-format-' + tag + '-preview')
     const ph = preview.getElementsByClassName('xet-placeholder')
     ph[0].innerText = heading
-    ph[1].innerText = text
-    ph[2].innerText = modText
+    ph[1].innerText = prefix
+    ph[2].innerText = sub
+    ph[3].innerText = suffix
+    ph[4].innerText = modPrefix
+    ph[5].innerText = modSub
+    ph[6].innerText = modSuffix
     const rendered = inClue ? this.hideDefTags(modText) : modText
-    ph[3].innerHTML = rendered
-    ph[4].style.display = 'none'
+    ph[7].innerHTML = rendered
+    ph[8].style.display = 'none'
     if (inClue) {
       const revRendered = this.renderDefTags(modText)
       if (revRendered != rendered) {
-        ph[4].style.display = ''
-        ph[5].innerHTML = revRendered
+        ph[8].style.display = ''
+        ph[9].innerHTML = revRendered
       }
     }
     const b = opt.firstElementChild
+    if (reversed) {
+      let temp = deltaStart;
+      deltaStart = deltaEnd;
+      deltaEnd = temp;
+    }
     b.setAttribute('onclick',
-        `exet.updateFormat(${inClue}, "${text}", "${modText}", ${unTagging})`)
-    opt.style.display = ''
-    numActive++
+        `exet.updateFormat(${inClue}, "${text}", "${modText}", ` +
+        `${deltaStart}, ${deltaEnd})`);
+    opt.style.display = '';
+    numActive++;
   }
-
   if (numActive > 0) {
-    xetFormat.style.display = 'block'
+    xetFormat.style.display = ''
   }
 }
 
@@ -3962,9 +4024,17 @@ Exet.prototype.makeClueEditable = function() {
 
   const previewPanel = `
     <div class="xet-action xet-placeholder"></div>
-    <div class="xet-format-preview xet-placeholder"></div>
+    <div class="xet-format-preview">
+      <span class="xet-placeholder"></span><span
+        class="xet-format-selection xet-placeholder"></span><span
+        class="xet-placeholder"></span>
+    </div>
     <div class="xet-action">To:</div>
-    <div class="xet-format-preview xet-placeholder"></div>
+    <div class="xet-format-preview">
+      <span class="xet-placeholder"></span><span
+        class="xet-format-selection xet-placeholder"></span><span
+        class="xet-placeholder"></span>
+    </div>
     <hr>
     <div class="xet-action">Preview:</div>
     <div class="xet-format-preview xet-placeholder"></div>
@@ -3974,6 +4044,10 @@ Exet.prototype.makeClueEditable = function() {
       <div class="xet-format-preview xet-placeholder"></div>
     </div>`
 
+  const oldFormat = document.getElementById('xet-format')
+  if (oldFormat) {
+    oldFormat.remove()
+  }
   const format = document.createElement('div')
   format.id = 'xet-format'
   format.className = 'xet-format'
@@ -3981,71 +4055,7 @@ Exet.prototype.makeClueEditable = function() {
   // upon the current selection.
   format.innerHTML = `
     <div class="xet-format-label">
-      <span class="xet-format-option" id="xet-format-def">
-        <button class="xlv-small-button"><u>Def</u>
-          <div class="xet-format-panel" id="xet-format-def-preview">
-            ${previewPanel}
-            <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-D
-            </div>
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-b">
-        <button class="xlv-small-button"><b>B</b>
-          <div class="xet-format-panel" id="xet-format-b-preview">
-            ${previewPanel}
-            <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-B
-            </div>
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-i">
-        <button class="xlv-small-button"><i>I</i>
-          <div class="xet-format-panel" id="xet-format-i-preview">
-            ${previewPanel}
-            <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-I
-            </div>
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-u">
-        <button class="xlv-small-button"><u>U</u>
-          <div class="xet-format-panel" id="xet-format-u-preview">
-            ${previewPanel}
-            <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-U
-            </div>
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-s">
-        <button class="xlv-small-button"><s>S</s>
-          <div class="xet-format-panel" id="xet-format-s-preview">
-            ${previewPanel}
-            <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-S
-            </div>
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-caps">
-        <button class="xlv-small-button">CAPs
-          <div class="xet-format-panel" id="xet-format-caps-preview">
-            ${previewPanel}
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-alt">
-        <button class="xlv-small-button"><b>A</b>l<b>T</b>s
-          <div class="xet-format-panel" id="xet-format-alt-preview">
-            ${previewPanel}
-          </div>
-        </button>
-      </span>
-      <span class="xet-format-option" id="xet-format-clear">
+      <span class="xet-format-option" style="display:none" id="xet-format-clear">
         <button class="xlv-small-button">
           <s style="text-decoration-color:red;text-decoration-thickness:1.5px">
             <i><b>T</b></i>
@@ -4055,9 +4065,72 @@ Exet.prototype.makeClueEditable = function() {
           </div>
         </button>
       </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-alt">
+        <button class="xlv-small-button"><b>A</b>l<b>T</b>s
+          <div class="xet-format-panel" id="xet-format-alt-preview">
+            ${previewPanel}
+          </div>
+        </button>
+      </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-caps">
+        <button class="xlv-small-button">CAPs
+          <div class="xet-format-panel" id="xet-format-caps-preview">
+            ${previewPanel}
+          </div>
+        </button>
+      </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-b">
+        <button class="xlv-small-button"><b>B</b>
+          <div class="xet-format-panel" id="xet-format-b-preview">
+            ${previewPanel}
+            <div class="xet-small-action">
+              Keyboard shortcut: Ctrl-B
+            </div>
+          </div>
+        </button>
+      </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-i">
+        <button class="xlv-small-button"><i>I</i>
+          <div class="xet-format-panel" id="xet-format-i-preview">
+            ${previewPanel}
+            <div class="xet-small-action">
+              Keyboard shortcut: Ctrl-I
+            </div>
+          </div>
+        </button>
+      </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-u">
+        <button class="xlv-small-button"><u>U</u>
+          <div class="xet-format-panel" id="xet-format-u-preview">
+            ${previewPanel}
+            <div class="xet-small-action">
+              Keyboard shortcut: Ctrl-U
+            </div>
+          </div>
+        </button>
+      </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-s">
+        <button class="xlv-small-button"><s>S</s>
+          <div class="xet-format-panel" id="xet-format-s-preview">
+            ${previewPanel}
+            <div class="xet-small-action">
+              Keyboard shortcut: Ctrl-S
+            </div>
+          </div>
+        </button>
+      </span>
+      <span class="xet-format-option" style="display:none" id="xet-format-def">
+        <button class="xlv-small-button"><u>Def</u>
+          <div class="xet-format-panel" id="xet-format-def-preview">
+            ${previewPanel}
+            <div class="xet-small-action">
+              Keyboard shortcut: Ctrl-D
+            </div>
+          </div>
+        </button>
+      </span>
     </div>`
-  format.style.display = 'none'
-  currClueText.appendChild(format)
+  this.puz.currClueParent.appendChild(format)
 
   const formatShortcut = (e) => {
     if (!e.ctrlKey) return true;
@@ -4080,10 +4153,11 @@ Exet.prototype.makeClueEditable = function() {
   xetClue.addEventListener('keydown', formatShortcut)
   xetAnno.addEventListener('keydown', formatShortcut)
 
+  this.puz.makeCurrClueVisible()
+  this.reposition()
+
   const formatRevealer = this.maybeShowFormat.bind(this)
   document.addEventListener('selectionchange', formatRevealer)
-
-  this.puz.makeCurrClueVisible()
 }
 
 Exet.prototype.throttledClueChange = function() {
@@ -4172,6 +4246,7 @@ Exet.prototype.handleClueChange = function() {
   this.renderClue(theClue)
 
   this.puz.makeCurrClueVisible()
+  this.reposition()
 
   this.restoreCursor()
 
@@ -5199,7 +5274,7 @@ Exet.prototype.makeExolve = function(specs) {
     delete exolvePuzzles[this.puz.id]
   }
   try {
-    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, 0, 0, false)
+    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, this.TOP_CLEARANCE, 0, false)
   } catch (err) {
     this.puz = null
     alert('Could not create/parse Exolve puzzle. Please reload and retry. The JavaScript console might show some diagnostic messages.')
@@ -5340,37 +5415,54 @@ Exet.prototype.clearAll = function() {
 }
 
 Exet.prototype.saveCursor = function() {
-  this.savedCaretPos = 0
-  this.savedCaretPosId = ''
+  this.savedCursorStart = 0
+  this.savedCursorEnd = 0
+  this.savedCursorId = ''
+  this.savedCursorElt = null
   let sel = window.getSelection();
-  if (!sel) {
+  if (!sel || !sel.focusNode) {
     return
   }
-  if (sel.rangeCount) {
-    let range = sel.getRangeAt(0);
-    parentNode = range.commonAncestorContainer.parentNode
-    if (parentNode) {
-      this.savedCaretPosId = parentNode.id
-      this.savedCaretPos = range.endOffset
+  let parent = sel.focusNode.parentNode
+  if (!parent || !parent.id) {
+    return
+  }
+  this.savedCursorId = parent.id;
+  this.savedCursorElt = parent
+  this.savedCursorEnd = sel.focusOffset;
+  if (sel.anchorNode == sel.focusNode) {
+    this.savedCursorStart = sel.anchorOffset;
+  } else {
+    const prefix = parent.innerText.substr(0, this.savedCursorEnd)
+    if (sel.toString().endsWith(prefix)) {
+      this.savedCursorStart = 0;
+    } else {
+      this.savedCursorStart = parent.innerText.length
     }
   }
 }
 
 Exet.prototype.restoreCursor = function() {
-  if (this.savedCaretPosId) {
-    const elt = document.getElementById(this.savedCaretPosId)
+  if (this.savedCursorId) {
+    const elt = document.getElementById(this.savedCursorId)
     if (elt && elt.firstChild) {
       try {
-        if (this.savedCaretPos > elt.firstChild.length) {
-          this.savedCaretPos = elt.firstChild.length;
+        const node = elt.firstChild
+        const l = node.length
+        if (this.savedCursorEnd > l) {
+          this.savedCursorEnd = l;
         }
-        window.getSelection().collapse(elt.firstChild, this.savedCaretPos)
+        if (this.savedCursorStart > l) {
+          this.savedCursorStart = l;
+        }
+        window.getSelection().setBaseAndExtent(
+            node, this.savedCursorStart, node, this.savedCursorEnd);
       } catch (err) {
       }
     }
   }
-  this.savedCaretPos = 0
-  this.savedCaretPosId = ''
+  this.savedCursorEnd = 0
+  this.savedCursorId = ''
 }
 
 Exet.prototype.updatePuzzle = function(revType=0) {
@@ -5453,7 +5545,8 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
     if (clue.dir != dir) {
       continue
     }
-    clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + this.showClue(clue.clue, true, showEnums)
+    clues = clues + '\n  ' + (clue.displayLabel || clue.label) +
+            ' ' + this.showClue(clue.clue, true, showEnums)
     if (clue.parentClueIndex) {
       continue
     }
@@ -6444,13 +6537,15 @@ Exet.prototype.checkVersion = function() {
   xhttp.send();
 }
 
-Exet.prototype.initVersionChecking = function() {
+Exet.prototype.finishSetup = function() {
   this.versionText = ''
-  if (window.location.protocol == "file:") {
-    return
+  if (window.location.protocol != "file:") {
+    this.checkVersion();
+    // Check every 10 minutes
+    setInterval(this.checkVersion.bind(this), 10 * 60 * 1000)
   }
-  // Check every 10 minutes
-  setInterval(this.checkVersion.bind(this), 10 * 60 * 1000)
+  window.addEventListener('scroll', this.reposition.bind(this));
+  window.addEventListener('resize', this.reposition.bind(this));
 }
 
 function exetFromHistory(exetRev) {
@@ -6634,7 +6729,7 @@ if (!exet.puz) {
     exetBlank(15, 15, '', true, true)
   }
 }
-exet.initVersionChecking()
+exet.finishSetup()
 
 </script>
 
