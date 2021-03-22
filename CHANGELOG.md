@@ -1,5 +1,17 @@
 # Changelog
 
+### Version: Exet v0.36 March 22 2021
+
+- Slight tweaks to how title/setter/preamble get blurred when overlapping the
+  current clue:
+  - Make the blur colour closer to white.
+  - Turn off spellcheck on title/setter/preamble (also clue/anno/copyright,
+    while we're at it), so they don't show a squiggly underline for the
+    inevitably out-of-dictionary words making up setter/title etc.
+  - Make overlap detection take into account the possibility  of format buttons
+    appearing atop the clue.
+  - Add hover-text to blurred elements ('Click to make visible').
+
 ### Version: Exet v0.35 March 21 2021
 
 - Follow-up tweaks/fixes to the new formatting UI.

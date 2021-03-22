@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.35 March 21 2021
+Current version: v0.36 March 22 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -165,7 +165,8 @@ Current version: v0.35 March 21 2021
 }
 .xet-blur *,
 .xet-blur {
-  color: lightgray !important;
+  color: #f0f0f0 !important;
+  outline-color: lightgray !important;
 }
 .xet-format {
   position: absolute;
@@ -1197,7 +1198,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.34 March 19 2021'
+  this.version = 'v0.36 March 22 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1491,28 +1492,33 @@ Exet.prototype.setPuzzle = function(puz) {
   this.copyright.innerHTML = `<span class="xet-action">Edit optional
       copyright notice: Ⓒ &nbsp;</span><span
       class="xet-editable"
-      id="xet-copyright" contenteditable=true
+      id="xet-copyright" contenteditable=true spellcheck=false
       oninput="exet.updateMetadata()">${this.puz.copyright}</span>`
   this.copyright.style.display = ''
   this.xetCopyright = document.getElementById('xet-copyright')
+  this.xetCopyright.title = 'Click to edit copyright'
 
   this.title = document.getElementById(`${this.puz.prefix}-title`)
   this.title.innerHTML = `<span class="xet-action">Edit optional
       title:</span><span
       class="xet-editable"
-      id="xet-title" contenteditable=true
+      id="xet-title" contenteditable=true spellcheck=false
       oninput="exet.updateMetadata()">${this.puz.title}</span>`
   this.title.style.display = ''
   this.xetTitle = document.getElementById('xet-title')
+  this.xetTitle.title = 'Click to edit title'
 
   this.setter = document.getElementById(`${this.puz.prefix}-setter`)
   this.setter.innerHTML = `<span class="xet-action">Edit optional
       setter(s):</span><span
       class="xet-editable"
-      id="xet-setter" contenteditable=true
+      id="xet-setter" contenteditable=true spellcheck=false
       oninput="exet.updateMetadata()">${this.puz.setter}</span>`
   this.setter.style.display = ''
   this.xetSetter = document.getElementById('xet-setter')
+  this.xetSetter.title = 'Click to edit setter'
+
+  this.preamble = document.getElementById(`${this.puz.prefix}-preamble`)
 
   // Make clues-box divs wider
   const cbs = document.getElementsByClassName('xlv-clues-box')
@@ -3770,42 +3776,41 @@ Exet.prototype.updateFormat = function(inClue, text, modText, deltaStart, deltaE
 }
 
 Exet.prototype.reposition = function() {
+  this.title.className = 'xlv-title'
+  this.setter.className = 'xlv-setter'
+  this.preamble.className = 'xlv-preamble'
+  this.title.title = ''
+  this.setter.title = ''
+  this.preamble.title = ''
   const clueBox = this.puz.currClue.getBoundingClientRect()
-  const preamble = document.getElementById(this.puz.prefix + '-preamble')
-  const preambleBox = preamble.getBoundingClientRect()
-  if (preambleBox.bottom >= clueBox.top && preambleBox.left <= clueBox.right) {
-    preamble.className = 'xet-blur xlv-preamble'
-  } else {
-    preamble.className = 'xlv-preamble'
-  }
-  const setterBox = this.xetSetter.getBoundingClientRect()
-  if (setterBox.bottom >= clueBox.top && setterBox.left <= clueBox.right) {
-    this.setter.className = 'xet-blur xlv-setter'
-  } else {
-    this.setter.className = 'xlv-setter'
-  }
-  const titleBox = this.xetTitle.getBoundingClientRect()
-  if (titleBox.bottom >= clueBox.top && titleBox.left <= clueBox.right) {
-    this.title.className = 'xet-blur xlv-title'
-  } else {
-    this.title.className = 'xlv-title'
+  if (this.puz.currClueIndex && clueBox.top > 0) {
+    const top = clueBox.top - this.TOP_CLEARANCE;
+    const right = clueBox.right;
+    for (let elt of [this.title, this.setter, this.preamble]) {
+      const box = elt.firstElementChild ?
+        elt.firstElementChild.getBoundingClientRect() :
+        elt.getBoundingClientRect()
+      if (box.bottom >= top && box.left <= right) {
+        elt.className += ' xet-blur'
+        elt.title = 'Click to make visible'
+      }
+    }
   }
 
   const xetFormat = document.getElementById('xet-format')
-  if (!xetFormat) {
-    return
-  }
-  const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
-  const previewWidth = Math.min(480, (clueParentBox.width - clueBox.width) / 2);
+  if (xetFormat) {
+    const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
+    const previewWidth = Math.min(480, (clueParentBox.width - clueBox.width) / 2);
 
-  for (let tag of Object.keys(this.formatTags)) {
-    const preview = document.getElementById('xet-format-' + tag + '-preview')
-    preview.style.width = previewWidth + 'px';
-  }
+    for (let tag of Object.keys(this.formatTags)) {
+      const preview = document.getElementById('xet-format-' + tag + '-preview')
+      preview.style.width = previewWidth + 'px';
+    }
 
-  xetFormat.style.top = (-32 + clueBox.top - clueParentBox.top) + 'px';
-  xetFormat.style.right = (clueParentBox.width -
-      clueBox.width - clueBox.left) + 'px';
+    xetFormat.style.top = (-32 + clueBox.top - clueParentBox.top) + 'px';
+    xetFormat.style.right = (clueParentBox.width -
+        clueBox.width - clueBox.left) + 'px';
+  }
 }
 
 Exet.prototype.maybeShowFormat = function() {
@@ -3968,6 +3973,7 @@ Exet.prototype.makeClueEditable = function() {
   // We make the raw clue text editable here, including any tags or
   // in-clue-anno markers (~{...}~).
   let xetClue = document.getElementById("xet-clue")
+  xetClue.spellcheck = false
   xetClue.innerText = this.currClueIsDraft ?
     theClue.clue.substr(this.DRAFT.length).trim() : theClue.clue
   let handler = this.throttledClueChange.bind(this)
@@ -3989,6 +3995,7 @@ Exet.prototype.makeClueEditable = function() {
   xetAnno.className = 'xet-anno xet-editable'
   xetAnno.id = 'xet-anno'
   xetAnno.contentEditable = true
+  xetAnno.spellcheck = false
   xetAnno.innerText = theClue.anno
   this.puz.currClue.appendChild(xetAnno)
   xetAnno.addEventListener('input', handler)
