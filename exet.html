@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.36 March 22 2021
+Current version: v0.37 March 29 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1198,7 +1198,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.36 March 22 2021'
+  this.version = 'v0.37 March 29 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1206,7 +1206,7 @@ function Exet() {
   this.preflex = []
   this.unpreflex = {}
   this.noProperNouns = false
-  this.DEFAULT_MINPOP = 85
+  this.DEFAULT_MINPOP = 80
   this.setMinPop(this.DEFAULT_MINPOP)
   this.DRAFT = '[DRAFT]'
   this.MENU_SEPARATOR = '<option disabled>' +
@@ -1246,10 +1246,33 @@ function Exet() {
   this.sweepMaxChoicesSmall = 4
   this.shownLightChoices = 200
 
-  // Set of all letters in the lexicon.
+  // Set of all letters in the lexicon and their frequencies.
   this.allLetters = {}
+  this.letterFrequencies = {}
   for (let c of exetLexicon.letters) {
-    this.allLetters[c.toUpperCase()] = true
+    const cu = c.toUpperCase();
+    this.allLetters[cu] = true
+    this.letterFrequencies[cu] = 0
+  }
+  for (let w of exetLexicon.lexicon) {
+    for (let c of w) {
+      const cu = c.toUpperCase();
+      if (!this.allLetters[cu]) continue;
+      this.letterFrequencies[cu] += 1;
+    }
+  }
+  let maxFreq = 0;
+  let minFreq = Number.MAX_VALUE;
+  for (let c in this.letterFrequencies) {
+    if (this.letterFrequencies[c] > maxFreq) maxFreq = this.letterFrequencies[c]
+    if (this.letterFrequencies[c] < minFreq) minFreq = this.letterFrequencies[c]
+  }
+  this.letterRarities = {}
+  for (let c in this.letterFrequencies) {
+    let x = 1.0 - ((this.letterFrequencies[c] - minFreq) /
+                   (maxFreq - minFreq));
+    if (x < 0.7) x = 0.7;
+    this.letterRarities[c] = 1.5 * (x - 0.7) / 0.3;
   }
 };
 
@@ -1869,6 +1892,8 @@ Exet.prototype.makeExetTab = function() {
               <div style="padding:4px">
                 Letters used: <span id="xet-autofill-pangram">0</span> of
                 ${exetLexicon.letters.length}
+                <span class="xet-blue" id="xet-is-pangram"
+                                       style="display:none">Pangram!</span>
               </div>
               <hr>
               <div style="padding:4px">
@@ -4668,50 +4693,216 @@ Exet.prototype.automagicBlocks = function(showAlerts=true) {
   return false
 }
 
+// --------------- Autofill-related code --------------------------------------
+
+// ExetDher is an implementation of a double heap that stores the top k
+// candidates in terms of descending scores. A min-heap lets us retain
+// the top-k elements, while a max-heap lets us extract the max element.
+// The candidate objects stored in this (via add()) should have a "score" field.
+// Objects stored in this get a property named "dher" attached to them, for
+// storing some book-keping info.
+function ExetDher(lim) {
+  this.maxelts = []
+  this.minelts = []
+  this.lim = lim
+  console.assert(lim > 0, lim);
+}
+ExetDher.prototype.relimit = function(lim) {
+  console.assert(lim > 0, lim);
+  const extra = this.minelts.length - lim;
+  for (let i = 0; i < extra; i++) {
+    this.pop(false, 0)
+  }
+  this.lim = lim
+}
+ExetDher.prototype.size = function() {
+  return this.maxelts.length
+}
+ExetDher.prototype.limit = function() {
+  return this.lim
+}
+ExetDher.prototype.parent = function(idx) {
+  return idx == 0 ? 0 : (idx - 1) >> 1
+}
+ExetDher.prototype.heapifyUp = function(inMax, idx) {
+  let elts = inMax ? this.maxelts : this.minelts
+  console.assert(idx >= 0 && idx < elts.length, idx, elts.length)
+  while (idx > 0) {
+    let parent = this.parent(idx)
+    if (inMax) {
+      if (elts[parent].score >= elts[idx].score) {
+        return
+      }
+    } else {
+      if (elts[parent].score <= elts[idx].score) {
+        return
+      }
+    }
+    let temp = elts[idx]
+    elts[idx] = elts[parent]
+    elts[parent] = temp
+    elts[idx].dher[inMax] = idx
+    elts[parent].dher[inMax] = parent
+    idx = parent
+  }
+}
+ExetDher.prototype.heapifyDown = function(inMax, idx) {
+  let elts = inMax ? this.maxelts : this.minelts
+  console.assert(idx >= 0 && idx < elts.length, idx, elts.length)
+  while (idx < elts.length) {
+    let lchild = (idx << 1) + 1
+    if (lchild >= elts.length) return
+    let child = lchild
+    let rchild = lchild + 1
+    if (inMax) {
+      if (rchild < elts.length &&
+          elts[rchild].score > elts[lchild].score) {
+        child = rchild
+      }
+      if (elts[idx].score >= elts[child].score) return
+    } else {
+      if (rchild < elts.length &&
+          elts[rchild].score < elts[lchild].score) {
+        child = rchild
+      }
+      if (elts[idx].score <= elts[child].score) return
+    }
+    let temp = elts[idx]
+    elts[idx] = elts[child]
+    elts[child] = temp
+    elts[idx].dher[inMax] = idx
+    elts[child].dher[inMax] = child
+    idx = child
+  }
+}
+ExetDher.prototype.add = function(candidate) {
+  let num = this.minelts.length
+  if (num == this.lim) {
+    let worst = this.minelts[0]
+    if (candidate.score < worst.score) {
+      return
+    }
+    if (candidate.score == worst.score) {
+      if (Math.random() < 0.5) {
+        return;
+      }
+    }
+    this.pop(false)
+    num--;
+  }
+  candidate.dher = {}
+  candidate.dher[true] = num
+  candidate.dher[false] = num
+  this.maxelts.push(candidate)
+  this.minelts.push(candidate)
+  this.heapifyUp(true, num)
+  this.heapifyUp(false, num)
+}
+ExetDher.prototype.popInner = function(inMax, idx) {
+  let elts = inMax ? this.maxelts : this.minelts
+  let len = elts.length
+  console.assert(len > 0, len);
+  let last = elts.pop()
+  if (len == 1 || idx >= len - 1) {
+    return last
+  }
+  // len > 1 && idx < len - 1
+  let ret = elts[idx]
+  elts[idx] = last
+  last.dher[inMax] = idx
+  let parent = this.parent(idx)
+  if (idx > 0 &&
+      ((inMax && last.score > elts[parent].score) ||
+       (!inMax && last.score < elts[parent].score))) {
+    this.heapifyUp(inMax, idx)
+  } else {
+    this.heapifyDown(inMax, idx)
+  }
+  return ret
+}
+ExetDher.prototype.pop = function(inMax, idx=0) {
+  let elts = inMax ? this.maxelts : this.minelts
+  if (idx < 0 || idx >= elts.length) return null;
+  const otherIdx = elts[idx].dher[!inMax]
+  this.popInner(!inMax, otherIdx)
+  return this.popInner(inMax, idx)
+}
+ExetDher.prototype.peep = function(inMax, idx=0) {
+  let elts = inMax ? this.maxelts : this.minelts
+  if (idx < 0 || idx >= elts.length) return null;
+  return elts[idx]
+}
+
 Exet.prototype.setScore = function(fillState) {
   fillState.scoreF = 0
   fillState.scoreV = 0
   fillState.score = 0
 
-  // Treat viability/5 = independent probability.
-  const log5 = 1.6094379124341003
   fillState.unfilled = []
   fillState.lettersUsed = {}
-  let numLights = 0
+  let numLightCells = 0;
   for (let i = 0; i < fillState.gridHeight; i++) {
     for (let j = 0; j < fillState.gridWidth; j++) {
-      let gridCell = fillState.grid[i][j]
-      if (!gridCell.isLight) {
+      let fillCell = fillState.grid[i][j]
+      if (!fillCell.isLight) {
         continue
       }
-      numLights++
-      if (gridCell.solution != '?' || gridCell.currLetter != '?') {
-        let c = gridCell.solution
-        if (c == '?') c = gridCell.currLetter
-        console.assert(c, i, j, gridCell)
+      numLightCells++;
+      if (fillCell.solution != '?' || fillCell.currLetter != '?') {
+        let c = fillCell.solution
+        if (c == '?') c = fillCell.currLetter
+        console.assert(c, i, j, fillCell)
         fillState.lettersUsed[c] = true
         continue
       }
-      if (gridCell.viability <= 0) {
-        fillState.unfilled.push([i, j, gridCell.viability]);
+      if (fillCell.viability <= 0) {
+        fillState.unfilled.push([i, j, fillCell.viability]);
         fillState.scoreV = - Number.MAX_VALUE
         fillState.score = fillState.scoreV
         fillState.viable = false
         return
       }
-      fillState.scoreV += Math.log(gridCell.viability)
-      fillState.unfilled.push([i, j, gridCell.viability]);
+      fillState.scoreV += Math.log(fillCell.viability)
+      fillState.unfilled.push([i, j, fillCell.viability]);
     }
   }
-  fillState.numLettersUsed = Object.keys(fillState.lettersUsed).length
-  if (numLights == 0) {
+  const used = Object.keys(fillState.lettersUsed);
+  fillState.numLettersUsed = used.length;
+  if (numLightCells == 0) {
     return
   }
-  fillState.unfilled.sort((a, b) => a[2] - b[2]);
+  let boost = 0
+  if (this.autofill.boostPangram) {
+    for (let c of used) {
+      boost += this.letterRarity(c);
+    }
+  }
+  if (this.autofill.boostPangram) {
+    // Sort fillState.unfilled by ascending frequency of unused letter choices,
+    // then by ascending viability.
+    for (let x of fillState.unfilled) {
+      let cell = fillState.grid[x[0]][x[1]]
+      let choices = Object.keys(cell.cChoices)
+      let maxRarity = 0
+      for (let c of choices) {
+        if (fillState.lettersUsed[c]) {
+          rarity = 0
+        } else {
+          rarity = this.letterRarity(c)
+          if (rarity > maxRarity) maxRarity = rarity
+        }
+      }
+      x.push(rarity)
+    }
+    fillState.unfilled.sort((a, b) => a[3] == b[3] ? a[2] - b[2] : b[3] - a[3]);
+  } else {
+    fillState.unfilled.sort((a, b) => a[2] - b[2]);
+  }
   fillState.scoreV /= 100
   fillState.score += fillState.scoreV
 
-  fillState.scoreF = 25 * (numLights - fillState.unfilled.length) / 100
+  const f = numLightCells - fillState.unfilled.length;
+  fillState.scoreF = 30 * (f + boost) / 100
   fillState.score += fillState.scoreF
 }
 
@@ -4728,61 +4919,32 @@ Exet.prototype.isFull = function(candidate) {
   return candidate.unfilled.length == 0
 }
 
-Exet.prototype.addToBeam = function(candidate) {
-  // this.autofill.candidates[] is sorted on increasing score
-  // (last entry is the best)
-  if (this.autofill.candidates.length == 0) {
-    this.autofill.candidates.push(candidate)
-    return
-  }
-  if (this.autofill.candidates.length >= this.autofill.beamWidth) {
-    if (candidate.score < this.autofill.candidates[0].score) {
-      return
-    } else if (candidate.score == this.autofill.candidates[0].score) {
-      if (Math.random() >= 0.5) {
-        this.autofill.candidates[0] = candidate;
-      }
-      return
-    }
-  }
-  let idx = 0;
-  while (idx < this.autofill.candidates.length &&
-         candidate.score > this.autofill.candidates[idx].score) {
-    idx++
-  }
-  let start = this.autofill.candidates.length ==
-    this.autofill.beamWidth ? 1 : 0
-  let newbeam = this.autofill.candidates.slice(start, idx)
-  newbeam.push(candidate)
-  this.autofill.candidates = newbeam.concat(
-      this.autofill.candidates.slice(idx))
-}
-
 Exet.prototype.beamSearchStep = function() {
   if (this.autofill.throttledTimer) {
     clearTimeout(this.autofill.throttledTimer)
   }
-  if (this.autofill.candidates.length == 0) {
+  if (this.autofill.beam.size() == 0) {
     return
   }
   let startTS = Date.now()
   this.autofill.throttledTimer = null;
-  let candidate = this.autofill.candidates.pop()
+  let candidate = this.autofill.beam.pop(true)
   this.autofill.step++
   this.autofill.stepSpan.innerText = this.autofill.step
   this.addAutofillChildren(candidate)
-  this.autofill.currBeamSpan.innerText = this.autofill.candidates.length
+  this.autofill.currBeamSpan.innerText = this.autofill.beam.size()
 
   this.autofill.msUsed += (Date.now() - startTS)
   this.autofill.timeSpan.innerText = this.autofill.msUsed
   this.autofill.speedSpan.innerText = (this.autofill.msUsed /
       this.autofill.step).toFixed(0)
 
-  if (this.autofill.candidates.length > 0) {
-    let index = this.autofill.candidates.length - 1
-    let best = this.autofill.candidates[index];
+  if (this.autofill.beam.size() > 0) {
+    let best = this.autofill.beam.peep(true)
     this.autofill.preflexUsedSpan.innerText = best.numPreflexUsed
     this.autofill.pangramSpan.innerText = best.numLettersUsed
+    this.autofill.isPangram.style.display = (best.numLettersUsed ==
+        exetLexicon.letters.length) ? '' : 'none';
     this.autofill.scoreSpan.innerText = best.score.toFixed(2)
     this.autofill.scoreVSpan.innerText = best.scoreV.toFixed(2)
     this.autofill.scoreFSpan.innerText = best.scoreF.toFixed(2)
@@ -4813,10 +4975,8 @@ Exet.prototype.shuffle = function(arr) {
 }
 
 Exet.prototype.letterRarity = function(c) {
-  if (c == 'Z' || c == 'J' || c == 'Q') return 0
-  if (c == 'B' || c == 'V' || c == 'X') return 1
-  if (c == 'K' || c == 'Y') return 2
-  return 3
+  const cu = c.toUpperCase()
+  return this.letterRarities[cu] || 0;
 }
 
 Exet.prototype.addAutofillChildren = function(candidate) {
@@ -4832,7 +4992,7 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     if (this.autofill.priorityCluesIndex ==
         this.autofill.priorityClues.length) {
       // Recover, if all preferred fills were bad choices
-      this.addToBeam(this.autofill.base)
+      this.autofill.beam.add(this.autofill.base)
     }
     let ci = ciToTry[0]
     let toTry = ciToTry[1]
@@ -4875,31 +5035,20 @@ Exet.prototype.addAutofillChildren = function(candidate) {
       this.refineLightChoices(child, constrainerLimit)
       if (child.viable) {
         this.setScore(child)
-        this.addToBeam(child)
+        this.autofill.beam.add(child)
       }
     }
     return
   }
 
-  // Pick a random offset from 0,1,2,3
+  // Pick a random offset from 0,1,2
   let cellIndex = Math.floor(Math.random() *
-                             Math.min(candidate.unfilled.length, 4))
+                             Math.min(candidate.unfilled.length, 3))
   let row = candidate.unfilled[cellIndex][0]
   let col = candidate.unfilled[cellIndex][1]
   let cell = candidate.grid[row][col]
 
   let choices = Object.keys(cell.cChoices)
-  if (this.autofill.boostPangram) {
-    // Try unused and rare letters first
-    let choices1 = []
-    let choices2 = []
-    for (let c in cell.cChoices) {
-      if (!candidate.lettersUsed[c]) choices1.push(c)
-      else choices2.push(c)
-    }
-    choices1.sort((c1, c2) => this.letterRarity(c1) - this.letterRarity(c2));
-    choices = choices1.concat(choices2)
-  }
   for (let c of choices) {
     let child = new ExetFillState(candidate)
     let childCell = child.grid[row][col]
@@ -4911,7 +5060,7 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     this.refineLightChoices(child, constrainerLimit)
     if (child.viable) {
       this.setScore(child)
-      this.addToBeam(child)
+      this.autofill.beam.add(child)
     }
   }
 }
@@ -4953,7 +5102,14 @@ Exet.prototype.startstopAutofill = function() {
       alert('The grid is already full')
       return
     }
-    if (this.autofill.candidates.length == 0) {
+    let beamWidth = parseInt(this.autofill.beamWidthInput.value)
+    if (isNaN(beamWidth) || beamWidth <= 0) {
+      this.autofill.beamWidthInput.value = this.autofill.beamWidth
+    } else {
+      this.autofill.beamWidth = beamWidth
+      this.autofill.beam.relimit(beamWidth)
+    }
+    if (this.autofill.beam.size() == 0) {
       let candidate = this.getAutofillBase()
       if (!candidate.viable) {
         alert('Autofill will not work on the current grid. Perhaps retry ' +
@@ -4961,8 +5117,8 @@ Exet.prototype.startstopAutofill = function() {
         return
       }
       this.autofill.base = candidate
-      this.autofill.candidates.push(candidate)
-      this.autofill.currBeamSpan.innerText = this.autofill.candidates.length
+      this.autofill.beam.add(candidate)
+      this.autofill.currBeamSpan.innerText = this.autofill.beam.size()
       this.autofill.priorityClues = this.getAutofillPriorityClues()
       this.autofill.priorityCluesIndex = 0
     }
@@ -4981,12 +5137,6 @@ Exet.prototype.startstopAutofill = function() {
     this.sweepIndicator.className = 'xet-sweeping-animated'
     this.autofill.startstop.innerText = 'Pause'
     this.autofill.startstop.className = 'xlv-button xet-pink-button'
-    let beamWidth = parseInt(this.autofill.beamWidthInput.value)
-    if (isNaN(beamWidth) || beamWidth <= 0) {
-      this.autofill.beamWidthInput.value = this.autofill.beamWidth
-    } else {
-      this.autofill.beamWidth = beamWidth
-    }
     this.autofill.boostPangram = this.autofill.pangramInput.checked
     if (this.autofill.throttledTimer) {
       clearTimeout(this.autofill.throttledTimer)
@@ -5009,7 +5159,7 @@ Exet.prototype.startstopAutofill = function() {
 }
 
 Exet.prototype.resetAutofill = function(status) {
-  this.autofill.candidates = []
+  this.autofill.beam = new ExetDher(this.autofill.beamWidth);
   this.autofill.step = 0
   this.autofill.msUsed = 0
   this.updateAutofillPreflex()
@@ -5031,7 +5181,7 @@ Exet.prototype.resetAutofill = function(status) {
 Exet.prototype.updateAutofill = function(candidate) {
   console.assert(this.autofill.base, this.autofill)
   this.fillState = new ExetFillState(this.autofill.base)
-  // Only use suggestions from full lights
+  // Show light-fill suggestions from full lights.
   for (let ci in candidate.clues) {
     let lChoices = candidate.clues[ci].lChoices
     if (lChoices.length != 1) {
@@ -5040,12 +5190,18 @@ Exet.prototype.updateAutofill = function(candidate) {
     let theClue = this.fillState.clues[ci]
     console.assert(theClue, ci)
     theClue.lChoices = lChoices
-    let cells = this.cellsOfClue(theClue)
-    for (let c of cells) {
-      let row = c[0]
-      let col = c[1]
-      this.fillState.grid[row][col].cChoices =
-          candidate.grid[row][col].cChoices
+  }
+  // Show grid-cell suggestions. 
+  for (let row = 0; row < this.puz.gridHeight; row++) {
+    for (let col = 0; col < this.puz.gridWidth; col++) {
+      let gridCell = this.puz.grid[row][col]
+      if (!gridCell.isLight) {
+        continue
+      }
+      const choices = candidate.grid[row][col].cChoices
+      if (Object.keys(choices).length == 1) {
+        this.fillState.grid[row][col].cChoices = choices
+      }
     }
   }
   this.updateViablots()
@@ -5056,6 +5212,7 @@ Exet.prototype.initAutofill = function() {
     this.autofill = {
       candidates: [],
       beamWidth: 64,
+      beam: new ExetDher(64),
       step: 0,
       running: false,
       throttledTimer: null,
@@ -5105,7 +5262,7 @@ Exet.prototype.initAutofill = function() {
   this.autofill.speedSpan = document.getElementById('xet-autofill-speed')
 
   this.autofill.currBeamSpan = document.getElementById('xet-autofill-curr-beam')
-  this.autofill.currBeamSpan.innerText = this.autofill.candidates.length
+  this.autofill.currBeamSpan.innerText = this.autofill.beam.limit()
 
   this.autofill.scoreSpan = document.getElementById('xet-autofill-score')
   this.autofill.scoreVSpan = document.getElementById('xet-autofill-score-v')
@@ -5123,16 +5280,21 @@ Exet.prototype.initAutofill = function() {
   this.autofill.properNounsSpan = document.getElementById(
       'xet-autofill-proper-nouns')
   this.autofill.pangramSpan = document.getElementById('xet-autofill-pangram')
-  if (this.autofill.candidates.length > 0) {
-    let candidate = this.autofill.candidates[
-      this.autofill.candidates.length - 1]
+  this.autofill.isPangram = document.getElementById('xet-is-pangram')
+  this.autofill.isPangram.style.display = 'none'
+  if (this.autofill.beam.size() > 0) {
+    let candidate = this.autofill.beam.peep(true)
     this.autofill.preflexUsedSpan.innerText = candidate.numPreflexUsed
     this.autofill.pangramSpan.innerText = candidate.numLettersUsed
+    this.autofill.isPangram.style.display = (candidate.numLettersUsed ==
+        exetLexicon.letters.length) ? '' : 'none';
     this.autofill.scoreSpan.innerText = candidate.score.toFixed(2)
     this.autofill.scoreVSpan.innerText = candidate.scoreV.toFixed(2)
     this.autofill.scoreFSpan.innerText = candidate.scoreF.toFixed(2)
   }
 }
+
+// ------- End of autofill-related code ---------------------------------------
 
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
@@ -5215,19 +5377,19 @@ Exet.prototype.handleGridInput = function(revType=null) {
   for (let row = 0; row < this.puz.gridHeight; row++) {
     for (let col = 0; col < this.puz.gridWidth; col++) {
       let gridCell = this.puz.grid[row][col]
-        if (!gridCell.isLight) {
-          continue
-        }
-        let newSol = (gridCell.currLetter != '0' ?  gridCell.currLetter : '?')
-        if (gridCell.solution != newSol) {
-          gridCell.solution = newSol
-          needsUpdate = true
-        }
-        if (gridCell.currLetter != '0' && gridCell.currLetter != '?' &&
-            gridCell.viablot) {
-          gridCell.viablot.style.fill = 'transparent'
-        }
-     }
+      if (!gridCell.isLight) {
+        continue
+      }
+      let newSol = (gridCell.currLetter != '0' ?  gridCell.currLetter : '?')
+      if (gridCell.solution != newSol) {
+        gridCell.solution = newSol
+        needsUpdate = true
+      }
+      if (gridCell.currLetter != '0' && gridCell.currLetter != '?' &&
+          gridCell.viablot) {
+        gridCell.viablot.style.fill = 'transparent'
+      }
+    }
   }
   for (let ci in this.puz.clues) {
     let theClue = this.puz.clues[ci]

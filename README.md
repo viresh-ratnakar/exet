@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.36 March 22 2021
+#### Version: Exet v0.37 March 29 2021
 
 #### Author: Viresh Ratnakar
 
@@ -154,8 +154,8 @@ settings that control the nature of fill suggestions. These are:
   as of Oct 2020) has 250,556 entries. Providing a popularity threshold can
   be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
-  widest possible set of choices for each fill. This threshold is set to 85 by
-  default. Here's a guide to the number of entries that you will limit to, at
+  widest possible set of choices for each fill. This threshold is set to **80**
+  by default. Here's a guide to the number of entries that you will limit to, at
   various thresholds (recall that popularity is derived from occurrences in
   Wikipedia articles):
 
@@ -166,8 +166,8 @@ settings that control the nature of fill suggestions. These are:
   |       50  | 125,278  | closed communities, forced sales, stannate |
   |       60  | 100,222  | ensnares, raun, clerical collar       |
   |       70  |  75,166  | leaseholder, delivery van, nays       |
-  |       80  |  50,111  | in deep water, booing, ecco           |
-  |    **85** |**37,583**|**searchlights, Barranquilla, spaniel**|
+  |   **80**  |**50,111**|**in deep water, booing, ecco**        |
+  |      85   |  37,583  |  searchlights, Barranquilla, spaniel  |
   |       90  |  25,055  | solicitors, swifts, stele             |
   |       95  |  12,527  | Green Party, popular music, connector |
 
@@ -217,7 +217,7 @@ exclusions) dismisses it.
 #### Autofill
 
 You can click on "Autofill" in the "Edit" menu to try to get the software to
-fill all remaining entries. This may take a little while, but you can monitor
+fill all remaining entries. This may take a few minutes, but you can monitor
 the progress and intervene if needed: From the Autofill menu panel, you can
 click on "Pause"  to pause the Autofill (clicking on "Start" will resume it).
 You can accept or clear the Autofill suggestions by clicking on the "Accept"
@@ -238,8 +238,22 @@ the word(s) that you do not like (you may also consider adding them to the
 "Set fill exclusions" list). Then, you can resume Autofill and repeat the
 process.
 
-Autofill may take a while (2+ minutes), especially for barred grids and
-American-style grids. I'll try to improve its performance over time.
+If Autofill fails, you can try to rerun it a few times. It may succeed
+on a subsequent run, because of the slight randomness in the choices that it
+makes. If it fails consistently, you should reduce constraints by doing one
+or more of:
+- Reduce minimum word/phrase popularity threshold.
+- Allow proper nouns if they have been disallowed.
+- Remove words/phrases from the "fill exclusions" list.
+- Clear some previously filled entries.
+- Break up some long lights by inserting blocks/bars.
+
+You can ask Autofill to "Try to get a pangram" via an option on the Autofill
+panel. This will try to fill the grid in a way such that every letter is
+used at least once. The algorithm usually succeeds in doing this (but may take
+slightly longer to finish), but if it fails then you can retry, and if that
+too fails to find a pangram repeatedly, then you can try to reduce constraints
+as listed above.
 
 ### Providing the clues
 

@@ -1,5 +1,19 @@
 # Changelog
 
+### Version: Exet v0.37 March 29 2021
+
+- Make "try to get a pangram" *actually* work. Now it does, most of the time.
+  - Use letter rarities (in addition to cell viabilities) to decide which cell
+    to fill next, when looking to get a pangram.
+  - Add a score boost for rare letters, when looking to get a pangram.
+- When Autofill finds a pangram, declare that boldly, on the Autofill panel.
+- Make beam search faster by using a heap instead of an array, for storing the
+  current beam. The "double heap" needed for top-k-with-extract-max is
+  implemented in the ExetDher class.
+- Show Autofill progress in terms of individual cells as well (in addition to
+  fully filled lights).
+- Set default min-popularity down to 80%ile instead of 85.
+
 ### Version: Exet v0.36 March 22 2021
 
 - Slight tweaks to how title/setter/preamble get blurred when overlapping the
