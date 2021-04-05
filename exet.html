@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.37 March 29 2021
+Current version: v0.38 April 4 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -732,6 +732,11 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
       choices.push({id: stored.id, title: title, space: spaceUsed})
     }
   }
+  const storageUsedMB = this.inMB(this.spaceUsed);
+  const storageFreeMB = this.inMB(this.spaceUsedAtStart +
+      this.spaceLeftAtStart - this.spaceUsed);
+  exet.storageUsed.innerText = storageUsedMB;
+  exet.storageFree.innerText = storageFreeMB;
   let html = `
   <table>
     <tr>
@@ -765,10 +770,9 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
     <tr>
       <td colspan="2">
         <div>
-          <span>Space used: ${this.inMB(this.spaceUsed)} MB</span>
+          <span>Space used: ${storageUsedMB} MB</span>
           <span>Space available: <span
-            class="xet-red">${this.inMB(this.spaceUsedAtStart +
-              this.spaceLeftAtStart - this.spaceUsed)}</span> MB</span>
+            class="xet-red">${storageFreeMB}</span> MB</span>
           <button id="xset-puz-rev-deleter"
             style="float:right;margin: 0 16px; display: none"
             class="xlv-button">Delete rev</button>
@@ -1198,7 +1202,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.37 March 29 2021'
+  this.version = 'v0.38 April 4 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1737,9 +1741,9 @@ Exet.prototype.makeExetTab = function() {
           <hr>
           <div class="xet-dropdown-item" id="xet-manage-storage">
             Manage local storage (Used:
-            ${exetRevManager.inMB(exetRevManager.spaceUsed)} MB
+                <span id="xet-storage-used">${exetRevManager.inMB(exetRevManager.spaceUsed)}</span> MB
             Available: 
-              <span class="xet-red">${exetRevManager.inMB(
+              <span class="xet-red" id="xet-storage-free">${exetRevManager.inMB(
                   exetRevManager.spaceUsedAtStart +
                   exetRevManager.spaceLeftAtStart -
                   exetRevManager.spaceUsed)}</span> MB)
@@ -2136,6 +2140,8 @@ Exet.prototype.makeExetTab = function() {
     e.stopPropagation()
   })
   let manageStorage = document.getElementById("xet-manage-storage")
+  this.storageUsed = document.getElementById("xet-storage-used")
+  this.storageFree = document.getElementById("xet-storage-free")
   manageStorage.addEventListener('click', e => {
     exetRevManager.choosePuzRev(true, null, exet.revChooser, null);
     exetModals.showModal(exet.revChooser)
@@ -2224,8 +2230,6 @@ Exet.prototype.depunct = function(s) {
 }
 
 Exet.prototype.essenceOfAnno = function(s) {
-  // Remove 'def ...'
-  s = s.replace(/[dD]ef[^\.]*\./g, ' ')
   let out = ''
   for (let c of s) {
     if (c == '*') {
@@ -2243,14 +2247,18 @@ Exet.prototype.essenceOfAnno = function(s) {
   out = out.replace(/[^ ]*\([^)]*\)[^ ]*/g, ' ')
   // Remove words containing []
   out = out.replace(/[^ ]*\[[^\]]*\][^ ]*/g, ' ')
+  // Remove parens
+  out = out.replace(/[\[\]}){(]/g, '')
   // Remove ".."
   out = out.replace(/"[^"]*"/g, ' ')
   // Remove '..'
   out = out.replace(/'[^']*'/g, ' ')
   // Remove words with 2 or more uppercase letters
   out = out.replace(/[a-zA-Z'-]*[A-Z][a-zA-Z'-]*[A-Z][a-zA-Z'-]*/g, ' ')
-  // Remove parens
-  out = out.replace(/[\[\]}){(]/g, '')
+  // Remove words containing <>
+  out = out.replace(/[^ ]*<[^ ]*>[^ ]*/g, ' ')
+  // Remove words starting with -
+  out = out.replace(/ -[^ ]*/g, ' ')
   // Remove single-letter words
   out = out.replace(/( [A-Za-z])+ /g, ' ')
   out = out.replace(/^([A-Za-z] )+/g, ' ')
@@ -4196,6 +4204,7 @@ Exet.prototype.throttledClueChange = function() {
   if (this.throttledClueTimer) {
     clearTimeout(this.throttledClueTimer);
   }
+  this.maybeShowFormat();
   this.throttledClueTimer = setTimeout(() => {
     this.handleClueChange()
     this.throttledClueTimer = null;
@@ -4280,7 +4289,7 @@ Exet.prototype.handleClueChange = function() {
   this.puz.makeCurrClueVisible()
   this.reposition()
 
-  this.restoreCursor()
+  this.restoreCursor();
 
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {
@@ -5599,7 +5608,9 @@ Exet.prototype.saveCursor = function() {
   this.savedCursorId = parent.id;
   this.savedCursorElt = parent
   this.savedCursorEnd = sel.focusOffset;
-  if (sel.anchorNode == sel.focusNode) {
+  if (sel.type != 'Range') {
+    this.savedCursorStart = this.savedCursorEnd;
+  } else if (sel.anchorNode == sel.focusNode) {
     this.savedCursorStart = sel.anchorOffset;
   } else {
     const prefix = parent.innerText.substr(0, this.savedCursorEnd)

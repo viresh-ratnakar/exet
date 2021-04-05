@@ -1,5 +1,19 @@
 # Changelog
 
+### Version: Exet v0.38 April 4 2021
+
+- Bugfix: update the storage available/free numbers on the "Open" menu after
+  deleting any old revisions through "Manage local storage."
+- When extracting indicator words from annotations (for clue analysis),
+  ignore words containing HTML tags (as they are likely to be fodder).
+- Add a call to maybeShowFormat() when there is any input in the clue/anno.
+  Just relying on selectionchange is apparently not enough for some corner
+  cases.
+- Sometimes there is no selected text (in the clue or anno) in some corner
+  cases, where there is an active cursor, but there is still a separation
+  between the anchor and focus offsets. Use selection.type != 'Range' to
+  catch this case (and not show formatting buttons).
+
 ### Version: Exet v0.37 March 29 2021
 
 - Make "try to get a pangram" *actually* work. Now it does, most of the time.
