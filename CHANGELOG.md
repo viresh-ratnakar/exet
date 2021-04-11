@@ -1,5 +1,30 @@
 # Changelog
 
+### Version: Exet v0.39 April 11 2021
+
+- Allow adding/editing the following sections/features: preamble, explanations,
+  question, nina, colour.
+- For nina and colour, show a panel where you can modify the following: whether
+  the cell or the light is added, which colour to use.
+- Also add an edit menu option to clear all cell markings (circles, prefills,
+  ninas, colours).
+- Modify the Edit menu to accomodate all the above options, using grouped
+  submenus.
+- For preamble, explanations, question, you edit in a separate panel, but you
+  can see the results in the appropriate section rendered as you type (which
+  is useful if you're using HTML tags).
+- Make the border of all the "modal" panels be green (chocolate in the case
+  of fill entries to avoid). Make the text in preferred/avoidable fill choices
+  be green/chocolate respectively.
+- Make the modal panels get dismissed if the Esc key is pressed inside them
+  (in addition to clicks/typing anywhere outside).
+- Make "clear this" and "clear all" not clear ninas.
+- In the background sweep to weed out light-fill choices using autofill,
+  look at more candidates per light (we were too pessimistically determining
+  that no fill choices were possible, in some cases). Haven't really noticed
+  any reduction in UI responsiveness with this, but that is the concern, as
+  this examination locks up the CPU in spurts.
+
 ### Version: Exet v0.38 April 4 2021
 
 - Bugfix: update the storage available/free numbers on the "Open" menu after

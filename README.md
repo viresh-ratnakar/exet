@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.38 April 4 2021
+#### Version: Exet v0.39 April 11 2021
 
 #### Author: Viresh Ratnakar
 
@@ -98,24 +98,36 @@ separating out and describing these phases.
 
 You can navigate to any cell using the arrow keys or by clicking on it
 (including the dark, block cells). The following controls are all available
-from the "Edit" menu (as well as through some keyboard shortcuts listed below
-and also shown in the menu):
+from the "Edit" menu as well as through some keyboard shortcuts listed below
+and also shown in the menu (the shortcut key only works when there is an
+active grid cell):
 
 - Add automagic blocks (#)
 - Autofill:
+  - _Leads to an autofill options panel._
 - Accept autofilled entries (=)
-- Toggle encircling (@)
-- Toggle marking prefilled (!)
-- Toggle block (.)
-- Toggle bar-after (|)
-- Toggle bar-under (\_)
-- Clear all the lights
+- Edit grid cell:
+  - \[ \] _(checkbox for asymmetry)_
+  - Toggle block (.)
+  - Toggle bar-after (|)
+  - Toggle bar-under (\_)
+- Mark grid cell:
+  - Toggle encircling (@)
+  - Toggle marking prefilled (!)
+  - Toggle nina ($)
+  - Toggle colouring (^)
+  - Clear all markings!
+- Add/edit special sections:
+  - Preamble
+  - Explanations
+  - Questions
+- Clear all the lights!
 
-For the actions that modify the grid in non-cosmetic ways (.|\_#), symmetric
+For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
 changes are automatically applied to the other end of the grid. This can be
 turned off for an individual "Toggle bar/block" action by checking the
-"Do not force symmetry on the next 'Toggle block/bar'" checkbox in the Edit
-menu.
+"Do not force symmetry on the next 'Toggle block/bar'" checkbox in the
+"Edit &rarr; Edit grid cell:" submenu.
 
 The "Open" menu allows you to start with blocked blank grids following a few
 checkquered templates and the completely blank "No blocks" template. You will
@@ -196,9 +208,9 @@ bottom-right corner. You may notice grid-fill suggestions getting
 modified while such a sweep is going on.
 
 When Exet determines (using its lexicon) that for some unfilled cell, exactly
-one letter choice is viable, it shows that letter choice in gray. You can press
-"=" (or use the Edit menu's "Accept autofilled entries" option) to accept all
-such autofilled letter suggestions.
+one letter choice is viable, it shows that letter choice in gray. You can use
+the Edit menu's "Accept autofilled entries" option to accept all such autofilled
+letter suggestions.
 
 You can provide up to 100 preferred words/phrases for using in the grid, by
 clicking on the button labelled "Set preferred fills" in the Exet tab, just
@@ -331,10 +343,10 @@ This feature is not intended to be a fancy WYSIWYG editor, and has some
 idiosyncrasies:
 
 - If you select some text that already contains some HTML tags (or the def
-  wrapper), you do not get any shortcuts for adding more tags to it. However, you get a shortcut
-  button for clearing the formatting in such a selection. Format clearing
-  only gets rid of tags that are fully matched with closing tags within the
-  selected text.
+  wrapper), you do not get any shortcuts for adding more tags to it. However,
+  you get a shortcut button for clearing the formatting in such a selection.
+  Format clearing only gets rid of tags that are fully matched with closing
+  tags within the selected text.
 - If you select some text that is fully enclosed within a `<b>..</b>`,
   `<i>..</i>`, `<u>..</u>`, `<s>..</s>` tag, or in the `~{..}~` def wrapper,
   then the shortcut for that particular format will toggle it, clearing away
@@ -589,39 +601,112 @@ annotations. Here is an illustrative example of the kinds of analyses shown:
 
 ## Supported crossword features
 
+Most of these features are applicable only to the Exolve format, not the
+.puz format (circled cells work in .puz too). Features that get shown with
+"Reveal all" (such as annotations, ninas, etc.) are only provided to solvers
+with the downloaded Exolve files that have solutions included.
+
 ### Annotations
 
 As noted in the "Analysis" section, the definition part of a cryptic clue
-can be marked with  \~{...}\~ in the clue itself.
+can be marked with  \~{...}\~ in the clue itself. This can be done with
+the ctrl-D shortcut after selecting a part of the clue text.
 
-### Hyphens and spaces
+### Preamble and Explanations
 
-### Barred and blocked grids
+From the Edit menu, you can choose to add or edit the "preamble," which is
+introductory text shown at the top of the crossword, and might include any
+special instructions or notes. The editing is done in a separate "modal"
+panel. Similarly, you can provide setter's notes and other explanations
+in the "explanations" section, which gets shown to the solver at the end,
+upon clicking on "Reveal all."
+
+You can include HTML tags in the preamble and in the explanations. As you
+edit the raw HTML, the updated rendering gets shown in the respective section.
+
+### Questions
+
+In some crosswords, setters like to pose additional questions to solvers,
+such as deciphering some additional meta-puzzle, or simply asking for feedback.
+From the Edit menu, you can also add/edit/delete such questions. Like the
+preamble and explanations section, questions may include HTML tags, and
+rendered questions are shown under the grid as you make changes.
+
+You can specify how much answer space to provide for a question by providing
+an enum (just like in a crossword clue). The enum can be hidden from the
+solvers by appending a \* to it (which is useful for long-form answers).
+You can also specify the correct answer to a question, to be shown after
+"Reval all."
+The questions-editing panel shows some examples that illustrate the
+[available question-formatting
+options](https://github.com/viresh-ratnakar/exolve#exolve-question).
+
+For receiving filled answers to questions from solvers, you can add
+an `exolve-submit` line manually to the saved crossword file. See
+details on how to set that up (including details on using Google Forms
+for receiving submissions), in [the exolve-submit
+documentation](https://github.com/viresh-ratnakar/exolve#exolve-submit).
 
 ### Circles and prefills
 
-## Features easy to add with some post-editing
+From the Edit menu, and through keyboard shortcuts in the grid itself,
+you can toggle the circling of a cell, and you can toggle whether a cell is
+"prefilled." While a cell has been marked as prefilled, its contents will not
+get cleared with "Clear light" or "Clear all the lights!".
+
+### Ninas and colours
+
+You can mark some cells (or entire lights) as ninas, or with a special colour.
+This can be done from the Edit menu as well as using a keyboard shortcut in
+the grid itself ("$" for nina and "^" for colour). Both the nina and colour
+controls work as toggles: if you use them in a cell/light that has already been
+marked, that marking gets cleared.
+
+The interfaces for ninas and colours are very similar. The idea is that
+pressing the shortcut key (or selecting the menu option) in a cell is
+all that you need to do in the common case: it will mark that cell
+as belonging to the last nina or colour group that you used. But, after
+marking, it brings up a panel next to the grid through which you can
+make changes to the markings: you can switch to marking the whole light instead
+of just the cell, and you can change the colour group to any group used
+earlier or to a new colour (which gets picked with some default value,
+but can be modified and set to any valid HTML colour name or code).
+This panel (like other "modal" panels in Exet) gets dismissed when you
+click or type anywhere outside it, or if you press Esc within it.
+In the common use-case, you can ignore the panel and simply navigate
+to each desired grid cell successively and just press "$" or "^" in each one.
+You cannot "bring back" the panel once it is dismissed (I wanted to avoid the
+additional complexity that would have entailed). However, it's easy enough to
+make changes by getting rid of the nina/colour and then re-adding it, with just
+two successive presses of the shortcut key.
+
+If you are hiding ninas in the grid, it's generally a good idea to do
+that early in the grid-fill process. Cells/lights marked as ninas do not
+get cleared by the "Clear light" and "Clear all the lights!" options.
+Ninas do not get displayed to the solver until they press "Reveal all"
+or "Show ninas."
+
+In the rare case of a cell belonging to multiple ninas or colour groups,
+"toggling" will let you add a new one only after all the existing ones are
+cleared away successively.
+
+The "Edit &rarr; Mark cells:" submenu also offers an option to clear
+*all* current cell markings (circles, prefills, ninas, colours), after asking
+for confirmation.
+
+### Features easy to add with some post-editing
 
 In the Exolve format, you can simply edit the downloaded file (which is in a
 simple plain-text format described in detail in the
 [Exolve README file](https://github.com/viresh-ratnakar/exolve/blob/master/README.md))
 to add any of the following features.
 
-- Ninas, preambles, explanations
 - Diagramless puzzles
 - Jigsaw puzzles
+- Submission link
 
-After you make any such changes, you can open the edited file in Exet and
-continue to work on it further if you want to (it will show up as a revision
-to the same puzzle, as it will have the same exolve-id). The added features
-(preamble/nina etc.)  will then be visible in Exet and will be retained in all
-subsequent downloads (but you just won't be able to edit them within Exet).
-
-## Not yet supported features
-
-### Diagramless puzzles
-
-### Other languages and lexicons
+I plan to add direct support for other languages and lexicons to Exet,
+at some point.
 
 ## Notes and acknowledgements
 
