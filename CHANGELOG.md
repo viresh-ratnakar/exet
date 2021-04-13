@@ -1,5 +1,15 @@
 # Changelog
 
+### Version: Exet v0.40 April 13 2021
+
+- Bug-fix: The clue linking/unlinking panel had become invisible with some
+  recent changes.
+- Make some of the other Exolve sections (exolve-option, for one) available
+  through a new Edit menu option. Make this feature check the added sections
+  thoroughly by parsing them into a temp puzzle and reporting any errors found.
+- Add an Edit -> Preferences menu option, and add the option there to
+  enable/disable spellchecks in clues/annos.
+
 ### Version: Exet v0.39 April 11 2021
 
 - Allow adding/editing the following sections/features: preamble, explanations,

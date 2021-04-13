@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.39 April 11 2021
+Current version: v0.40 April 13 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -152,17 +152,17 @@ Current version: v0.39 April 11 2021
   font-size: 14px;
   padding: 2px 2px 4px 2px;
 }
+#xet-unlink {
+  padding: 4px;
+}
 .xet-linking {
   position: absolute;
-  top: -50px;
   z-index: 1;
   background-color: white;
   border: 1px solid dodgerblue;
-  padding: 8px;
+  padding: 2px 4px 0 4px;
   color: darkgreen;
-}
-#xet-unlink {
-  padding: 4px;
+  box-sizing: border-box;
 }
 .xet-blur *,
 .xet-blur {
@@ -549,7 +549,8 @@ Current version: v0.39 April 11 2021
   color: chocolate;
 }
 #xet-preamble,
-#xet-explanations {
+#xet-explanations,
+#xet-other-sections {
   width: 500px;
 }
 #xet-questions-list td > * {
@@ -1240,11 +1241,11 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.39 April 11 2021'
+  this.version = 'v0.40 April 13 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
-  this.otherSections = ''
+  this.exolveOtherSec = ''
   this.preflex = []
   this.unpreflex = {}
   this.noProperNouns = false
@@ -1404,13 +1405,16 @@ Exet.prototype.setPuzzle = function(puz) {
         '<\/body>\n' +
         '<\/html>\n'
   }
-  this.otherSections = ''
+  this.exolveOtherSec = ''
   for (let l = 0; l < puz.numLines; l++) {
     const line = puz.specLines[l].trim();
     if (line.startsWith('exolve-end')) {
       break
     }
-    if (line.startsWith('exolve-id') ||
+    if (line.startsWith('exolve-begin') ||
+        line.startsWith('exolve-width') ||
+        line.startsWith('exolve-height') ||
+        line.startsWith('exolve-id') ||
         line.startsWith('exolve-title') ||
         line.startsWith('exolve-setter') ||
         line.startsWith('exolve-copyright') ||
@@ -1444,8 +1448,9 @@ Exet.prototype.setPuzzle = function(puz) {
         l >= puz.makerFirstLine - 1 && l <= puz.makerLastLine) {
       continue
     }
-    this.otherSections = this.otherSections + puz.specLines[l] + '\n'
+    this.exolveOtherSec = this.exolveOtherSec + puz.specLines[l] + '\n';
   }
+  this.exolveOtherSec = this.exolveOtherSec.trim();
 
   if (gridFillChanges) {
     this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
@@ -1591,6 +1596,26 @@ Exet.prototype.setPuzzle = function(puz) {
 
   this.preamble = document.getElementById(`${this.puz.prefix}-preamble`)
   this.explanations = document.getElementById(`${this.puz.prefix}-explanations`)
+
+  this.puz.currClueParent.insertAdjacentHTML('afterbegin', `
+    <div id="xet-linking" class="xet-linking">
+      <button id="xet-add-linked" class="xlv-small-button">Add</button>
+      <input id="xet-add-linked-num" name="xet-add-linked-num"
+        title="Enter a clue number, optionally followed by A/D"
+            class="xlv-answer" size="4" type="text"></input>
+      as a linked clue.
+      &nbsp;
+      <button class="xlv-small-button" id="xet-unlink" style="color:red">
+      Break linked clues
+    </div>
+    `);
+  document.getElementById("xet-add-linked").addEventListener(
+      'click', this.addLinkedClue.bind(this));
+  this.linking = document.getElementById('xet-linking');
+  this.linking.style.display = 'none';
+  this.unlink = document.getElementById("xet-unlink");
+  this.unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
+  this.unlink.style.display = 'none';
 
   // Make clues-box divs wider
   const cbs = document.getElementsByClassName('xlv-clues-box')
@@ -2055,12 +2080,27 @@ Exet.prototype.makeExetTab = function() {
                    title="Add or edit the 'questions' section">
                Questions
               </div>
+              <div class="xet-dropdown-subitem" id="xet-edit-other-sections"
+                   title="Add or edit other Exolve sections">
+               Other Exolve sections
+              </div>
             </div>
           </div>
 
           <div class="xet-dropdown-item" onclick="exet.clearAll()">
              Clear all the lights!
           </div>
+
+          <div class="xet-dropdown-item">
+            Preferences:
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-subitem">
+                <input type="checkbox" id="xet-spellcheck"></input>
+                Spellcheck clues/annos
+              </div>
+            </div>
+          </div>
+
         </div>
       </li>
       <li class="xet-dropdown">
@@ -2198,9 +2238,30 @@ Exet.prototype.makeExetTab = function() {
 <div id="xet-tweak-colour-nina" class="xet-text-editor"
   style="display:none">
 </div>
+<div id="xet-other-sections" class="xet-text-editor" style="display:none">
+  <div style="padding:6px">
+    <b>Edit these additional Exolve sections here, if desired:</b><br>
+    <ul>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-credits">exolve-credits</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-force-hyphen-right-exolve-force-hyphen-below-exolve-force-bar-right-exolve-force-bar-below">exolve-force-{bar,hyphen}-{below,right}</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-option">exolve-option</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-postscript">exolve-postscript</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-relabel">exolve-relabel</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-submit">exolve-submit</a></li>
+    </ul>
+    If there are any problems in parsing the text, then the error will be shown in red below and
+    the text will not be used until the error is fixed.
+  </div>
+  <div id="xet-other-sections-error" style="min-height:20px" class="xet-red">
+  </div>
+  <div class="xet-choices-box xet-mid-tall-box">
+     <textarea rows="100" cols="80" wrap="hard" id="xet-other-sections-text">
+     </textarea>
+  </div>
+</div>
   `;
   // Set up menu click handling
-  let menuButtons = exetTab.content.getElementsByClassName('xet-dropbtn')
+  const menuButtons = exetTab.content.getElementsByClassName('xet-dropbtn')
   for (let i = 0; i < menuButtons.length; i++) {
     let menuPanel = menuButtons[i].nextElementSibling
     menuButtons[i].addEventListener('click', e => {
@@ -2269,14 +2330,14 @@ Exet.prototype.makeExetTab = function() {
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
-  let showRevChooser = document.getElementById("xet-show-rev-chooser")
+  const showRevChooser = document.getElementById("xet-show-rev-chooser")
   showRevChooser.addEventListener('click', e => {
     exetRevManager.choosePuzRev(false, this.puz, exet.revChooser,
                                 exetFromHistory);
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
-  let manageStorage = document.getElementById("xet-manage-storage")
+  const manageStorage = document.getElementById("xet-manage-storage")
   this.storageUsed = document.getElementById("xet-storage-used")
   this.storageFree = document.getElementById("xet-storage-free")
   manageStorage.addEventListener('click', e => {
@@ -2286,13 +2347,13 @@ Exet.prototype.makeExetTab = function() {
   })
 
   // Saving options
-  let showEnums = document.getElementById("xet-show-enums")
+  const showEnums = document.getElementById("xet-show-enums")
   showEnums.addEventListener('change', e => {
     exetState.showEnums = showEnums.checked ? true : false;
     exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
                              JSON.stringify(exetState))
   });
-  let exolveUrl = document.getElementById("xet-xlv-url-prefix")
+  const exolveUrl = document.getElementById("xet-xlv-url-prefix")
   exolveUrl.addEventListener('change', e => {
     exolveUrl.value = exolveUrl.value.trim();
     if (exolveUrl.value.length > 0 &&
@@ -2314,6 +2375,7 @@ Exet.prototype.makeExetTab = function() {
 
   // Editing options
   this.asymOK = document.getElementById("xet-asymmetry-ok")
+
   const preamble = document.getElementById("xet-preamble")
   const preambleText = document.getElementById("xet-preamble-text")
   preambleText.value = this.preamble.innerHTML;
@@ -2362,6 +2424,37 @@ Exet.prototype.makeExetTab = function() {
   this.tweakColourNina.style.left = "100%";
   document.getElementById(this.puz.prefix + '-grid-parent').appendChild(
       this.tweakColourNina);
+
+  this.otherSecPanel = document.getElementById("xet-other-sections")
+  this.otherSecText = document.getElementById("xet-other-sections-text")
+  this.otherSecError = document.getElementById("xet-other-sections-error")
+  this.otherSecText.spellcheck = false;
+  this.otherSecText.addEventListener(
+      'input', this.updateOtherSections.bind(this));
+  document.getElementById("xet-edit-other-sections").addEventListener(
+      'click', e => {
+    this.puz.deactivator();
+    this.otherSecText.value = this.exolveOtherSec;
+    this.otherSecError.innerText = '';
+    exetModals.showModal(this.otherSecPanel)
+    e.stopPropagation();
+  })
+
+  const spellcheck = document.getElementById("xet-spellcheck");
+  spellcheck.checked = exetState.spellcheck;
+  spellcheck.addEventListener('change', e => {
+    this.puz.deactivator();
+    exetState.spellcheck = spellcheck.checked ? true : false;
+    if (this.puz.currCellIsValid()) {
+      const row = this.puz.currRow;
+      const col = this.puz.currCol;
+      if (this.puz.grid[row][col].isLight) {
+        this.puz.activateCell(row, col)
+      }
+    }
+    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
+                             JSON.stringify(exetState))
+  });
 
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
@@ -2752,6 +2845,62 @@ Exet.prototype.updateMetadata = function() {
     this.restoreCursor()
     this.throttledMetadataTimer = null;
     exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+  }, 2000);
+}
+
+Exet.prototype.updateOtherSections = function() {
+  if (!this.puz) {
+    return
+  }
+  const ALLOWED_SECTIONS = {
+    'exolve-credits': true,
+    'exolve-postscript': true,
+    'exolve-submit': true,
+    'exolve-option': true,
+    'exolve-relabel': true,
+    'exolve-force-hyphen-right': true,
+    'exolve-force-hyphen-below': true,
+    'exolve-force-bar-right': true,
+    'exolve-force-bar-below': true,
+  }
+  this.otherSecError.innerText = '';
+  if (this.throttledOtherSecTimer) {
+    clearTimeout(this.throttledOtherSecTimer);
+  }
+  this.throttledOtherSecTimer = setTimeout(() => {
+    this.throttledOtherSecTimer = null;
+    const text = this.otherSecText.value;
+    const matches = text.match(/exolve-[a-zA-Z0-9-]+/g);
+    for (let i = 0; matches && i < matches.length; i++) {
+      m = matches[i];
+      if (!ALLOWED_SECTIONS[m]) {
+        this.otherSecError.innerText = m + ' is not allowed here';
+        return;
+      }
+    }
+    const saved = this.exolveOtherSec;
+    this.exolveOtherSec = text;
+    const tempId = this.puz.id + '-temp'
+    const specs = this.getExolve(tempId, true);
+    let specsOK = true;
+    const xetTemp = document.getElementById("xet-temp");
+    xetTemp.innerHTML = ''
+    try {
+      const oldalert = window.alert;
+      window.alert = function() {};
+      const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
+      window.alert = oldalert;
+    } catch (err) {
+      specsOK = false;
+      this.otherSecError.innerText = '' + err;
+    }
+    xetTemp.innerHTML = ''
+    delete exolvePuzzles[tempId]
+    if (specsOK) {
+      this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
+    } else {
+      this.exolveOtherSec = saved;
+    }
   }, 2000);
 }
 
@@ -4017,6 +4166,11 @@ Exet.prototype.reposition = function() {
 
   const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
 
+  if (this.puz.currClueIndex && clueBox.top > 0) {
+    this.linking.style.left = (clueBox.left - clueParentBox.left) + 'px';
+    this.linking.style.top = (clueBox.top - clueParentBox.top - 34) + 'px';
+  }
+
   const colourNinaWidth = Math.min(300, (clueParentBox.width - clueBox.width) / 2);
   this.tweakColourNina.style.width = colourNinaWidth + 'px';
 
@@ -4180,33 +4334,33 @@ Exet.prototype.maybeShowFormat = function() {
 }
 
 Exet.prototype.makeClueEditable = function() {
-  let theClue = this.currClue();
+  const theClue = this.currClue();
   if (!theClue) {
     return
   }
-  let currClueText = document.getElementById(
+  const currClueText = document.getElementById(
       `${exet.puz.prefix}-curr-clue-text`)
   currClueText.innerHTML = `<span class="xet-action">Edit clue: </span><span
-    id="xet-clue-stat" class="xet-clue-stat"></span>
-    <span contenteditable="true" class="xet-editable" id="xet-clue"></span>`
+    id="xet-clue-stat" class="xet-clue-stat"></span><span
+    contenteditable="true" class="xet-editable" id="xet-clue"></span>`
   this.currClueIsDraft = this.isDraftClue(theClue.clue)
   // We make the raw clue text editable here, including any tags or
   // in-clue-anno markers (~{...}~).
-  let xetClue = document.getElementById("xet-clue")
-  xetClue.spellcheck = false
+  const xetClue = document.getElementById("xet-clue")
+  xetClue.spellcheck = exetState.spellcheck
   xetClue.innerText = this.currClueIsDraft ?
     theClue.clue.substr(this.DRAFT.length).trim() : theClue.clue
-  let handler = this.throttledClueChange.bind(this)
+  const handler = this.throttledClueChange.bind(this)
   xetClue.addEventListener('input', handler)
   this.setDraftToggler()
-  let xetClueStat = document.getElementById("xet-clue-stat")
+  const xetClueStat = document.getElementById("xet-clue-stat")
   xetClueStat.addEventListener('click', e => {
     exet.currClueIsDraft = !exet.currClueIsDraft;
     exet.setDraftToggler()
     exet.handleClueChange()
   });
 
-  let spacer = document.createElement('span')
+  const spacer = document.createElement('span')
   spacer.innerHTML = `<br><span class="xet-action">Edit
       optional anno: </span>`
   this.puz.currClue.appendChild(spacer)
@@ -4215,37 +4369,20 @@ Exet.prototype.makeClueEditable = function() {
   xetAnno.className = 'xet-anno xet-editable'
   xetAnno.id = 'xet-anno'
   xetAnno.contentEditable = true
-  xetAnno.spellcheck = false
+  xetAnno.spellcheck = exetState.spellcheck
   xetAnno.innerText = theClue.anno
   this.puz.currClue.appendChild(xetAnno)
   xetAnno.addEventListener('input', handler)
 
-  this.puz.currClue.insertAdjacentHTML('afterbegin', `
-    <div id="xet-linking" class="xet-linking">
-    <button id="xet-add-linked" class="xlv-small-button">Add</button>
-    <input id="xet-add-linked-num" name="xet-add-linked-num"
-      title="Enter a clue number, optionally followed by A/D"
-          class="xlv-answer" size="4" type="text"></input>
-    as a linked clue.
-    </div>
-    `);
-  let addLinked = document.getElementById("xet-add-linked");
-  addLinked.addEventListener('click', this.addLinkedClue.bind(this));
-  const linking = document.getElementById('xet-linking');
-  linking.style.display = 'none';
   if (theClue.childrenClueIndices && theClue.childrenClueIndices.length > 0) {
-    linking.insertAdjacentHTML('beforeend', `
-      &nbsp;
-      <button class="xlv-small-button" id="xet-unlink" style="color:red">
-      Break linked clues
-      </button>`)
-    let unlink = document.getElementById("xet-unlink");
-    unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
+    this.unlink.style.display = '';
+  } else {
+    this.unlink.style.display = 'none';
   }
-  let ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`)
+  const ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`)
   ccLabel.title = 'Click to add or break up linked clues';
   ccLabel.addEventListener('click', e => {
-    exetModals.showModal(linking)
+    exetModals.showModal(this.linking)
     e.stopPropagation()
   });
 
@@ -5615,14 +5752,15 @@ Exet.prototype.handleGridInput = function(revType=null) {
 }
 
 Exet.prototype.killInvalidatedClues = function(row, col) {
-  let tempId = this.puz.id + '-temp'
-  let specs = this.getExolve(tempId, true)
-  document.getElementById("xet-temp").innerHTML = ''
-  let newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false)
+  const tempId = this.puz.id + '-temp'
+  const specs = this.getExolve(tempId, true)
+  const xetTemp = document.getElementById("xet-temp")
+  xetTemp.innerHTML = ''
+  const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false)
   for (let ci in this.puz.clues) {
     if (!newPuz.clues[ci] ||
         !newPuz.sameCells(newPuz.clues[ci].cells, this.puz.clues[ci].cells)) {
-      let theClue = this.puz.clues[ci];
+      const theClue = this.puz.clues[ci];
       if (theClue.parentClueIndex) {
         this.unlinkClue(theClue.parentClueIndex);
       } else if (theClue.childrenClueIndices &&
@@ -5632,7 +5770,7 @@ Exet.prototype.killInvalidatedClues = function(row, col) {
       delete this.puz.clues[ci]
     }
   }
-  document.getElementById("xet-temp").innerHTML = ''
+  xetTemp.innerHTML = ''
   delete exolvePuzzles[tempId]
 }
 
@@ -6199,7 +6337,7 @@ Exet.prototype.saveCursor = function() {
   if (!sel || !sel.focusNode) {
     return
   }
-  let parent = sel.focusNode.parentNode
+  let parent = sel.focusNode.parentNode;
   if (!parent || !parent.id) {
     return
   }
@@ -6275,12 +6413,14 @@ Exet.prototype.updatePuzzle = function(revType=0) {
       revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
     this.resetAutofill('Aborted')
   }
-  let row = this.puz.currRow
-  let col = this.puz.currCol
-  let dir = this.puz.currDir
-  let scratch = this.puz.scratchPad.value
+  const row = this.puz.currRow
+  const col = this.puz.currCol
+  const dir = this.puz.currDir
+  const scratch = this.puz.scratchPad.value
   this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
   this.saveCursor()
+  const editingOtherSections = (exetModals.modal &&
+               exetModals.modal.id == 'xet-other-sections');
 
   let exolve = this.getExolve()
   this.makeExolve(exolve)
@@ -6289,8 +6429,12 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   this.puz.currRow = row
   this.puz.currCol = col
   this.puz.scratchPad.value = scratch
-  this.restoreCursor()
-  if (this.puz.currCellIsValid()) {
+  if (editingOtherSections) {
+    this.otherSecText.value = this.exolveOtherSec;
+    exetModals.showModal(this.otherSecPanel);
+    this.otherSecText.focus();
+  } else if (this.puz.currCellIsValid()) {
+    this.restoreCursor()
     if (this.puz.grid[row][col].isLight) {
       this.puz.activateCell(row, col)
     } else {
@@ -6441,8 +6585,10 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
     Version: ${this.version}<br>
     Lexicon: ${exetLexicon.id}<br>
     Timestamp: ${(new Date()).toString()}<br>`
-  let exolve = `  ${this.otherSections}
-  exolve-id: ${(id ? id : this.puz.id)}` +
+  let exolve = `exolve-begin
+  exolve-id: ${(id ? id : this.puz.id)}
+  exolve-width: ${this.puz.gridWidth}
+  exolve-height: ${this.puz.gridHeight}` +
   (this.puz.title ? `
   exolve-title: ${this.puz.title}` : '') +
   (this.puz.setter ? `
@@ -6473,14 +6619,18 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
   exolve-explanations:
     ${explanations}`
   }
+  if (this.exolveOtherSec) {
+    exolve += `
+    ${this.exolveOtherSec}`;
+  }
 
   exolve += `
   exolve-grid: ${this.getGrid(solved)}` +
   (!skipClues ? `
   exolve-across: ${this.getClues('A', solved, showEnums)}
   exolve-down: ${this.getClues('D', solved, showEnums)}` : '') + `
-  exolve-end
-  `
+exolve-end
+`
   return exolve;
 }
 
@@ -7554,7 +7704,7 @@ function exetLoadFile() {
     end += 'exolve-end'.length
     exet.prefix = fr.result.substring(0, start).trim()
     exet.suffix = fr.result.substring(end).trim()
-    exet.otherSections = ''
+    exet.exolveOtherSec = ''
     let specs = fr.result.substring(start, end)
     exet.setPreflex([])
     exet.unpreflex = {}
@@ -7612,6 +7762,9 @@ if (!exetState.hasOwnProperty('showEnums')) {
 }
 if (!exetState.hasOwnProperty('exolveUrl')) {
   exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
+}
+if (!exetState.hasOwnProperty('spellcheck')) {
+  exetState.spellcheck = false;
 }
 if (exetState.lastId) {
   let saved = window.localStorage.getItem(exetState.lastId)

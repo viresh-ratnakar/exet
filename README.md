@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.39 April 11 2021
+#### Version: Exet v0.40 April 13 2021
 
 #### Author: Viresh Ratnakar
 
@@ -121,7 +121,10 @@ active grid cell):
   - Preamble
   - Explanations
   - Questions
+  - Other Exolve sections
 - Clear all the lights!
+- Preferences:
+  - \[ \] Spellcheck clues/annos
 
 For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
 changes are automatically applied to the other end of the grid. This can be
@@ -292,6 +295,13 @@ cells, and you edit the anno to be "(5-4)," the software will reset it to
 You can optionally provide annotations for clues. These annotations are
 typically used in cryptic crosswords to describe the cryptic wordplay when
 a solution to a clue is revealed.
+
+The text-editing panel for the current clue/anno disables spellcheck by
+default. You can turn it on or off through the "Edit &rarr; Preferences:"
+menu. This setting persists in Exet, across different crosswords. Note that
+if you change the setting, depending on some browser peculiarities, the
+updated setting may only become active after you have navigated to a new
+clue and/or clicked on the clue or anno.
 
 #### Formatting clues and annotations
 
@@ -642,10 +652,27 @@ The questions-editing panel shows some examples that illustrate the
 options](https://github.com/viresh-ratnakar/exolve#exolve-question).
 
 For receiving filled answers to questions from solvers, you can add
-an `exolve-submit` line manually to the saved crossword file. See
-details on how to set that up (including details on using Google Forms
+an `exolve-submit` line using the "Other Exolve sections" menu option. See
+details on how to set up submission (including details on using Google Forms
 for receiving submissions), in [the exolve-submit
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-submit).
+
+### Other Exolve sections
+
+You can specify and edit some of the other Exolve features through this menu
+option. Here is the list of sections that you can add:
+
+- [exolve-credits](https://github.com/viresh-ratnakar/exolve#exolve-credits)
+- [exolve-option](https://github.com/viresh-ratnakar/exolve#exolve-option)
+- [exolve-postscript](https://github.com/viresh-ratnakar/exolve#exolve-postscript)
+- [exolve-relabel](https://github.com/viresh-ratnakar/exolve#exolve-relabel)
+- [exolve-submit](https://github.com/viresh-ratnakar/exolve#exolve-submit)
+- [exolve-force-{bar,hyphen}-{below,after}](https://github.com/viresh-ratnakar/exolve#exolve-force-hyphen-right-exolve-force-hyphen-below-exolve-force-bar-right-exolve-force-bar-below)
+
+If there are any problems in parsing the specified text, then the error is shown
+in red and the specified text is not used until the error is fixed. The
+specified Exolve sections, when free from errors, are updated as you type (with
+a short lag).
 
 ### Circles and prefills
 
