@@ -92,14 +92,23 @@ There are three phases in crossword construction:
 
 Of course, setters often go back and forth and can overlap the phases (and Exet
 certainly lets you do that). But a walk-through of Exet is perhaps best done by
-separating out and describing these phases.
+separating out and describing these three phases individually.
 
 ### Constructing the grid
+
+The "Open" menu allows you to start with blocked blank grids following a few
+checkquered templates and the completely blank "No blocks" template. You will
+also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
+and it will be checked by default (you can uncheck it if you do want to start
+with a chequered template with no added blocks or with a completely blank
+template). After creating a grid, you can customize it by manually
+adding/removing blocks/bars, or by letting the software automatically add
+blocks.
 
 You can navigate to any cell using the arrow keys or by clicking on it
 (including the dark, block cells). The following controls are all available
 from the "Edit" menu as well as through some keyboard shortcuts listed below
-and also shown in the menu (the shortcut key only works when there is an
+and also shown in the Edit menu (the shortcut key only works when there is an
 active grid cell):
 
 - Add automagic blocks (#)
@@ -122,7 +131,7 @@ active grid cell):
   - Explanations
   - Questions
   - Other Exolve sections
-- Clear all the lights!
+- Clear all the lights! (Ctrl-Q)
 - Preferences:
   - \[ \] Spellcheck clues/annos
 
@@ -131,13 +140,6 @@ changes are automatically applied to the other end of the grid. This can be
 turned off for an individual "Toggle bar/block" action by checking the
 "Do not force symmetry on the next 'Toggle block/bar'" checkbox in the
 "Edit &rarr; Edit grid cell:" submenu.
-
-The "Open" menu allows you to start with blocked blank grids following a few
-checkquered templates and the completely blank "No blocks" template. You will
-also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
-and it will be checked by default (you can uncheck it if you do want to start
-with a chequered template with no added blocks or with a completely blank
-template).
 
 "Add automagic blocks" essentially adds some blocks to the grid, while
 maintaining the British chequered format (that has no consecutive unchecked
