@@ -94,6 +94,10 @@ Of course, setters often go back and forth and can overlap the phases (and Exet
 certainly lets you do that). But a walk-through of Exet is perhaps best done by
 separating out and describing these three phases individually.
 
+For a demonstration of some of these steps, please check out this short,
+introductory [tutorial video on YouTube](https://youtu.be/pDJ7bkImbWk),
+made by Debsamita Basu.
+
 ### Constructing the grid
 
 The "Open" menu allows you to start with blocked blank grids following a few
