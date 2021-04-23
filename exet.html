@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.40 April 13 2021
+Current version: v0.41 April 23 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1241,7 +1241,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.40 April 13 2021'
+  this.version = 'v0.41 April 23 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -4937,9 +4937,9 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
     for (let span of spans) {
       for (let x = minSpan; x < span[1] - minSpan; x++) {
         let k2 = span[0] + x
-        let symk2 = w - 1 - k2
+        let symk2 = h - 1 - k2
         if (isRow) {
-          symk2 = h - 1 - k2
+          symk2 = w - 1 - k2
         }
         let gridCell = isRow ? grid[k1][k2] : grid[k2][k1]
         let gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1]
@@ -4967,9 +4967,9 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
       continue
     }
     let k2 = candidates[randIndex]
-    let symk2 = w - 1 - k2
+    let symk2 = h - 1 - k2
     if (isRow) {
-      symk2 = h - 1 - k2
+      symk2 = w - 1 - k2
     }
     let gridCell = isRow ? grid[k1][k2] : grid[k2][k1]
     let gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1]

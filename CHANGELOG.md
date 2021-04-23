@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.41 April 23 2021
+
+- Bug-fix: for non-square grids, automagic block-creation had a bug (was
+  swapping  w/h incorrectly).
+
 ### Version: Exet v0.40 April 13 2021
 
 - Bug-fix: The clue linking/unlinking panel had become invisible with some
