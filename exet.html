@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.41 April 23 2021
+Current version: v0.42 April 26 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1241,7 +1241,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.41 April 23 2021'
+  this.version = 'v0.42 April 26 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -4188,6 +4188,14 @@ Exet.prototype.reposition = function() {
   }
 }
 
+Exet.prototype.lastTagOpener = function(s) {
+  let mark = s.lastIndexOf('<');
+  while (mark > 0 && s.charAt(mark - 1) == '<') {
+    mark = s.substr(0, mark - 1).lastIndexOf('<');
+  }
+  return mark;
+}
+
 Exet.prototype.maybeShowFormat = function() {
   const xetFormat = document.getElementById('xet-format')
   if (!xetFormat) {
@@ -4224,7 +4232,7 @@ Exet.prototype.maybeShowFormat = function() {
       return
     }
   }
-  const prevMark = prefix.lastIndexOf('<')
+  const prevMark = this.lastTagOpener(prefix)
   if (prevMark >= 0 && prevMark >= prefix.lastIndexOf('>')) {
     return
   }

@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.42 April 26 2021
+
+- Bug fix: when detecting whether selection is part of the insides of an HTML
+  tag take into account the possibility of "<<" (often used in annos).
+
 ### Version: Exet v0.41 April 23 2021
 
 - Bug-fix: for non-square grids, automagic block-creation had a bug (was
