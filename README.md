@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.42 April 26 2021
+#### Version: Exet v0.43 May 12 2021
 
 #### Author: Viresh Ratnakar
 
@@ -171,8 +171,8 @@ pick "birds of a feather," then the enum will automatically change to
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
-- A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.02 en Latin"
-  as of Oct 2020) has 250,556 entries. Providing a popularity threshold can
+- A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
+  as of May 2021) has 250,192 entries. Providing a popularity threshold can
   be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -182,15 +182,15 @@ settings that control the nature of fill suggestions. These are:
 
   | Threshold | #Entries | Last included entries    |
   |-----------|----------|--------------------------|
-  |       0   | 250,556  | latirostral, Nance, Nancy             |
-  |       25  | 187,917  | pseudoscopes, washpot, whackiest      |
-  |       50  | 125,278  | closed communities, forced sales, stannate |
-  |       60  | 100,222  | ensnares, raun, clerical collar       |
-  |       70  |  75,166  | leaseholder, delivery van, nays       |
-  |   **80**  |**50,111**|**in deep water, booing, ecco**        |
-  |      85   |  37,583  |  searchlights, Barranquilla, spaniel  |
-  |       90  |  25,055  | solicitors, swifts, stele             |
-  |       95  |  12,527  | Green Party, popular music, connector |
+  |       0   | 250,192  | don't count your chickens before they are hatched, confabular, fluid dynamics |
+  |       25  | 187,643  | encages, brassily, ondes musicales |
+  |       50  | 125,095  | Ziphius, Nipponese, incitation |
+  |       60  | 100,076  | Barbary sheep, humidified, brownouts |
+  |       70  |  75,057  | somersaults, bipyramid, photodiodes |
+  |   **80**  |**50,038**|**in deep water, booing, ecco**        |
+  |      85   |  37,528  | cobbled, bituminous, searchlights  |
+  |       90  |  25,019  | fermi, ratify, restore |
+  |       95  |  12,509  | countless, Saturdays, Green Party |
 
 - Whether to exclude proper nouns.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.43 May 12 2021
+
+- Expurgated some crap from the kexicon.
+- Split words on "—" too when analyzing annos.
+
 ### Version: Exet v0.42 April 26 2021
 
 - Bug fix: when detecting whether selection is part of the insides of an HTML
