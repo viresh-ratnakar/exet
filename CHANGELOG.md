@@ -1,8 +1,12 @@
 # Changelog
 
+### Version: Exet v0.44 May 14 2021
+
+- Bug-fix: Ctrl-q/Q should not clear nina cells.
+
 ### Version: Exet v0.43 May 12 2021
 
-- Expurgated some crap from the kexicon.
+- Expurgated some crap from the lexicon.
 - Split words on "—" too when analyzing annos.
 
 ### Version: Exet v0.42 April 26 2021

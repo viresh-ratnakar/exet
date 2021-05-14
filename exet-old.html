@@ -29,12 +29,13 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.44 May 14 2021
+Current version: v0.36 March 22 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
 <script src="exolve-m.js?v1.00"></script>
 <script src="lufz-en-lexicon.js"></script>
+<script src="exet-dher.js"></script>
 
 <style>
 [contenteditable="true"]:active,
@@ -48,7 +49,6 @@ Current version: v0.44 May 14 2021
   box-sizing: border-box;
   font-family: monospace;
   font-size: 14px;
-  position: relative;
 }
 .xet-controls-col {
   padding: 4px;
@@ -152,17 +152,17 @@ Current version: v0.44 May 14 2021
   font-size: 14px;
   padding: 2px 2px 4px 2px;
 }
-#xet-unlink {
-  padding: 4px;
-}
 .xet-linking {
   position: absolute;
+  top: -50px;
   z-index: 1;
   background-color: white;
   border: 1px solid dodgerblue;
-  padding: 2px 4px 0 4px;
+  padding: 8px;
   color: darkgreen;
-  box-sizing: border-box;
+}
+#xet-unlink {
+  padding: 4px;
 }
 .xet-blur *,
 .xet-blur {
@@ -333,6 +333,15 @@ Current version: v0.44 May 14 2021
 .xet-menu > ul > li {
   float: left;
 }
+.xet-metadata {
+  text-align: center;
+  padding: 8px 12px;
+  width: 500px;
+}
+.xet-edit {
+  color: darkgreen;
+  cursor: auto;
+}
 .xet-dropbtn {
   display: inline-block;
   text-align: center;
@@ -498,8 +507,8 @@ Current version: v0.44 May 14 2021
 }
 .xet-preview {
   height: 300px;
-  width: 800px;
-  overflow: auto;
+  width:800px;
+  overflow:auto;
 }
 .xet-full-width {
   width: 100%;
@@ -542,62 +551,16 @@ Current version: v0.44 May 14 2021
   animation-direction: alternate;
   animation-iteration-count: infinite;
 }
-#xet-preflex-input {
-  color: green;
-}
-#xet-unpreflex-input {
-  color: chocolate;
-}
-#xet-preamble,
-#xet-explanations,
-#xet-other-sections {
-  width: 500px;
-}
-#xet-questions-list td > * {
-  margin: 6px;
-}
-#xet-tweak-colour-nina {
-  padding: 6px;
-  text-align: left;
-  overflow: visible;
-  font-size: 14px;
-}
-.xet-colour-nina {
-  padding: 4px;
-  position: relative;
-  min-height: 32px;
-}
-.xet-colour-nina .xet-colour-nina-radio {
-  margin: 0 2px 0 30px;
-  height: 25px;
-}
-.xet-colour-nina:hover .xet-colour-nina-radio {
-  background: whitesmoke;
-}
-.xet-colour-sample {
-  width: 25px;
-  height: 25px;
-}
-.xet-text-editor {
+.xet-preflex-editor {
   position: absolute;
   left: 0;
   top: 0;
   padding: 8px;
-  z-index: 2;
+  z-index: 1;
   background-color: white;
-  border: 1px solid green;
+  border: 1px solid gray;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   font-size: 12px;
-}
-.xet-text-editor textarea {
-  border: none;
-  padding: 0 0 6px 0;
-  outline: none;
-  background-image:
-    repeating-linear-gradient(to bottom, white, white 13px, lightgray 14px);
-}
-#xet-unpreflex-editor {
-  border: 1px solid chocolate;
 }
 .xet-autofill-panel {
   padding: 4px;
@@ -638,14 +601,13 @@ Current version: v0.44 May 14 2021
 function ExetModals() {
   this.modal = null;
   document.addEventListener('click', this.handleClick.bind(this));
-  document.addEventListener('keydown', this.handleClick.bind(this));
 };
 
 ExetModals.prototype.handleClick = function(e) {
   if (!this.modal) {
     return
   }
-  if (!this.modal.contains(e.target) || e.key == "Escape") {
+  if (!this.modal.contains(e.target)) {
     this.hide()
   }
 }
@@ -771,11 +733,6 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
       choices.push({id: stored.id, title: title, space: spaceUsed})
     }
   }
-  const storageUsedMB = this.inMB(this.spaceUsed);
-  const storageFreeMB = this.inMB(this.spaceUsedAtStart +
-      this.spaceLeftAtStart - this.spaceUsed);
-  exet.storageUsed.innerText = storageUsedMB;
-  exet.storageFree.innerText = storageFreeMB;
   let html = `
   <table>
     <tr>
@@ -809,9 +766,10 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
     <tr>
       <td colspan="2">
         <div>
-          <span>Space used: ${storageUsedMB} MB</span>
+          <span>Space used: ${this.inMB(this.spaceUsed)} MB</span>
           <span>Space available: <span
-            class="xet-red">${storageFreeMB}</span> MB</span>
+            class="xet-red">${this.inMB(this.spaceUsedAtStart +
+              this.spaceLeftAtStart - this.spaceUsed)}</span> MB</span>
           <button id="xset-puz-rev-deleter"
             style="float:right;margin: 0 16px; display: none"
             class="xlv-button">Delete rev</button>
@@ -1241,15 +1199,15 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.44 May 14 2021'
+  this.version = 'v0.36 March 22 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
-  this.exolveOtherSec = ''
+  this.otherSections = ''
   this.preflex = []
   this.unpreflex = {}
   this.noProperNouns = false
-  this.DEFAULT_MINPOP = 80
+  this.DEFAULT_MINPOP = 85
   this.setMinPop(this.DEFAULT_MINPOP)
   this.DRAFT = '[DRAFT]'
   this.MENU_SEPARATOR = '<option disabled>' +
@@ -1268,6 +1226,7 @@ function Exet() {
     alt: {inClue: [false]},
   }
 
+
   // Start in the Exet tab
   this.currTab = "exet"
   this.savedIndsSelect = ""
@@ -1284,7 +1243,7 @@ function Exet() {
   this.sweepMS = 500
 
   // Params for light choices shown.
-  this.sweepMaxChoices = 5000
+  this.sweepMaxChoices = 500
   this.sweepMaxChoicesSmall = 4
   this.shownLightChoices = 200
 
@@ -1314,7 +1273,7 @@ function Exet() {
     let x = 1.0 - ((this.letterFrequencies[c] - minFreq) /
                    (maxFreq - minFreq));
     if (x < 0.7) x = 0.7;
-    this.letterRarities[c] = 1.5 * (x - 0.7) / 0.3;
+    this.letterRarities[c] = (x - 0.7) / 0.3;
   }
 };
 
@@ -1405,23 +1364,21 @@ Exet.prototype.setPuzzle = function(puz) {
         '<\/body>\n' +
         '<\/html>\n'
   }
-  this.exolveOtherSec = ''
+  this.otherSections = ''
   for (let l = 0; l < puz.numLines; l++) {
-    const line = puz.specLines[l].trim();
-    if (line.startsWith('exolve-end')) {
+    if (puz.specLines[l].trim().startsWith('exolve-end')) {
       break
     }
-    if (line.startsWith('exolve-begin') ||
-        line.startsWith('exolve-width') ||
-        line.startsWith('exolve-height') ||
-        line.startsWith('exolve-id') ||
-        line.startsWith('exolve-title') ||
-        line.startsWith('exolve-setter') ||
-        line.startsWith('exolve-copyright') ||
-        line.startsWith('exolve-nina') ||
-        line.startsWith('exolve-colour') ||
-        line.startsWith('exolve-color') ||
-        line.startsWith('exolve-question')) {
+    if (puz.specLines[l].trim().startsWith('exolve-id')) {
+      continue
+    }
+    if (puz.specLines[l].trim().startsWith('exolve-title')) {
+      continue
+    }
+    if (puz.specLines[l].trim().startsWith('exolve-setter')) {
+      continue
+    }
+    if (puz.specLines[l].trim().startsWith('exolve-copyright')) {
       continue
     }
     if (puz.gridFirstLine && puz.gridLastLine &&
@@ -1436,21 +1393,12 @@ Exet.prototype.setPuzzle = function(puz) {
         l >= puz.downFirstLine - 1 && l <= puz.downLastLine) {
       continue
     }
-    if (puz.preludeFirstLine && puz.preludeLastLine &&
-        l >= puz.preludeFirstLine - 1 && l <= puz.preludeLastLine) {
-      continue
-    }
-    if (puz.explnFirstLine && puz.explnLastLine &&
-        l >= puz.explnFirstLine - 1 && l <= puz.explnLastLine) {
-      continue
-    }
     if (puz.makerFirstLine && puz.makerLastLine &&
         l >= puz.makerFirstLine - 1 && l <= puz.makerLastLine) {
       continue
     }
-    this.exolveOtherSec = this.exolveOtherSec + puz.specLines[l] + '\n';
+    this.otherSections = this.otherSections + puz.specLines[l] + '\n'
   }
-  this.exolveOtherSec = this.exolveOtherSec.trim();
 
   if (gridFillChanges) {
     this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
@@ -1595,27 +1543,6 @@ Exet.prototype.setPuzzle = function(puz) {
   this.xetSetter.title = 'Click to edit setter'
 
   this.preamble = document.getElementById(`${this.puz.prefix}-preamble`)
-  this.explanations = document.getElementById(`${this.puz.prefix}-explanations`)
-
-  this.puz.currClueParent.insertAdjacentHTML('afterbegin', `
-    <div id="xet-linking" class="xet-linking">
-      <button id="xet-add-linked" class="xlv-small-button">Add</button>
-      <input id="xet-add-linked-num" name="xet-add-linked-num"
-        title="Enter a clue number, optionally followed by A/D"
-            class="xlv-answer" size="4" type="text"></input>
-      as a linked clue.
-      &nbsp;
-      <button class="xlv-small-button" id="xet-unlink" style="color:red">
-      Break linked clues
-    </div>
-    `);
-  document.getElementById("xet-add-linked").addEventListener(
-      'click', this.addLinkedClue.bind(this));
-  this.linking = document.getElementById('xet-linking');
-  this.linking.style.display = 'none';
-  this.unlink = document.getElementById("xet-unlink");
-  this.unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
-  this.unlink.style.display = 'none';
 
   // Make clues-box divs wider
   const cbs = document.getElementsByClassName('xlv-clues-box')
@@ -1635,10 +1562,6 @@ Exet.prototype.setPuzzle = function(puz) {
 
   delete this.shownChoicesHash
   this.populateFrame()
-
-  // Make current cell closer to white (so nina/colour can be seen better
-  // when overlapping).
-  this.puz.colorScheme['input'] = '#ffc6c4';
 
   // Add darkness and viability indicators ("viablots").
   for (let i = 0; i < puz.gridHeight; i++) {
@@ -1705,7 +1628,6 @@ Exet.prototype.setPuzzle = function(puz) {
   this.initAutofill()
   this.resetViability();
   this.updateSweepInd()
-  this.reposition();
 
   return true
 }
@@ -1816,9 +1738,9 @@ Exet.prototype.makeExetTab = function() {
           <hr>
           <div class="xet-dropdown-item" id="xet-manage-storage">
             Manage local storage (Used:
-                <span id="xet-storage-used">${exetRevManager.inMB(exetRevManager.spaceUsed)}</span> MB
+            ${exetRevManager.inMB(exetRevManager.spaceUsed)} MB
             Available: 
-              <span class="xet-red" id="xet-storage-free">${exetRevManager.inMB(
+              <span class="xet-red">${exetRevManager.inMB(
                   exetRevManager.spaceUsedAtStart +
                   exetRevManager.spaceLeftAtStart -
                   exetRevManager.spaceUsed)}</span> MB)
@@ -1901,35 +1823,31 @@ Exet.prototype.makeExetTab = function() {
         </div>
       </li>
       <li class="xet-dropdown">
-        <div class="xet-dropbtn"
-            title="Click to make grid and other changes (please ` +
+        <div class="xet-dropbtn" title="Click to make grid changes (please ` +
             `also note the listed keyboard shortcuts)">Edit</div>
         <div class="xet-dropdown-content">
-
           <div title="Try to autmatically add random blocks while ` +
               `maintaining a valid grid"
               class="xet-dropdown-item" onclick="exet.handleKeyDown('#')">
             Add automagic blocks (#)
           </div>
-
           <div title="Try to autofill the remaining grid"
-            class="xet-dropdown-item" id="xet-autofill">Autofill:
+              class="xet-dropdown-item" id="xet-start-autofill">Autofill:
             <div class="xet-dropdown-submenu xet-autofill-panel">
               <div>
                 <button id="xet-autofill-startstop"
                     class="xlv-button">Start</button>
                 <button id="xet-autofill-accept" style="float:right"
-                  title="Accept autofill suggestions"
-                  class="xlv-button">Accept</button>
+                    title="Accept autofill suggestions"
+                    class="xlv-button">Accept</button>
                 <button id="xet-autofill-clear" style="float:right"
-                  title="Stop the autofill and clear all its suggestions"
-                  class="xlv-button">Clear</button>
+                    title="Stop the autofill and clear all its suggestions"
+                    class="xlv-button">Clear</button>
               </div>
               <hr>
               <div style="padding:4px">
                 Beam search width:
-                <input id="xet-autofill-max-beam"
-                    name="xet-autofill-max-beam"
+                <input id="xet-autofill-max-beam" name="xet-autofill-max-beam"
                     value="64" type="text" size="4" maxlength="4"
                     style="padding:0;margin:0">
                 </input>
@@ -1943,17 +1861,16 @@ Exet.prototype.makeExetTab = function() {
               </div>
               <hr>
               <div style="padding:4px" title="You can edit the list of ` +
-                  `preferred fills by clicking on the 'Set preferred ` +
-                  `fills' button">
+                  `preferred fills by clicking on the 'Set preferred fills' ` +
+                  `button">
                 Preferred fills used: <span
                   id="xet-autofill-preflex-used">0</span> of <span
-                  id="xet-autofill-preflex-total"
-                  >${this.preflex.length}</span>
+                  id="xet-autofill-preflex-total">${this.preflex.length}</span>
               </div>
               <div title="You can edit the list of undesired fills, ` +
-                `restrict fills by a popularity cutoff, and allow/` +
-                `disallow proper nouns by clicking on the 'Set fill ` +
-                `exclusions' button">
+                  `restrict fills by a popularity cutoff, and allow/disallow ` +
+                  `proper nouns by clicking on the 'Set fill exclusions' ` +
+                  `button">
                 <div style="padding:4px">
                   Min popularity: <span
                       id="xet-autofill-minpop">${this.minpop}</span> %ile
@@ -1961,13 +1878,12 @@ Exet.prototype.makeExetTab = function() {
                         this.indexMinPop).toLocaleString()}` +
                   `</span> entries)
                 </div>
-                <div style="padding:4px" title="You can edit the list ` +
-                    `of undesired fills, restrict fills by a ` +
-                    `popularity cutoff, and allow/disallow proper ` +
-                    `nouns by clicking on the 'Set ` +
+                <div style="padding:4px" title="You can edit the list of ` +
+                    `undesired fills, restrict fills by a popularity cutoff, ` +
+                    `and allow/disallow proper nouns by clicking on the 'Set ` +
                     `fill exclusions' button">
                   Proper nouns: <span
-                    id="xet-autofill-proper-nouns">${this.noProperNouns ?
+                      id="xet-autofill-proper-nouns">${this.noProperNouns ?
                           "disallowed" : "allowed"}</span>&nbsp;
                   Undesired fills: <span
                       id="xet-autofill-unpreflex-total">${Object.keys(
@@ -1978,7 +1894,7 @@ Exet.prototype.makeExetTab = function() {
                 Letters used: <span id="xet-autofill-pangram">0</span> of
                 ${exetLexicon.letters.length}
                 <span class="xet-blue" id="xet-is-pangram"
-                                 style="display:none">Pangram!</span>
+                                       style="display:none">Pangram!</span>
               </div>
               <hr>
               <div style="padding:4px">
@@ -1995,112 +1911,45 @@ Exet.prototype.makeExetTab = function() {
               </div>
               <div style="padding:4px">
                 Last status: <span id="xet-autofill-status"></span>
-                (beam width: <span id="xet-autofill-curr-beam"></span>)
-                 &nbsp;
+                (beam width: <span id="xet-autofill-curr-beam"></span>)&nbsp;
               </div>
             </div>
           </div>
-
-          <div title="Accept all current autofilled entries"
-              class="xet-dropdown-item" onclick="exet.acceptAll()">
-            Accept autofilled entries (=)
-          </div>
-
-          <div class="xet-dropdown-item">
-            Edit grid cell:
-            <div class="xet-dropdown-submenu">
-              <div style="padding:10px"
-                  title="If you check this, then the next Toggle block/bar ` +
-                  `will not automatically do the same on the symmetric cell">
+          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('=')">
+            Accept autofilled entries (=)</div>
+          <hr>
+          <hr>
+          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('@')">
+            Toggle encircling (@)</div>
+          <div class="xet-dropdown-item" onclick="exet.handleKeyDown('!')">
+            Toggle marking prefilled (!)</div>
+          <hr>
+          <hr>
+          <table>
+            <tr>
+              <td>
+              <div class="xet-dropdown-item" onclick="exet.handleKeyDown('.')">
+                Toggle block (.)</div>
+              <div class="xet-dropdown-item" onclick="exet.handleKeyDown('|')">
+                Toggle bar-after (|)</div>
+              <div class="xet-dropdown-item" onclick="exet.handleKeyDown('_')">
+                Toggle bar-under (_)</div>
+              </td>
+              <td style="max-width:140px;padding:4px 10px"
+                title="If you check this, then the next Toggle block/bar ` +
+                    `will not automatically do the same on the symmetric cell">
                 <input id="xet-asymmetry-ok" name="xet-asymmetry-ok"
                   value="asymmetric" type="checkbox" style="margin:6px 0">
                 </input>
-                <i>Do not force symmetry on next "Toggle block/bar"</i>
-              </div>
-              <div class="xet-dropdown-subitem"
-                  title="Toggle making this cell a block"
-                  onclick="exet.handleKeyDown('.')">
-                Toggle block (.)
-              </div>
-              <div class="xet-dropdown-subitem"
-                  title="Toggle bar after this cel"
-                  onclick="exet.handleKeyDown('|')">
-                Toggle bar-after (|)
-              </div>
-              <div class="xet-dropdown-subitem"
-                  title="Toggle bar under this cel;"
-                  onclick="exet.handleKeyDown('_')">
-                Toggle bar-under (_)
-              </div>
-            </div>
-          </div>
-
-          <div class="xet-dropdown-item">
-            Mark grid cell:
-            <div class="xet-dropdown-submenu">
-              <div class="xet-dropdown-subitem"
-                title="Toggle encircling of cell"
-                onclick="exet.handleKeyDown('@')">
-                Toggle encircling (@)
-              </div>
-              <div class="xet-dropdown-subitem"
-                title="Toggle marking cell prefilled"
-                onclick="exet.handleKeyDown('!')">
-                Toggle marking prefilled (!)
-              </div>
-              <div class="xet-dropdown-subitem" id = "xet-toggle-nina"
-                  title="Toggle marking cell as part of a nina">
-                Toggle nina ($)
-              </div>
-              <div class="xet-dropdown-subitem"
-                  id = "xet-toggle-colour" title="Toggle colouring cell">
-                Toggle colouring (^)
-              </div>
-              <div class="xet-dropdown-subitem"
-                  onclick="exet.clearAllMarkings()"
-                  id = "xet-clear-all-markings"
-                  title="Clear all circles, prefills, colours, ninas">
-                Clear all markings!
-              </div>
-            </div>
-          </div>
-
-          <div class="xet-dropdown-item">
-            Add/edit special sections:
-            <div class="xet-dropdown-submenu">
-              <div class="xet-dropdown-subitem" id="xet-edit-preamble"
-                   title="Add or edit the 'preamble' section">
-               Preamble
-              </div>
-              <div class="xet-dropdown-subitem" id="xet-edit-explanations"
-                   title="Add or edit the 'explanations' section">
-               Explanations
-              </div>
-              <div class="xet-dropdown-subitem" id="xet-edit-questions"
-                   title="Add or edit the 'questions' section">
-               Questions
-              </div>
-              <div class="xet-dropdown-subitem" id="xet-edit-other-sections"
-                   title="Add or edit other Exolve sections">
-               Other Exolve sections
-              </div>
-            </div>
-          </div>
-
-          <div class="xet-dropdown-item" onclick="exet.puz.clearAll()">
-             Clear all the lights! (Ctrl-Q)
-          </div>
-
-          <div class="xet-dropdown-item">
-            Preferences:
-            <div class="xet-dropdown-submenu">
-              <div class="xet-dropdown-subitem">
-                <input type="checkbox" id="xet-spellcheck"></input>
-                Spellcheck clues/annos
-              </div>
-            </div>
-          </div>
-
+                <br>
+                <i>Do not force symmetry on the next "Toggle block/bar"</i>
+              </td>
+            </tr>
+          </table>
+          <hr>
+          <hr>
+          <div class="xet-dropdown-item" onclick="exet.clearAll()">
+              Clear all the lights!</div>
         </div>
       </li>
       <li class="xet-dropdown">
@@ -2137,8 +1986,7 @@ Exet.prototype.makeExetTab = function() {
             `in use by this software is inevitably likely to have some ` +
             `errors and omissions.">Choose grid-fill</span>
         <button class="xlv-small-button" style="padding:5px 4px"
-            title="Keyboard shortcut: Ctrl-q"
-            onclick="exet.puz.clearCurr()">Clear light</button>
+            onclick="exet.clearCurr()">Clear light</button>
       </div>
       <div class="xet-choices-box" id="xet-light-choices-box">
         <table id="xet-light-choices" class="xet-choices">
@@ -2159,7 +2007,7 @@ Exet.prototype.makeExetTab = function() {
         <span id="xet-unpreflex-size">${Object.keys(
             this.unpreflex).length}</span> set
       </div>
-      <div class="xet-text-editor"
+      <div class="xet-preflex-editor"
           title="Click anywhere outside this box to dismiss it"
           id="xet-preflex-editor" style="display:none">
         <div>
@@ -2167,10 +2015,11 @@ Exet.prototype.makeExetTab = function() {
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <textarea rows="100" cols="30" id="xet-preflex-input"
-            oninput="exet.throttledUpdatePreflex()"></textarea>
+            oninput="exet.throttledUpdatePreflex()"
+            class="xlv-answer"></textarea>
         </div>
       </div>
-      <div class="xet-text-editor"
+      <div class="xet-preflex-editor"
           title="Click anywhere outside this box to dismiss it"
           id="xet-unpreflex-editor" style="display:none">
         <div>
@@ -2178,7 +2027,8 @@ Exet.prototype.makeExetTab = function() {
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <textarea rows="100" cols="30" id="xet-unpreflex-input"
-            oninput="exet.throttledUpdateUnpreflex()"></textarea>
+            oninput="exet.throttledUpdateUnpreflex()"
+            class="xlv-answer"></textarea>
         </div>
       </div>
     </div>
@@ -2208,61 +2058,9 @@ Exet.prototype.makeExetTab = function() {
     </div>
   </div>
 </div>
-<div id="xet-preamble" class="xet-text-editor" style="display:none">
-  <div style="padding:6px">
-    <b>Edit the contents of the optional "preamble" section:</b><br>
-    The preamble is shown at the top of the crossword, and includes any special
-    instructions or notes that the setter might want to provide to solvers.
-    HTML tags may be used in this section.
-  </div>
-  <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="80" wrap="hard" id="xet-preamble-text">
-     </textarea>
-  </div>
-</div>
-<div id="xet-explanations" class="xet-text-editor" style="display:none">
-  <div style="padding:6px">
-    <b>Edit the contents of the optional "explanations" section:</b><br>
-    The explanations section is shown under the crossword, after a fully
-    correct solution is checked or the full solution is revealed. It might
-    include notes from the setter about any special theme or features that
-    the setter might want to share with solvers.
-    HTML tags may be used in this section.
-  </div>
-  <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="80" wrap="hard" id="xet-explanations-text">
-     </textarea>
-  </div>
-</div>
-<div id="xet-questions" class="xet-text-editor" style="display:none">
-</div>
-<div id="xet-tweak-colour-nina" class="xet-text-editor"
-  style="display:none">
-</div>
-<div id="xet-other-sections" class="xet-text-editor" style="display:none">
-  <div style="padding:6px">
-    <b>Edit these additional Exolve sections here, if desired:</b><br>
-    <ul>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-credits">exolve-credits</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-force-hyphen-right-exolve-force-hyphen-below-exolve-force-bar-right-exolve-force-bar-below">exolve-force-{bar,hyphen}-{below,right}</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-option">exolve-option</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-postscript">exolve-postscript</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-relabel">exolve-relabel</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-submit">exolve-submit</a></li>
-    </ul>
-    If there are any problems in parsing the text, then the error will be shown in red below and
-    the text will not be used until the error is fixed.
-  </div>
-  <div id="xet-other-sections-error" style="min-height:20px" class="xet-red">
-  </div>
-  <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="80" wrap="hard" id="xet-other-sections-text">
-     </textarea>
-  </div>
-</div>
   `;
   // Set up menu click handling
-  const menuButtons = exetTab.content.getElementsByClassName('xet-dropbtn')
+  let menuButtons = exetTab.content.getElementsByClassName('xet-dropbtn')
   for (let i = 0; i < menuButtons.length; i++) {
     let menuPanel = menuButtons[i].nextElementSibling
     menuButtons[i].addEventListener('click', e => {
@@ -2331,16 +2129,14 @@ Exet.prototype.makeExetTab = function() {
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
-  const showRevChooser = document.getElementById("xet-show-rev-chooser")
+  let showRevChooser = document.getElementById("xet-show-rev-chooser")
   showRevChooser.addEventListener('click', e => {
     exetRevManager.choosePuzRev(false, this.puz, exet.revChooser,
                                 exetFromHistory);
     exetModals.showModal(exet.revChooser)
     e.stopPropagation()
   })
-  const manageStorage = document.getElementById("xet-manage-storage")
-  this.storageUsed = document.getElementById("xet-storage-used")
-  this.storageFree = document.getElementById("xet-storage-free")
+  let manageStorage = document.getElementById("xet-manage-storage")
   manageStorage.addEventListener('click', e => {
     exetRevManager.choosePuzRev(true, null, exet.revChooser, null);
     exetModals.showModal(exet.revChooser)
@@ -2348,13 +2144,13 @@ Exet.prototype.makeExetTab = function() {
   })
 
   // Saving options
-  const showEnums = document.getElementById("xet-show-enums")
+  let showEnums = document.getElementById("xet-show-enums")
   showEnums.addEventListener('change', e => {
     exetState.showEnums = showEnums.checked ? true : false;
     exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
                              JSON.stringify(exetState))
   });
-  const exolveUrl = document.getElementById("xet-xlv-url-prefix")
+  let exolveUrl = document.getElementById("xet-xlv-url-prefix")
   exolveUrl.addEventListener('change', e => {
     exolveUrl.value = exolveUrl.value.trim();
     if (exolveUrl.value.length > 0 &&
@@ -2376,86 +2172,6 @@ Exet.prototype.makeExetTab = function() {
 
   // Editing options
   this.asymOK = document.getElementById("xet-asymmetry-ok")
-
-  const preamble = document.getElementById("xet-preamble")
-  const preambleText = document.getElementById("xet-preamble-text")
-  preambleText.value = this.preamble.innerHTML;
-  preambleText.addEventListener('input', e => {
-    const text = preambleText.value.trim()
-    this.preamble.innerHTML = text
-    this.preamble.style.display = text ? '' : 'none'
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-  });
-  document.getElementById("xet-edit-preamble").addEventListener('click', e => {
-    this.puz.deactivator();
-    exetModals.showModal(preamble)
-    e.stopPropagation();
-  })
-  document.getElementById("xet-toggle-nina").addEventListener('click', e => {
-    this.toggleNina(e);
-    e.stopPropagation();
-  })
-  document.getElementById("xet-toggle-colour").addEventListener('click', e => {
-    this.toggleColour(e);
-  })
-
-  const explanations = document.getElementById("xet-explanations")
-  const explanationsText = document.getElementById("xet-explanations-text")
-  explanationsText.value = this.explanations.innerHTML;
-  explanationsText.addEventListener('input', e => {
-    const text = explanationsText.value.trim()
-    this.explanations.innerHTML = text
-    this.explanations.style.display = text ? '' : 'none'
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-  });
-  document.getElementById("xet-edit-explanations").addEventListener(
-      'click', e => {
-    exetModals.showModal(explanations)
-    e.stopPropagation();
-  })
-
-  const questions = document.getElementById("xet-questions");
-  document.getElementById("xet-edit-questions").addEventListener('click', e => {
-    this.populateQuestions(questions);
-    exetModals.showModal(questions)
-    e.stopPropagation();
-  });
-
-  this.tweakColourNina = document.getElementById("xet-tweak-colour-nina")
-  this.tweakColourNina.style.left = "100%";
-  document.getElementById(this.puz.prefix + '-grid-parent').appendChild(
-      this.tweakColourNina);
-
-  this.otherSecPanel = document.getElementById("xet-other-sections")
-  this.otherSecText = document.getElementById("xet-other-sections-text")
-  this.otherSecError = document.getElementById("xet-other-sections-error")
-  this.otherSecText.spellcheck = false;
-  this.otherSecText.addEventListener(
-      'input', this.updateOtherSections.bind(this));
-  document.getElementById("xet-edit-other-sections").addEventListener(
-      'click', e => {
-    this.puz.deactivator();
-    this.otherSecText.value = this.exolveOtherSec;
-    this.otherSecError.innerText = '';
-    exetModals.showModal(this.otherSecPanel)
-    e.stopPropagation();
-  })
-
-  const spellcheck = document.getElementById("xet-spellcheck");
-  spellcheck.checked = exetState.spellcheck;
-  spellcheck.addEventListener('change', e => {
-    this.puz.deactivator();
-    exetState.spellcheck = spellcheck.checked ? true : false;
-    if (this.puz.currCellIsValid()) {
-      const row = this.puz.currRow;
-      const col = this.puz.currCol;
-      if (this.puz.grid[row][col].isLight) {
-        this.puz.activateCell(row, col)
-      }
-    }
-    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
-                             JSON.stringify(exetState))
-  });
 
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
@@ -2503,14 +2219,14 @@ Exet.prototype.depunct = function(s) {
   for (let c of s) {
     if (c == ' ' || c == '-' || c == "'" || this.allLetters[c.toUpperCase()]) {
       out += c
-    } else if (c == '—') {
-      out += ' '
     }
   }
   return out.replace(/ [ ]*/g, ' ').toLowerCase().trim()
 }
 
 Exet.prototype.essenceOfAnno = function(s) {
+  // Remove 'def ...'
+  s = s.replace(/[dD]ef[^\.]*\./g, ' ')
   let out = ''
   for (let c of s) {
     if (c == '*') {
@@ -2528,18 +2244,14 @@ Exet.prototype.essenceOfAnno = function(s) {
   out = out.replace(/[^ ]*\([^)]*\)[^ ]*/g, ' ')
   // Remove words containing []
   out = out.replace(/[^ ]*\[[^\]]*\][^ ]*/g, ' ')
-  // Remove parens
-  out = out.replace(/[\[\]}){(]/g, '')
   // Remove ".."
   out = out.replace(/"[^"]*"/g, ' ')
   // Remove '..'
   out = out.replace(/'[^']*'/g, ' ')
   // Remove words with 2 or more uppercase letters
   out = out.replace(/[a-zA-Z'-]*[A-Z][a-zA-Z'-]*[A-Z][a-zA-Z'-]*/g, ' ')
-  // Remove words containing <>
-  out = out.replace(/[^ ]*<[^ ]*>[^ ]*/g, ' ')
-  // Remove words starting with -
-  out = out.replace(/ -[^ ]*/g, ' ')
+  // Remove parens
+  out = out.replace(/[\[\]}){(]/g, '')
   // Remove single-letter words
   out = out.replace(/( [A-Za-z])+ /g, ' ')
   out = out.replace(/^([A-Za-z] )+/g, ' ')
@@ -2848,62 +2560,6 @@ Exet.prototype.updateMetadata = function() {
     this.restoreCursor()
     this.throttledMetadataTimer = null;
     exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-  }, 2000);
-}
-
-Exet.prototype.updateOtherSections = function() {
-  if (!this.puz) {
-    return
-  }
-  const ALLOWED_SECTIONS = {
-    'exolve-credits': true,
-    'exolve-postscript': true,
-    'exolve-submit': true,
-    'exolve-option': true,
-    'exolve-relabel': true,
-    'exolve-force-hyphen-right': true,
-    'exolve-force-hyphen-below': true,
-    'exolve-force-bar-right': true,
-    'exolve-force-bar-below': true,
-  }
-  this.otherSecError.innerText = '';
-  if (this.throttledOtherSecTimer) {
-    clearTimeout(this.throttledOtherSecTimer);
-  }
-  this.throttledOtherSecTimer = setTimeout(() => {
-    this.throttledOtherSecTimer = null;
-    const text = this.otherSecText.value;
-    const matches = text.match(/exolve-[a-zA-Z0-9-]+/g);
-    for (let i = 0; matches && i < matches.length; i++) {
-      m = matches[i];
-      if (!ALLOWED_SECTIONS[m]) {
-        this.otherSecError.innerText = m + ' is not allowed here';
-        return;
-      }
-    }
-    const saved = this.exolveOtherSec;
-    this.exolveOtherSec = text;
-    const tempId = this.puz.id + '-temp'
-    const specs = this.getExolve(tempId, true);
-    let specsOK = true;
-    const xetTemp = document.getElementById("xet-temp");
-    xetTemp.innerHTML = ''
-    try {
-      const oldalert = window.alert;
-      window.alert = function() {};
-      const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
-      window.alert = oldalert;
-    } catch (err) {
-      specsOK = false;
-      this.otherSecError.innerText = '' + err;
-    }
-    xetTemp.innerHTML = ''
-    delete exolvePuzzles[tempId]
-    if (specsOK) {
-      this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
-    } else {
-      this.exolveOtherSec = saved;
-    }
   }, 2000);
 }
 
@@ -3989,38 +3645,6 @@ Exet.prototype.scrollCluesIfNeeded = function() {
 }
 
 Exet.prototype.replaceHandlers = function() {
-  this.puz.clearCurr = (function() {
-    exet.clearCurrSaved = exet.puz.clearCurr;
-    return function() {
-      exet.markNinasAsPrefilled();
-      exet.clearCurrSaved.apply(exet.puz, arguments);
-      exet.unmarkNinasAsPrefilled();
-      const theClue = exet.currClue()
-      theClue.clue = exet.draftClue(exet.currClueIndex());
-      theClue.solution = ''
-      exet.puz.setClueSolution(exet.currClueIndex());
-      theClue.anno = ''
-      exet.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
-    };
-  })();
-  this.puz.clearAll = (function() {
-    exet.clearAllSaved = exet.puz.clearAll;
-    return function() {
-      exet.markNinasAsPrefilled();
-      if (exet.clearAllSaved.apply(exet.puz, arguments)) {
-        for (let ci in exet.puz.clues) {
-          exet.puz.clues[ci].clue = exet.draftClue(ci)
-          exet.puz.clues[ci].solution = ''
-          exet.puz.setClueSolution(ci);
-          exet.puz.clues[ci].anno = ''
-        }
-        exet.unmarkNinasAsPrefilled();
-        exet.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
-      } else {
-        exet.unmarkNinasAsPrefilled();
-      }
-    };
-  })();
   this.puz.cnavToInner = (function() {
     exet.cnavToInnerSaved = exet.puz.cnavToInner;
     return function() {
@@ -4199,35 +3823,20 @@ Exet.prototype.reposition = function() {
     }
   }
 
-  const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
-
-  if (this.puz.currClueIndex && clueBox.top > 0) {
-    this.linking.style.left = (clueBox.left - clueParentBox.left) + 'px';
-    this.linking.style.top = (clueBox.top - clueParentBox.top - 34) + 'px';
-  }
-
-  const colourNinaWidth = Math.min(300, (clueParentBox.width - clueBox.width) / 2);
-  this.tweakColourNina.style.width = colourNinaWidth + 'px';
-
   const xetFormat = document.getElementById('xet-format')
   if (xetFormat) {
+    const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
     const previewWidth = Math.min(480, (clueParentBox.width - clueBox.width) / 2);
+
     for (let tag of Object.keys(this.formatTags)) {
       const preview = document.getElementById('xet-format-' + tag + '-preview')
       preview.style.width = previewWidth + 'px';
     }
+
     xetFormat.style.top = (-32 + clueBox.top - clueParentBox.top) + 'px';
     xetFormat.style.right = (clueParentBox.width -
         clueBox.width - clueBox.left) + 'px';
   }
-}
-
-Exet.prototype.lastTagOpener = function(s) {
-  let mark = s.lastIndexOf('<');
-  while (mark > 0 && s.charAt(mark - 1) == '<') {
-    mark = s.substr(0, mark - 1).lastIndexOf('<');
-  }
-  return mark;
 }
 
 Exet.prototype.maybeShowFormat = function() {
@@ -4266,7 +3875,7 @@ Exet.prototype.maybeShowFormat = function() {
       return
     }
   }
-  const prevMark = this.lastTagOpener(prefix)
+  const prevMark = prefix.lastIndexOf('<')
   if (prevMark >= 0 && prevMark >= prefix.lastIndexOf('>')) {
     return
   }
@@ -4377,33 +3986,33 @@ Exet.prototype.maybeShowFormat = function() {
 }
 
 Exet.prototype.makeClueEditable = function() {
-  const theClue = this.currClue();
+  let theClue = this.currClue();
   if (!theClue) {
     return
   }
-  const currClueText = document.getElementById(
+  let currClueText = document.getElementById(
       `${exet.puz.prefix}-curr-clue-text`)
   currClueText.innerHTML = `<span class="xet-action">Edit clue: </span><span
-    id="xet-clue-stat" class="xet-clue-stat"></span><span
-    contenteditable="true" class="xet-editable" id="xet-clue"></span>`
+    id="xet-clue-stat" class="xet-clue-stat"></span>
+    <span contenteditable="true" class="xet-editable" id="xet-clue"></span>`
   this.currClueIsDraft = this.isDraftClue(theClue.clue)
   // We make the raw clue text editable here, including any tags or
   // in-clue-anno markers (~{...}~).
-  const xetClue = document.getElementById("xet-clue")
-  xetClue.spellcheck = exetState.spellcheck
+  let xetClue = document.getElementById("xet-clue")
+  xetClue.spellcheck = false
   xetClue.innerText = this.currClueIsDraft ?
     theClue.clue.substr(this.DRAFT.length).trim() : theClue.clue
-  const handler = this.throttledClueChange.bind(this)
+  let handler = this.throttledClueChange.bind(this)
   xetClue.addEventListener('input', handler)
   this.setDraftToggler()
-  const xetClueStat = document.getElementById("xet-clue-stat")
+  let xetClueStat = document.getElementById("xet-clue-stat")
   xetClueStat.addEventListener('click', e => {
     exet.currClueIsDraft = !exet.currClueIsDraft;
     exet.setDraftToggler()
     exet.handleClueChange()
   });
 
-  const spacer = document.createElement('span')
+  let spacer = document.createElement('span')
   spacer.innerHTML = `<br><span class="xet-action">Edit
       optional anno: </span>`
   this.puz.currClue.appendChild(spacer)
@@ -4412,20 +4021,37 @@ Exet.prototype.makeClueEditable = function() {
   xetAnno.className = 'xet-anno xet-editable'
   xetAnno.id = 'xet-anno'
   xetAnno.contentEditable = true
-  xetAnno.spellcheck = exetState.spellcheck
+  xetAnno.spellcheck = false
   xetAnno.innerText = theClue.anno
   this.puz.currClue.appendChild(xetAnno)
   xetAnno.addEventListener('input', handler)
 
+  this.puz.currClue.insertAdjacentHTML('afterbegin', `
+    <div id="xet-linking" class="xet-linking">
+    <button id="xet-add-linked" class="xlv-small-button">Add</button>
+    <input id="xet-add-linked-num" name="xet-add-linked-num"
+      title="Enter a clue number, optionally followed by A/D"
+          class="xlv-answer" size="4" type="text"></input>
+    as a linked clue.
+    </div>
+    `);
+  let addLinked = document.getElementById("xet-add-linked");
+  addLinked.addEventListener('click', this.addLinkedClue.bind(this));
+  const linking = document.getElementById('xet-linking');
+  linking.style.display = 'none';
   if (theClue.childrenClueIndices && theClue.childrenClueIndices.length > 0) {
-    this.unlink.style.display = '';
-  } else {
-    this.unlink.style.display = 'none';
+    linking.insertAdjacentHTML('beforeend', `
+      &nbsp;
+      <button class="xlv-small-button" id="xet-unlink" style="color:red">
+      Break linked clues
+      </button>`)
+    let unlink = document.getElementById("xet-unlink");
+    unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
   }
-  const ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`)
+  let ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`)
   ccLabel.title = 'Click to add or break up linked clues';
   ccLabel.addEventListener('click', e => {
-    exetModals.showModal(this.linking)
+    exetModals.showModal(linking)
     e.stopPropagation()
   });
 
@@ -4571,7 +4197,6 @@ Exet.prototype.throttledClueChange = function() {
   if (this.throttledClueTimer) {
     clearTimeout(this.throttledClueTimer);
   }
-  this.maybeShowFormat();
   this.throttledClueTimer = setTimeout(() => {
     this.handleClueChange()
     this.throttledClueTimer = null;
@@ -4656,7 +4281,7 @@ Exet.prototype.handleClueChange = function() {
   this.puz.makeCurrClueVisible()
   this.reposition()
 
-  this.restoreCursor();
+  this.restoreCursor()
 
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {
@@ -4979,9 +4604,9 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
     for (let span of spans) {
       for (let x = minSpan; x < span[1] - minSpan; x++) {
         let k2 = span[0] + x
-        let symk2 = h - 1 - k2
+        let symk2 = w - 1 - k2
         if (isRow) {
-          symk2 = w - 1 - k2
+          symk2 = h - 1 - k2
         }
         let gridCell = isRow ? grid[k1][k2] : grid[k2][k1]
         let gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1]
@@ -5009,9 +4634,9 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
       continue
     }
     let k2 = candidates[randIndex]
-    let symk2 = h - 1 - k2
+    let symk2 = w - 1 - k2
     if (isRow) {
-      symk2 = w - 1 - k2
+      symk2 = h - 1 - k2
     }
     let gridCell = isRow ? grid[k1][k2] : grid[k2][k1]
     let gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1]
@@ -5069,182 +4694,43 @@ Exet.prototype.automagicBlocks = function(showAlerts=true) {
   return false
 }
 
-// --------------- Autofill-related code --------------------------------------
-
-// ExetDher is an implementation of a double heap that stores the top k
-// candidates in terms of descending scores. A min-heap lets us retain
-// the top-k elements, while a max-heap lets us extract the max element.
-// The candidate objects stored in this (via add()) should have a "score" field.
-// Objects stored in this get a property named "dher" attached to them, for
-// storing some book-keping info.
-function ExetDher(lim) {
-  this.maxelts = []
-  this.minelts = []
-  this.lim = lim
-  console.assert(lim > 0, lim);
-}
-ExetDher.prototype.relimit = function(lim) {
-  console.assert(lim > 0, lim);
-  const extra = this.minelts.length - lim;
-  for (let i = 0; i < extra; i++) {
-    this.pop(false, 0)
-  }
-  this.lim = lim
-}
-ExetDher.prototype.size = function() {
-  return this.maxelts.length
-}
-ExetDher.prototype.limit = function() {
-  return this.lim
-}
-ExetDher.prototype.parent = function(idx) {
-  return idx == 0 ? 0 : (idx - 1) >> 1
-}
-ExetDher.prototype.heapifyUp = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts
-  console.assert(idx >= 0 && idx < elts.length, idx, elts.length)
-  while (idx > 0) {
-    let parent = this.parent(idx)
-    if (inMax) {
-      if (elts[parent].score >= elts[idx].score) {
-        return
-      }
-    } else {
-      if (elts[parent].score <= elts[idx].score) {
-        return
-      }
-    }
-    let temp = elts[idx]
-    elts[idx] = elts[parent]
-    elts[parent] = temp
-    elts[idx].dher[inMax] = idx
-    elts[parent].dher[inMax] = parent
-    idx = parent
-  }
-}
-ExetDher.prototype.heapifyDown = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts
-  console.assert(idx >= 0 && idx < elts.length, idx, elts.length)
-  while (idx < elts.length) {
-    let lchild = (idx << 1) + 1
-    if (lchild >= elts.length) return
-    let child = lchild
-    let rchild = lchild + 1
-    if (inMax) {
-      if (rchild < elts.length &&
-          elts[rchild].score > elts[lchild].score) {
-        child = rchild
-      }
-      if (elts[idx].score >= elts[child].score) return
-    } else {
-      if (rchild < elts.length &&
-          elts[rchild].score < elts[lchild].score) {
-        child = rchild
-      }
-      if (elts[idx].score <= elts[child].score) return
-    }
-    let temp = elts[idx]
-    elts[idx] = elts[child]
-    elts[child] = temp
-    elts[idx].dher[inMax] = idx
-    elts[child].dher[inMax] = child
-    idx = child
-  }
-}
-ExetDher.prototype.add = function(candidate) {
-  let num = this.minelts.length
-  if (num == this.lim) {
-    let worst = this.minelts[0]
-    if (candidate.score < worst.score) {
-      return
-    }
-    if (candidate.score == worst.score) {
-      if (Math.random() < 0.5) {
-        return;
-      }
-    }
-    this.pop(false)
-    num--;
-  }
-  candidate.dher = {}
-  candidate.dher[true] = num
-  candidate.dher[false] = num
-  this.maxelts.push(candidate)
-  this.minelts.push(candidate)
-  this.heapifyUp(true, num)
-  this.heapifyUp(false, num)
-}
-ExetDher.prototype.popInner = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts
-  let len = elts.length
-  console.assert(len > 0, len);
-  let last = elts.pop()
-  if (len == 1 || idx >= len - 1) {
-    return last
-  }
-  // len > 1 && idx < len - 1
-  let ret = elts[idx]
-  elts[idx] = last
-  last.dher[inMax] = idx
-  let parent = this.parent(idx)
-  if (idx > 0 &&
-      ((inMax && last.score > elts[parent].score) ||
-       (!inMax && last.score < elts[parent].score))) {
-    this.heapifyUp(inMax, idx)
-  } else {
-    this.heapifyDown(inMax, idx)
-  }
-  return ret
-}
-ExetDher.prototype.pop = function(inMax, idx=0) {
-  let elts = inMax ? this.maxelts : this.minelts
-  if (idx < 0 || idx >= elts.length) return null;
-  const otherIdx = elts[idx].dher[!inMax]
-  this.popInner(!inMax, otherIdx)
-  return this.popInner(inMax, idx)
-}
-ExetDher.prototype.peep = function(inMax, idx=0) {
-  let elts = inMax ? this.maxelts : this.minelts
-  if (idx < 0 || idx >= elts.length) return null;
-  return elts[idx]
-}
-
 Exet.prototype.setScore = function(fillState) {
   fillState.scoreF = 0
   fillState.scoreV = 0
   fillState.score = 0
 
+  // Treat viability/5 = independent probability.
   fillState.unfilled = []
   fillState.lettersUsed = {}
-  let numLightCells = 0;
+  let numLights = 0
   for (let i = 0; i < fillState.gridHeight; i++) {
     for (let j = 0; j < fillState.gridWidth; j++) {
-      let fillCell = fillState.grid[i][j]
-      if (!fillCell.isLight) {
+      let gridCell = fillState.grid[i][j]
+      if (!gridCell.isLight) {
         continue
       }
-      numLightCells++;
-      if (fillCell.solution != '?' || fillCell.currLetter != '?') {
-        let c = fillCell.solution
-        if (c == '?') c = fillCell.currLetter
-        console.assert(c, i, j, fillCell)
+      numLights++
+      if (gridCell.solution != '?' || gridCell.currLetter != '?') {
+        let c = gridCell.solution
+        if (c == '?') c = gridCell.currLetter
+        console.assert(c, i, j, gridCell)
         fillState.lettersUsed[c] = true
         continue
       }
-      if (fillCell.viability <= 0) {
-        fillState.unfilled.push([i, j, fillCell.viability]);
+      if (gridCell.viability <= 0) {
+        fillState.unfilled.push([i, j, gridCell.viability]);
         fillState.scoreV = - Number.MAX_VALUE
         fillState.score = fillState.scoreV
         fillState.viable = false
         return
       }
-      fillState.scoreV += Math.log(fillCell.viability)
-      fillState.unfilled.push([i, j, fillCell.viability]);
+      fillState.scoreV += Math.log(gridCell.viability)
+      fillState.unfilled.push([i, j, gridCell.viability]);
     }
   }
   const used = Object.keys(fillState.lettersUsed);
   fillState.numLettersUsed = used.length;
-  if (numLightCells == 0) {
+  if (numLights == 0) {
     return
   }
   let boost = 0
@@ -5277,7 +4763,7 @@ Exet.prototype.setScore = function(fillState) {
   fillState.scoreV /= 100
   fillState.score += fillState.scoreV
 
-  const f = numLightCells - fillState.unfilled.length;
+  const f = numLights - fillState.unfilled.length;
   fillState.scoreF = 30 * (f + boost) / 100
   fillState.score += fillState.scoreF
 }
@@ -5295,28 +4781,59 @@ Exet.prototype.isFull = function(candidate) {
   return candidate.unfilled.length == 0
 }
 
+Exet.prototype.addToBeam = function(candidate) {
+  // this.autofill.candidates[] is sorted on increasing score
+  // (last entry is the best)
+  if (this.autofill.candidates.length == 0) {
+    this.autofill.candidates.push(candidate)
+    return
+  }
+  if (this.autofill.candidates.length >= this.autofill.beamWidth) {
+    if (candidate.score < this.autofill.candidates[0].score) {
+      return
+    } else if (candidate.score == this.autofill.candidates[0].score) {
+      if (Math.random() >= 0.5) {
+        this.autofill.candidates[0] = candidate;
+      }
+      return
+    }
+  }
+  let idx = 0;
+  while (idx < this.autofill.candidates.length &&
+         candidate.score > this.autofill.candidates[idx].score) {
+    idx++
+  }
+  let start = this.autofill.candidates.length ==
+    this.autofill.beamWidth ? 1 : 0
+  let newbeam = this.autofill.candidates.slice(start, idx)
+  newbeam.push(candidate)
+  this.autofill.candidates = newbeam.concat(
+      this.autofill.candidates.slice(idx))
+}
+
 Exet.prototype.beamSearchStep = function() {
   if (this.autofill.throttledTimer) {
     clearTimeout(this.autofill.throttledTimer)
   }
-  if (this.autofill.beam.size() == 0) {
+  if (this.autofill.candidates.length == 0) {
     return
   }
   let startTS = Date.now()
   this.autofill.throttledTimer = null;
-  let candidate = this.autofill.beam.pop(true)
+  let candidate = this.autofill.candidates.pop()
   this.autofill.step++
   this.autofill.stepSpan.innerText = this.autofill.step
   this.addAutofillChildren(candidate)
-  this.autofill.currBeamSpan.innerText = this.autofill.beam.size()
+  this.autofill.currBeamSpan.innerText = this.autofill.candidates.length
 
   this.autofill.msUsed += (Date.now() - startTS)
   this.autofill.timeSpan.innerText = this.autofill.msUsed
   this.autofill.speedSpan.innerText = (this.autofill.msUsed /
       this.autofill.step).toFixed(0)
 
-  if (this.autofill.beam.size() > 0) {
-    let best = this.autofill.beam.peep(true)
+  if (this.autofill.candidates.length > 0) {
+    let index = this.autofill.candidates.length - 1
+    let best = this.autofill.candidates[index];
     this.autofill.preflexUsedSpan.innerText = best.numPreflexUsed
     this.autofill.pangramSpan.innerText = best.numLettersUsed
     this.autofill.isPangram.style.display = (best.numLettersUsed ==
@@ -5368,7 +4885,7 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     if (this.autofill.priorityCluesIndex ==
         this.autofill.priorityClues.length) {
       // Recover, if all preferred fills were bad choices
-      this.autofill.beam.add(this.autofill.base)
+      this.addToBeam(this.autofill.base)
     }
     let ci = ciToTry[0]
     let toTry = ciToTry[1]
@@ -5411,15 +4928,15 @@ Exet.prototype.addAutofillChildren = function(candidate) {
       this.refineLightChoices(child, constrainerLimit)
       if (child.viable) {
         this.setScore(child)
-        this.autofill.beam.add(child)
+        this.addToBeam(child)
       }
     }
     return
   }
 
-  // Pick a random offset from 0,1,2
+  // Pick a random offset from 0,1,2,3
   let cellIndex = Math.floor(Math.random() *
-                             Math.min(candidate.unfilled.length, 3))
+                             Math.min(candidate.unfilled.length, 4))
   let row = candidate.unfilled[cellIndex][0]
   let col = candidate.unfilled[cellIndex][1]
   let cell = candidate.grid[row][col]
@@ -5436,7 +4953,7 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     this.refineLightChoices(child, constrainerLimit)
     if (child.viable) {
       this.setScore(child)
-      this.autofill.beam.add(child)
+      this.addToBeam(child)
     }
   }
 }
@@ -5478,14 +4995,7 @@ Exet.prototype.startstopAutofill = function() {
       alert('The grid is already full')
       return
     }
-    let beamWidth = parseInt(this.autofill.beamWidthInput.value)
-    if (isNaN(beamWidth) || beamWidth <= 0) {
-      this.autofill.beamWidthInput.value = this.autofill.beamWidth
-    } else {
-      this.autofill.beamWidth = beamWidth
-      this.autofill.beam.relimit(beamWidth)
-    }
-    if (this.autofill.beam.size() == 0) {
+    if (this.autofill.candidates.length == 0) {
       let candidate = this.getAutofillBase()
       if (!candidate.viable) {
         alert('Autofill will not work on the current grid. Perhaps retry ' +
@@ -5493,8 +5003,8 @@ Exet.prototype.startstopAutofill = function() {
         return
       }
       this.autofill.base = candidate
-      this.autofill.beam.add(candidate)
-      this.autofill.currBeamSpan.innerText = this.autofill.beam.size()
+      this.autofill.candidates.push(candidate)
+      this.autofill.currBeamSpan.innerText = this.autofill.candidates.length
       this.autofill.priorityClues = this.getAutofillPriorityClues()
       this.autofill.priorityCluesIndex = 0
     }
@@ -5513,6 +5023,12 @@ Exet.prototype.startstopAutofill = function() {
     this.sweepIndicator.className = 'xet-sweeping-animated'
     this.autofill.startstop.innerText = 'Pause'
     this.autofill.startstop.className = 'xlv-button xet-pink-button'
+    let beamWidth = parseInt(this.autofill.beamWidthInput.value)
+    if (isNaN(beamWidth) || beamWidth <= 0) {
+      this.autofill.beamWidthInput.value = this.autofill.beamWidth
+    } else {
+      this.autofill.beamWidth = beamWidth
+    }
     this.autofill.boostPangram = this.autofill.pangramInput.checked
     if (this.autofill.throttledTimer) {
       clearTimeout(this.autofill.throttledTimer)
@@ -5535,7 +5051,7 @@ Exet.prototype.startstopAutofill = function() {
 }
 
 Exet.prototype.resetAutofill = function(status) {
-  this.autofill.beam = new ExetDher(this.autofill.beamWidth);
+  this.autofill.candidates = []
   this.autofill.step = 0
   this.autofill.msUsed = 0
   this.updateAutofillPreflex()
@@ -5557,7 +5073,26 @@ Exet.prototype.resetAutofill = function(status) {
 Exet.prototype.updateAutofill = function(candidate) {
   console.assert(this.autofill.base, this.autofill)
   this.fillState = new ExetFillState(this.autofill.base)
-  // Show light-fill suggestions from full lights.
+  // Show upto 25 cells even from non-full lights, so that
+  // even in the early steps you see something going on.
+  let numShown = 0;
+  const MAX_TO_SHOW = 25
+  for (let row = 0; row < this.puz.gridHeight &&
+         numShown < MAX_TO_SHOW; row++) {
+    for (let col = 0; col < this.puz.gridWidth &&
+           numShown < MAX_TO_SHOW; col++) {
+      let gridCell = this.puz.grid[row][col]
+      if (!gridCell.isLight) {
+        continue
+      }
+      const choices = candidate.grid[row][col].cChoices
+      if (Object.keys(choices).length == 1) {
+        this.fillState.grid[row][col].cChoices = choices
+        numShown++;
+      }
+    }
+  }
+  // Show only suggestions from full lights
   for (let ci in candidate.clues) {
     let lChoices = candidate.clues[ci].lChoices
     if (lChoices.length != 1) {
@@ -5566,18 +5101,12 @@ Exet.prototype.updateAutofill = function(candidate) {
     let theClue = this.fillState.clues[ci]
     console.assert(theClue, ci)
     theClue.lChoices = lChoices
-  }
-  // Show grid-cell suggestions. 
-  for (let row = 0; row < this.puz.gridHeight; row++) {
-    for (let col = 0; col < this.puz.gridWidth; col++) {
-      let gridCell = this.puz.grid[row][col]
-      if (!gridCell.isLight) {
-        continue
-      }
-      const choices = candidate.grid[row][col].cChoices
-      if (Object.keys(choices).length == 1) {
-        this.fillState.grid[row][col].cChoices = choices
-      }
+    let cells = this.cellsOfClue(theClue)
+    for (let c of cells) {
+      let row = c[0]
+      let col = c[1]
+      this.fillState.grid[row][col].cChoices =
+          candidate.grid[row][col].cChoices
     }
   }
   this.updateViablots()
@@ -5588,7 +5117,6 @@ Exet.prototype.initAutofill = function() {
     this.autofill = {
       candidates: [],
       beamWidth: 64,
-      beam: new ExetDher(64),
       step: 0,
       running: false,
       throttledTimer: null,
@@ -5602,15 +5130,15 @@ Exet.prototype.initAutofill = function() {
   this.autofill.clear.addEventListener('click', e => {
     this.autofill.accept.disabled = true
     this.autofill.clear.disabled = true
-    this.resetAutofill('Cleared')
-    this.resetViability()
+    exet.resetAutofill('Cleared')
+    exet.resetViability()
   })
   this.autofill.accept = document.getElementById("xet-autofill-accept")
   this.autofill.accept.disabled = true
   this.autofill.accept.addEventListener('click', e => {
     this.autofill.accept.disabled = true
     this.autofill.clear.disabled = true
-    this.acceptAll();
+    exet.handleKeyDown('=')
   })
   this.autofill.startstop = document.getElementById("xet-autofill-startstop")
   if (this.autofill.running) {
@@ -5638,7 +5166,7 @@ Exet.prototype.initAutofill = function() {
   this.autofill.speedSpan = document.getElementById('xet-autofill-speed')
 
   this.autofill.currBeamSpan = document.getElementById('xet-autofill-curr-beam')
-  this.autofill.currBeamSpan.innerText = this.autofill.beam.limit()
+  this.autofill.currBeamSpan.innerText = this.autofill.candidates.length
 
   this.autofill.scoreSpan = document.getElementById('xet-autofill-score')
   this.autofill.scoreVSpan = document.getElementById('xet-autofill-score-v')
@@ -5658,8 +5186,9 @@ Exet.prototype.initAutofill = function() {
   this.autofill.pangramSpan = document.getElementById('xet-autofill-pangram')
   this.autofill.isPangram = document.getElementById('xet-is-pangram')
   this.autofill.isPangram.style.display = 'none'
-  if (this.autofill.beam.size() > 0) {
-    let candidate = this.autofill.beam.peep(true)
+  if (this.autofill.candidates.length > 0) {
+    let candidate = this.autofill.candidates[
+      this.autofill.candidates.length - 1]
     this.autofill.preflexUsedSpan.innerText = candidate.numPreflexUsed
     this.autofill.pangramSpan.innerText = candidate.numLettersUsed
     this.autofill.isPangram.style.display = (candidate.numLettersUsed ==
@@ -5670,13 +5199,13 @@ Exet.prototype.initAutofill = function() {
   }
 }
 
-// ------- End of autofill-related code ---------------------------------------
-
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
   let key = e.key || e
   if (key == '=') {
-    this.acceptAll()
+    if (this.acceptAll()) {
+      this.handleGridInput(exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE)
+    }
     return
   }
   let gridCell = this.puz.currCell()
@@ -5723,18 +5252,12 @@ Exet.prototype.handleKeyDown = function(e) {
     if (!this.automagicBlocks()) {
       return
     }
-  } else if (key == '!' && gridCell.solution != '?') {
+  } else if (key == '!') {
     gridCell.prefill = !gridCell.prefill
     revType = exetRevManager.REV_METADATA_CHANGE
   } else if (key == '@') {
     gridCell.hasCircle = !gridCell.hasCircle
     revType = exetRevManager.REV_METADATA_CHANGE
-  } else if (key == '$') {
-    this.toggleNina(e);
-    return
-  } else if (key == '^') {
-    this.toggleColour(e);
-    return
   } else {
     return
   }
@@ -5795,15 +5318,14 @@ Exet.prototype.handleGridInput = function(revType=null) {
 }
 
 Exet.prototype.killInvalidatedClues = function(row, col) {
-  const tempId = this.puz.id + '-temp'
-  const specs = this.getExolve(tempId, true)
-  const xetTemp = document.getElementById("xet-temp")
-  xetTemp.innerHTML = ''
-  const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false)
+  let tempId = this.puz.id + '-temp'
+  let specs = this.getExolve(tempId, true)
+  document.getElementById("xet-temp").innerHTML = ''
+  let newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false)
   for (let ci in this.puz.clues) {
     if (!newPuz.clues[ci] ||
         !newPuz.sameCells(newPuz.clues[ci].cells, this.puz.clues[ci].cells)) {
-      const theClue = this.puz.clues[ci];
+      let theClue = this.puz.clues[ci];
       if (theClue.parentClueIndex) {
         this.unlinkClue(theClue.parentClueIndex);
       } else if (theClue.childrenClueIndices &&
@@ -5813,8 +5335,35 @@ Exet.prototype.killInvalidatedClues = function(row, col) {
       delete this.puz.clues[ci]
     }
   }
-  xetTemp.innerHTML = ''
+  document.getElementById("xet-temp").innerHTML = ''
   delete exolvePuzzles[tempId]
+}
+
+Exet.prototype.makeExolve = function(specs) {
+  let xlvFrame = document.getElementById('xet-xlv-frame')
+  xlvFrame.innerHTML = ''
+  if (this.puz) {
+    delete exolvePuzzles[this.puz.id]
+  }
+  try {
+    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, this.TOP_CLEARANCE, 0, false)
+  } catch (err) {
+    this.puz = null
+    alert('Could not create/parse Exolve puzzle. Please reload and retry. The JavaScript console might show some diagnostic messages.')
+    console.log('Could not parse Exolve specs:')
+    console.log(specs)
+    console.log('Error thrown was:')
+    console.log(err)
+  }
+
+  if (!this.puz) {
+    return
+  }
+
+  this.handleTabClick(this.currTab);
+  exetState.lastId = this.puz.id
+  exetRevManager.saveLocal(
+      exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
 }
 
 Exet.prototype.unlinkClue = function(ci) {
@@ -5915,431 +5464,25 @@ Exet.prototype.addLinkedClue = function() {
   this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
 }
 
-Exet.prototype.killQuestion = function(idx, e) {
-  this.puz.questionTexts = this.puz.questionTexts.slice(0, idx).concat(
-      this.puz.questionTexts.slice(idx + 1));
-  this.remakeQuestionsList();
-  this.puz.redisplayQuestions();
-  this.puz.revealAll(false)
-  e.stopPropagation();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+Exet.prototype.clearCurr = function() {
+  if (!this.puz) return
+  exet.puz.clearCurr()
+  theClue = this.currClue()
+  theClue.clue = this.draftClue(this.currClueIndex());
+  theClue.solution = ''
+  theClue.anno = ''
+  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
 }
 
-Exet.prototype.updateQuestion = function(idx, e) {
-  this.puz.questionTexts[idx] = 
-    document.getElementById("xet-question-" + idx).value;
-  this.puz.redisplayQuestions();
-  for (let a of this.puz.answersList) {
-    if (a.ans && a.isq) {
-      a.input.value = a.ans
+Exet.prototype.clearAll = function() {
+  if (!this.puz) return
+  if (exet.puz.clearAll()) {
+    for (let ci in this.puz.clues) {
+      this.puz.clues[ci].clue = this.draftClue(ci)
+      this.puz.clues[ci].solution = ''
+      this.puz.clues[ci].anno = ''
     }
-  }
-  e.stopPropagation();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-}
-
-Exet.prototype.remakeQuestionsList = function() {
-  const qlist = document.getElementById("xet-questions-list");
-  if (!qlist) return;
-  let html = '';
-  for (let i = 0; i < this.puz.questionTexts.length; i++) {
-    const q = this.puz.questionTexts[i];
-    const len = Math.max(80, q.length);
-    html += `
-      <tr><td>
-      <button class="xlv-small-button" id="xet-del-question-${i}">
-      &times;
-      </button>
-      </td>
-      <td>
-      <input id="xet-question-${i}" value="${q}"
-         class="xlv-answer" size="${len}" type="text">
-      </input>
-      </td>
-      </tr>
-    `
-  }
-  qlist.innerHTML = html;
-  for (let i = 0; i < this.puz.questionTexts.length; i++) {
-    const del = document.getElementById("xet-del-question-" + i);
-    del.addEventListener('click', this.killQuestion.bind(this, i));
-    const q = document.getElementById("xet-question-" + i);
-    q.addEventListener('input', this.updateQuestion.bind(this, i));
-  }
-}
-
-Exet.prototype.populateQuestions = function(questions) {
-  questions.innerHTML = `
-  <p class="xet-action">
-  Edit/delete existing questions or add new questions.
-  </p>
-    <p>
-  Examples:
-    <ul style="font-size:x-small">
-    <li> Is this a simple question?</li>
-    <li> Is this a simple question with an expected enum shown? (3,2)</li>
-    <li> Is this a long-answer question with the enum only used for sizing? (200)* [lowercase-ok]</li>
-    <li> Is this simple question with an answer that will get shown upon "Reveal all"? (10) ABSOLUTELY</li>
-    </ul>
-  Please refer to
-    <a href="https://github.com/viresh-ratnakar/exolve#exolve-question">the
-  relevant Exolve documentation</a> for further question-formatting details.
-  </p>
-  <div class="xet-choices-box xet-mid-tall-box">
-    <button class="xlv-small-button" style="margin:6px" id="xet-add-question">
-      Add new question
-    </button>
-    <table id="xet-questions-list">
-    </table>
-  </div>`
-  document.getElementById("xet-add-question").addEventListener('click', e => {
-    this.puz.questionTexts.push(
-        "Does this question need editing? (3) YES");
-    this.remakeQuestionsList();
-    this.puz.redisplayQuestions();
-    for (let a of this.puz.answersList) {
-      if (a.ans && a.isq) {
-        a.input.value = a.ans
-      }
-    }
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-  });
-  this.remakeQuestionsList();
-}
-
-Exet.prototype.populateColourNina = function(isNina, newColour) {
-  // this.coloursInUse[] should have been set.
-  const func = isNina ? 'exet.addNina' : 'exet.addColour';
-  let html = `
-    <p class="xet-action"><b>${isNina ? 'Nina' : 'Colour'} set!</b>
-    You can modify it with these options:</p>
-  <p>
-    <input type="radio" name="xet-colour-type" id="xet-colour-cell"
-      checked
-      onclick="exet.colourToAddType = 'cell'; ${func}()" value="cell">
-    <label for="xet-colour-cell">
-      ${isNina ? 'Add the current <b>cell</b> to a nina' :
-          'Set the colour of the current <b>cell</b>'}
-    </label><br>
-    <input type="radio" name="xet-colour-type" id="xet-colour-light"
-      onclick="exet.colourToAddType = 'light'; ${func}()" value="light">
-    <label for="xet-colour-light">
-      ${isNina ? 'Add the current <b>light</b> to a nina' :
-          'Set the colour of the current <b>light</b>'}
-    </label>
-    <hr>
-  </p>`;
-
-  const newColourLabel = `
-    Use this colour:&nbsp;
-    <input id="xet-colour-new-name" name="xet-colour-new-name"
-       title="Change to any valid HTML colour name or #hex code or rgb() triple and press Enter"
-       value="${newColour}"
-       class="xlv-answer" size="16" type="text"></input>`
-  for (let idx = 0; idx < this.coloursInUse.length; idx++) {
-    const colour = this.coloursInUse[idx];
-    html += `
-    <div class="xet-colour-nina" id="xet-colour-nina-${idx}">
-      <div class="xet-colour-sample xlv-coloured-cell"
-          id="xet-colour-sample-${idx}" style="background:${colour}">
-      </div>
-      <div class="xet-colour-nina-radio">
-        <input type="radio" name="xet-colour-name" id="xet-colour-${idx}"
-           value="${colour}">
-        <label for="xet-colour-${idx}">
-          ${idx == this.coloursInUse.length - 1 ? newColourLabel : colour}
-        </label>
-      </div>
-    </div>`;
-  }
-
-  this.tweakColourNina.innerHTML = html;
-
-  for (let i = 0; i < this.coloursInUse.length; i++) {
-    document.getElementById("xet-colour-nina-" + i).addEventListener('click',
-      isNina ? this.addNina.bind(this, i) : this.addColour.bind(this, i));
-  }
-
-  const newSample = document.getElementById(
-      "xet-colour-sample-" + (this.coloursInUse.length - 1));
-  const newName = document.getElementById("xet-colour-new-name");
-  newName.addEventListener('change', e => {
-    const colour = newName.value.replace(/ /g, '').toLowerCase();
-    const idx = this.coloursInUse.length - 1;
-    if (!this.puz.isColour(colour)) {
-      newName.value = this.coloursInUse[idx];
-    } else {
-      this.coloursInUse[idx] = colour;
-      newSample.style.background = colour;
-      if (isNina) {
-        this.addNina(idx);
-      } else {
-        this.addColour(idx);
-      }
-    }
-  });
-  newName.addEventListener('click', e => {
-    e.stopPropagation();
-  });
-}
-
-Exet.prototype.removeNina = function() {
-  let nindex = -1;
-  let lindex = -1;
-  let doBreak = false;
-  for (let i = 0; !doBreak && i < this.puz.ninas.length; i++) {
-    const nina = this.puz.ninas[i];
-    for (let x = 0; x < nina.list.length; x++) {
-      const ninaPart = nina.list[x];
-      if (Array.isArray(ninaPart)) {
-        // Find the first mention of cell, but take any mention of light.
-        if (nindex < 0 &&
-            ninaPart[0] == this.puz.currRow &&
-            ninaPart[1] == this.puz.currCol) {
-          nindex = i;
-          lindex = x;
-        }
-      } else {
-        if (ninaPart == this.puz.currClueIndex) {
-          nindex = i;
-          lindex = x;
-          doBreak = true;
-          break;
-        }
-      }
-    }
-  }
-  if (nindex < 0) {
-    return false;
-  }
-  this.puz.ninas[nindex].list =
-    this.puz.ninas[nindex].list.slice(0, lindex).concat(
-        this.puz.ninas[nindex].list.slice(lindex + 1));
-  if (this.puz.ninas[nindex].list.length == 0) {
-    this.puz.ninas = this.puz.ninas.slice(0, nindex).concat(
-        this.puz.ninas.slice(nindex + 1));
-  }
-  this.puz.redisplayNinas();
-  this.puz.activateCell(this.puz.currRow, this.puz.currCol);
-  return true;
-}
-
-Exet.prototype.addNina = function(index=-1) {
-  if (this.tweakColourNina.style.display == 'none') {
-    return
-  }
-  this.removeNina();
-  if (index < 0) {
-    index = this.coloursInUseIndex;
-  } else {
-    this.coloursInUseIndex = index;
-  }
-  const colour = this.coloursInUse[index];
-  let nindex = -1;
-  let ninaNum = 0;
-  for (let i = 0; i < this.puz.ninas.length; i++) {
-    const nina = this.puz.ninas[i];
-    const ncolour = nina.colour || this.puz.NINA_COLORS[ninaNum++];
-    if (ncolour == colour) {
-      nindex = i;
-      break;
-    }
-  }
-  if (nindex < 0) {
-    nindex = this.puz.ninas.length;
-    this.puz.ninas.push({
-      colour: colour,
-      list: [],
-    });
-  }
-  const c = (this.colourToAddType == 'cell') ?
-      [this.puz.currRow, this.puz.currCol] :
-      this.puz.currClueIndex;
-  this.puz.ninas[nindex].list.push(c);
-  this.puz.redisplayNinas();
-  document.getElementById("xet-colour-" + index).checked = true;
-}
-
-Exet.prototype.toggleNina = function(evt) {
-  const gridCell = exet.puz.currCell()
-  if (!gridCell || !gridCell.isLight) {
-    return;
-  }
-  if (this.removeNina()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-    return;
-  }
-  this.coloursInUse = [];
-  this.colourToAddType = 'cell'
-  let ninaNum = 0;
-  for (let n of this.puz.ninas) {
-    const colour = n.colour || this.puz.NINA_COLORS[ninaNum++];
-    this.coloursInUse.push(colour)
-  }
-  this.coloursInUseIndex = this.coloursInUse.length - 1;
-  const newColours = this.puz.NINA_COLORS;
-  let cnum = 0;
-  let newColour = '';
-  while (cnum < newColours.length) {
-    newColour = newColours[cnum++];
-    if (!this.coloursInUse.includes(newColour)) {
-      break;
-    }
-  }
-  this.coloursInUse.push(newColour);
-  if (this.coloursInUseIndex < 0) {
-    this.coloursInUseIndex = 0;
-  }
-
-  this.populateColourNina(true, newColour);
-  exetModals.showModal(this.tweakColourNina);
-  evt.stopPropagation();
-  this.addNina();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-}
-
-Exet.prototype.removeColour = function() {
-  let index = -1;
-  for (let i = 0; i < this.puz.cellColours.length; i++) {
-    const cellOrClue = this.puz.cellColours[i]
-    // Find the first mention of cell, but take any mention of light.
-    if (cellOrClue.length == 3 && index < 0 &&
-        cellOrClue[0] == this.puz.currRow &&
-        cellOrClue[1] == this.puz.currCol) {
-      index = i;
-    } else if (cellOrClue.length == 2 &&
-               cellOrClue[0] == this.puz.currClueIndex) {
-      index = i;
-      break;
-    }
-  }
-  if (index < 0) {
-    return false;
-  }
-  this.puz.cellColours = this.puz.cellColours.slice(
-      0, index).concat(this.puz.cellColours.slice(index + 1));
-  this.puz.recolourCells();
-  this.puz.activateCell(this.puz.currRow, this.puz.currCol);
-  return true;
-}
-
-Exet.prototype.addColour = function(index=-1) {
-  if (this.tweakColourNina.style.display == 'none') {
-    return
-  }
-  this.removeColour();
-  if (index < 0) {
-    index = this.coloursInUseIndex;
-  } else {
-    this.coloursInUseIndex = index;
-  }
-  const colour = this.coloursInUse[index];
-  const c = (this.colourToAddType == 'cell') ?
-      [this.puz.currRow, this.puz.currCol, colour] :
-      [this.puz.currClueIndex, colour];
-  this.puz.cellColours.push(c);
-  this.puz.recolourCells();
-  document.getElementById("xet-colour-" + index).checked = true;
-}
-
-Exet.prototype.toggleColour = function(evt) {
-  const gridCell = exet.puz.currCell()
-  if (!gridCell || !gridCell.isLight) {
-    return;
-  }
-  if (this.removeColour()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-    return;
-  }
-  this.coloursInUse = [];
-  this.colourToAddType = 'cell'
-  for (let c of this.puz.cellColours) {
-    const colour = c[c.length - 1];
-    if (this.coloursInUse.includes(colour)) {
-      continue;
-    }
-    this.coloursInUse.push(colour)
-  }
-  this.coloursInUseIndex = this.coloursInUse.length - 1;
-  const newColours = ['blue', 'green', 'red', 'cyan',
-                      'magenta', 'orange', 'brown'];
-  let cnum = 0;
-  let newColour = '';
-  while (cnum < newColours.length) {
-    newColour = newColours[cnum++];
-    if (!this.coloursInUse.includes(newColour)) {
-      break;
-    }
-  }
-  this.coloursInUse.push(newColour);
-  if (this.coloursInUseIndex < 0) {
-    this.coloursInUseIndex = 0;
-  }
-
-  this.populateColourNina(false, newColour);
-  exetModals.showModal(this.tweakColourNina);
-  evt.stopPropagation();
-  this.addColour();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
-}
-
-Exet.prototype.markNinasAsPrefilled = function() {
-  this.ninasMarkedAsPrefilled = [];
-  let cells = []
-  for (let nina of this.puz.ninas) {
-    // First resolve clue indices to cells.
-    for (let cellOrOther of nina.list) {
-      if (Array.isArray(cellOrOther)) {
-        cells.push(cellOrOther)
-      } else if (this.puz.clues[cellOrOther]) {
-        cells = cells.concat(this.puz.clues[cellOrOther].cells)
-      }
-    }
-  }
-  for (let cell of cells) {
-    const gridCell = this.puz.grid[cell[0]][cell[1]];
-    if (!gridCell.isLight || gridCell.prefill) continue;
-    gridCell.prefill = true;
-    this.ninasMarkedAsPrefilled.push(cell);
-  }
-}
-Exet.prototype.unmarkNinasAsPrefilled = function() {
-  for (let cell of this.ninasMarkedAsPrefilled) {
-    const gridCell = this.puz.grid[cell[0]][cell[1]];
-    if (!gridCell.isLight || !gridCell.prefill) continue;
-    gridCell.prefill = false;
-  }
-}
-
-Exet.prototype.clearAllMarkings = function() {
-  if (!confirm('Are you sure you want to clear all circles, prefills, ' +
-               'colours, and ninas?')) {
-    return;
-  }
-  let changed = false;
-  for (let i = 0; i < this.puz.gridHeight; i++) {
-    for (let j = 0; j < this.puz.gridWidth; j++) {
-      const gridCell = this.puz.grid[i][j];
-      if (gridCell.hasCircle) {
-        gridCell.hasCircle = false;
-        changed = true;
-      }
-      if (gridCell.prefill) {
-        gridCell.prefill = false;
-        changed = true;
-      }
-    }
-  }
-  if (this.puz.ninas.length > 0) {
-    this.puz.ninas = [];
-    changed = true;
-  }
-  if (this.puz.cellColours.length > 0) {
-    this.puz.cellColours = [];
-    changed = true;
-  }
-  if (changed) {
-    this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
+    this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
   }
 }
 
@@ -6352,16 +5495,14 @@ Exet.prototype.saveCursor = function() {
   if (!sel || !sel.focusNode) {
     return
   }
-  let parent = sel.focusNode.parentNode;
+  let parent = sel.focusNode.parentNode
   if (!parent || !parent.id) {
     return
   }
   this.savedCursorId = parent.id;
   this.savedCursorElt = parent
   this.savedCursorEnd = sel.focusOffset;
-  if (sel.type != 'Range') {
-    this.savedCursorStart = this.savedCursorEnd;
-  } else if (sel.anchorNode == sel.focusNode) {
+  if (sel.anchorNode == sel.focusNode) {
     this.savedCursorStart = sel.anchorOffset;
   } else {
     const prefix = parent.innerText.substr(0, this.savedCursorEnd)
@@ -6396,46 +5537,17 @@ Exet.prototype.restoreCursor = function() {
   this.savedCursorId = ''
 }
 
-Exet.prototype.makeExolve = function(specs) {
-  let xlvFrame = document.getElementById('xet-xlv-frame')
-  xlvFrame.innerHTML = ''
-  if (this.puz) {
-    delete exolvePuzzles[this.puz.id]
-  }
-  try {
-    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, this.TOP_CLEARANCE, 0, false)
-  } catch (err) {
-    this.puz = null
-    alert('Could not create/parse Exolve puzzle. Please reload and retry. The JavaScript console might show some diagnostic messages.')
-    console.log('Could not parse Exolve specs:')
-    console.log(specs)
-    console.log('Error thrown was:')
-    console.log(err)
-  }
-
-  if (!this.puz) {
-    return
-  }
-
-  this.handleTabClick(this.currTab);
-  exetState.lastId = this.puz.id
-  exetRevManager.saveLocal(
-      exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
-}
-
 Exet.prototype.updatePuzzle = function(revType=0) {
   if (revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
       revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
     this.resetAutofill('Aborted')
   }
-  const row = this.puz.currRow
-  const col = this.puz.currCol
-  const dir = this.puz.currDir
-  const scratch = this.puz.scratchPad.value
+  let row = this.puz.currRow
+  let col = this.puz.currCol
+  let dir = this.puz.currDir
+  let scratch = this.puz.scratchPad.value
   this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
   this.saveCursor()
-  const editingOtherSections = (exetModals.modal &&
-               exetModals.modal.id == 'xet-other-sections');
 
   let exolve = this.getExolve()
   this.makeExolve(exolve)
@@ -6444,12 +5556,8 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   this.puz.currRow = row
   this.puz.currCol = col
   this.puz.scratchPad.value = scratch
-  if (editingOtherSections) {
-    this.otherSecText.value = this.exolveOtherSec;
-    exetModals.showModal(this.otherSecPanel);
-    this.otherSecText.focus();
-  } else if (this.puz.currCellIsValid()) {
-    this.restoreCursor()
+  this.restoreCursor()
+  if (this.puz.currCellIsValid()) {
     if (this.puz.grid[row][col].isLight) {
       this.puz.activateCell(row, col)
     } else {
@@ -6524,75 +5632,6 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   return clues
 }
 
-Exet.prototype.cellCode = function(r, c) {
-  return 'r' + (this.puz.gridHeight - r) +
-         'c' + (c + 1);
-}
-Exet.prototype.lightCode = function(ci) {
-  return ci.substr(1) + ci.charAt(0).toLowerCase();
-}
-Exet.prototype.getExolveColours = function() {
-  const colours = {}
-  for (let c of this.puz.cellColours) {
-    let colour = ''
-    let entry = ''
-    if (c.length == 3) {
-      colour = c[2];
-      entry = this.cellCode(c[0], c[1]);
-    } else {
-      colour = c[1];
-      entry = this.lightCode(c[0]);
-    }
-    if (!colour || !entry) continue;
-    if (!colours[colour]) {
-      colours[colour] = entry;
-    } else {
-      colours[colour] += ' ' + entry;
-    }
-  }
-  let ret = '';
-  for (let colour of Object.keys(colours)) {
-    ret += `
-  exolve-colour: ${colour} ${colours[colour]}`
-  }
-  return ret;
-}
-Exet.prototype.getExolveNinas = function() {
-  let ret = ''
-  for (let nina of this.puz.ninas) {
-    const clr = nina.colour ? ' ' + nina.colour : '';
-    ret += `
-  exolve-nina:${clr}`
-    for (let c of nina.list) {
-      let entry = ''
-      if (c.length == 2) {
-        entry = this.cellCode(c[0], c[1]);
-      } else {
-        entry = this.lightCode(c);
-      }
-      if (!entry) continue;
-      ret += ' ' + entry;
-    }
-  }
-  return ret;
-}
-Exet.prototype.getExolveQuestions = function(solved) {
-  let ret = '';
-  for (let q of this.puz.questionTexts) {
-    let tq = q;
-    if (!solved) {
-      let enumParse = this.puz.parseEnum(q)
-      tq = q.substr(0, enumParse.afterClue)
-      if (q.substr(enumParse.afterClue).indexOf('[lowercase-ok]') >= 0) {
-        tq = tq + ' [lowercase-ok]';
-      }
-    }
-    ret = ret + `
-  exolve-question: ${tq}`;
-  }
-  return ret;
-}
-
 Exet.prototype.getExolve = function(id='', skipClues=false,
                                     solved=true, showEnums=true) {
   maker = `
@@ -6600,53 +5639,21 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
     Version: ${this.version}<br>
     Lexicon: ${exetLexicon.id}<br>
     Timestamp: ${(new Date()).toString()}<br>`
-  let exolve = `exolve-begin
-  exolve-id: ${(id ? id : this.puz.id)}
-  exolve-width: ${this.puz.gridWidth}
-  exolve-height: ${this.puz.gridHeight}` +
+  return `  ${this.otherSections}
+  exolve-id: ${(id ? id : this.puz.id)}` +
   (this.puz.title ? `
   exolve-title: ${this.puz.title}` : '') +
   (this.puz.setter ? `
   exolve-setter: ${this.puz.setter}` : '') +
   (this.puz.copyright ? `
   exolve-copyright: ${this.puz.copyright}` : '') + `
-  exolve-maker: ${maker}`
-
-  exolve += this.getExolveColours();
-  if (solved) {
-    exolve += this.getExolveNinas();
-  }
-
-  const preamble = document.getElementById(
-      this.puz.prefix + '-preamble').innerHTML.trim()
-  if (preamble) {
-    exolve += `
-  exolve-preamble:
-    ${preamble}`
-  }
-
-  exolve += this.getExolveQuestions(solved);
-
-  const explanations = !solved ? '' : document.getElementById(
-      this.puz.prefix + '-explanations').innerHTML.trim()
-  if (explanations) {
-    exolve += `
-  exolve-explanations:
-    ${explanations}`
-  }
-  if (this.exolveOtherSec) {
-    exolve += `
-    ${this.exolveOtherSec}`;
-  }
-
-  exolve += `
+  exolve-maker: ${maker}
   exolve-grid: ${this.getGrid(solved)}` +
   (!skipClues ? `
   exolve-across: ${this.getClues('A', solved, showEnums)}
   exolve-down: ${this.getClues('D', solved, showEnums)}` : '') + `
-exolve-end
-`
-  return exolve;
+  exolve-end
+  `
 }
 
 Exet.prototype.getHTML = function(solved=true, showEnums=true) {
@@ -7005,7 +6012,7 @@ Exet.prototype.acceptAll = function() {
   if (this.autofill.running) {
     alert('Wait while autofill is running, as partial solutions may ' +
           'turn out to be non-viable')
-    return;
+    return false
   }
   let changed = false;
   // First do it by clue, to get hyphens/word-breaks.
@@ -7034,9 +6041,7 @@ Exet.prototype.acceptAll = function() {
       }
     }
   }
-  if (changed) {
-    this.handleGridInput(exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE)
-  }
+  return changed
 }
 
 // Finds a clue that becomes non-viable when it previously was viable.
@@ -7719,7 +6724,7 @@ function exetLoadFile() {
     end += 'exolve-end'.length
     exet.prefix = fr.result.substring(0, start).trim()
     exet.suffix = fr.result.substring(end).trim()
-    exet.exolveOtherSec = ''
+    exet.otherSections = ''
     let specs = fr.result.substring(start, end)
     exet.setPreflex([])
     exet.unpreflex = {}
@@ -7777,9 +6782,6 @@ if (!exetState.hasOwnProperty('showEnums')) {
 }
 if (!exetState.hasOwnProperty('exolveUrl')) {
   exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
-}
-if (!exetState.hasOwnProperty('spellcheck')) {
-  exetState.spellcheck = false;
 }
 if (exetState.lastId) {
   let saved = window.localStorage.getItem(exetState.lastId)
