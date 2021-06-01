@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.45 June 1 2021
+
+- Bug-fix: Marking the def-part (or any other special formatting) in a clue
+  was broken when the clue contained quotes.
+
 ### Version: Exet v0.44 May 14 2021
 
 - Bug-fix: Ctrl-q/Q should not clear nina cells.

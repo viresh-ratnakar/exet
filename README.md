@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.44 May 14 2021
+#### Version: Exet v0.45 June 1 2021
 
 #### Author: Viresh Ratnakar
 

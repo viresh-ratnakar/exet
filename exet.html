@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.44 May 14 2021
+Current version: v0.45 June 1 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1241,7 +1241,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.44 May 14 2021'
+  this.version = 'v0.45 June 1 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -4166,7 +4166,8 @@ Exet.prototype.hideDefTags = function(s) {
   return s.replace(/\}~/g, '')
 }
 
-Exet.prototype.updateFormat = function(inClue, text, modText, deltaStart, deltaEnd) {
+Exet.prototype.updateFormat = function(inClue, text, modText,
+                                       deltaStart, deltaEnd) {
   const elt = this.savedCursorElt
   if (!elt) return
   elt.focus()
@@ -4366,7 +4367,8 @@ Exet.prototype.maybeShowFormat = function() {
       deltaEnd = temp;
     }
     b.setAttribute('onclick',
-        `exet.updateFormat(${inClue}, "${text}", "${modText}", ` +
+        `exet.updateFormat(${inClue}, ` +
+        `"${text.replace(/"/g, '\\"')}", "${modText.replace(/"/g, '\\"')}", ` +
         `${deltaStart}, ${deltaEnd})`);
     opt.style.display = '';
     numActive++;
