@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.46 June 15 2021
+
+- Bug-fix: When showing a question for editing, quotes in the question
+  were dealt with badly.
+
 ### Version: Exet v0.45 June 1 2021
 
 - Bug-fix: Marking the def-part (or any other special formatting) in a clue

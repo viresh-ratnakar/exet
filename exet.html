@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.45 June 1 2021
+Current version: v0.46 June 15 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1241,7 +1241,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.45 June 1 2021'
+  this.version = 'v0.46 June 15 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -5945,8 +5945,7 @@ Exet.prototype.remakeQuestionsList = function() {
   if (!qlist) return;
   let html = '';
   for (let i = 0; i < this.puz.questionTexts.length; i++) {
-    const q = this.puz.questionTexts[i];
-    const len = Math.max(80, q.length);
+    const len = Math.max(80, this.puz.questionTexts[i].length);
     html += `
       <tr><td>
       <button class="xlv-small-button" id="xet-del-question-${i}">
@@ -5954,8 +5953,8 @@ Exet.prototype.remakeQuestionsList = function() {
       </button>
       </td>
       <td>
-      <input id="xet-question-${i}" value="${q}"
-         class="xlv-answer" size="${len}" type="text">
+      <input id="xet-question-${i}" class="xlv-answer"
+          size="${len}" type="text">
       </input>
       </td>
       </tr>
@@ -5966,6 +5965,7 @@ Exet.prototype.remakeQuestionsList = function() {
     const del = document.getElementById("xet-del-question-" + i);
     del.addEventListener('click', this.killQuestion.bind(this, i));
     const q = document.getElementById("xet-question-" + i);
+    q.value = this.puz.questionTexts[i];
     q.addEventListener('input', this.updateQuestion.bind(this, i));
   }
 }
