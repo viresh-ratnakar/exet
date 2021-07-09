@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.46 June 15 2021
+Current version: v0.47 July 9 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -622,6 +622,9 @@ Current version: v0.46 June 15 2021
 }
 .xet-pink-button:hover {
   background-color: red !important;
+}
+.xet-long-button {
+  margin: 2px 0;
 }
 </style>
 
@@ -1241,7 +1244,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.46 June 15 2021'
+  this.version = 'v0.47 July 9 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1351,7 +1354,7 @@ Exet.prototype.startNav = function(dir='A', row=0, col=0) {
 
 Exet.prototype.setPuzzle = function(puz) {
   if (puz.hasDgmlessCells) {
-    alert('Diagramless cells not yet supported')
+    alert('Diagramless cells are not supported')
     return false
   }
   if (puz.hasNodirClues) {
@@ -2145,14 +2148,15 @@ Exet.prototype.makeExetTab = function() {
         </table>
       </div>
       <div title="You can provide up to 100 preferred words/phrases to try ` +
-          `and use in the grid-fill">
+          `and use in the grid-fill" class="xet-long-button">
         <button class="xlv-small-button" style="padding:5px 4px"
           id="xet-edit-preflex">Set preferred fills</button>
         <span id="xet-preflex-used">0</span>/<span
           id="xet-preflex-size">${this.preflex.length}</span> used
       </div>
       <div title="You can provide words/phrases to exclude from the ` +
-        `grid-fill, set a minimum popularity, and include/exclude proper nouns">
+        `grid-fill, set a minimum popularity, and include/exclude proper nouns"
+          class="xet-long-button">
         <button class="xlv-small-button"
             style="padding:5px 4px;color:chocolate"
             id="xet-edit-unpreflex">Set fill exclusions</button>
@@ -3584,7 +3588,7 @@ Exet.prototype.enc8859 = function(s, buffer, offset) {
 Exet.prototype.getDotPuz = function() {
   try {
     // Generously estimate length of the buffer needed.
-    let exolve = this.getExolve();
+    let exolve = this.getExolve('', false, true, exetState.showEnums);
     let estDotPuzLen = 2 * (1000 + exolve.length)
     let buffer = new Uint8Array(estDotPuzLen);
     let offset = 0;
@@ -6439,7 +6443,7 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   const editingOtherSections = (exetModals.modal &&
                exetModals.modal.id == 'xet-other-sections');
 
-  let exolve = this.getExolve()
+  let exolve = this.getExolve();
   this.makeExolve(exolve)
 
   this.puz.currDir = dir
@@ -6472,17 +6476,18 @@ Exet.prototype.getGrid = function(solved=true) {
     let gridRow = '    '
     for (let j = 0; j < this.puz.gridWidth; j++) {
       let gridCell = this.puz.grid[i][j]
-      if (!gridCell.isLight) {
-        gridRow = gridRow + '.   '
-      } else {
-        gridRow = gridRow + (gridCell.currLetter != '0' ?
-                             (solved ? gridCell.currLetter : '0') : '?')
-        gridRow  = gridRow + (gridCell.hasCircle ? '@' : ' ')
-        gridRow  = gridRow + (gridCell.prefill ? '!' : ' ')
-        gridRow  = gridRow + (gridCell.hasBarAfter && gridCell.hasBarUnder ?
+      let entry = '.';
+      if (gridCell.isLight) {
+        entry = (gridCell.currLetter != '0' ?
+               (solved ? gridCell.currLetter : '0') : '?');
+        if (gridCell.hasCircle) entry += '@';
+        if (gridCell.prefill) entry += '!';
+        entry += (gridCell.hasBarAfter && gridCell.hasBarUnder ?
                               '+' : (gridCell.hasBarAfter ?
-                              '|' : (gridCell.hasBarUnder ? '_' : ' ')))
+                              '|' : (gridCell.hasBarUnder ? '_' : '')));
       }
+      while (entry.length < 4) entry += ' ';
+      gridRow += entry;
     }
     grid = grid + '\n' + gridRow
   }
@@ -7417,6 +7422,8 @@ Exet.prototype.setPreflex = function(preflex) {
     exetLexicon.lexicon.pop()
   }
   this.preflexByLen = {}
+  const savedMinPop = this.indexMinPop;
+  this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
   for (let p of this.preflex) {
     let len = this.makeLexKey(p).length
     let inLexicon = this.getLexChoices(p, 1)
@@ -7430,6 +7437,7 @@ Exet.prototype.setPreflex = function(preflex) {
     this.preflexByLen[len].push(p)
     this.preflexSet[p] = true
   }
+  this.indexMinPop = savedMinPop;
 }
 
 Exet.prototype.throttledUpdatePreflex = function() {
@@ -7503,6 +7511,8 @@ Exet.prototype.updateUnpreflex = function() {
   let unpreflexes = this.unpreflexInput.value.trim().split('\n')
   let saved = this.unpreflex
   this.unpreflex = {}
+  const savedMinPop = this.indexMinPop;
+  this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
   for (let p of unpreflexes) {
     p = p.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ')
     if (!p) continue
@@ -7518,6 +7528,7 @@ Exet.prototype.updateUnpreflex = function() {
     p = inLexicon[0]
     this.unpreflex[p] = true
   }
+  this.indexMinPop = savedMinPop;
   this.unpreflexSize.innerText = Object.keys(this.unpreflex).length
   if (JSON.stringify(this.unpreflex) == JSON.stringify(saved)) {
     return

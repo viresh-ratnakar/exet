@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Exet v0.47 July 9 2021
+
+- Bug-fix: When setting preferred/not-preferred words, look everywhere
+  in the lexicon, not just beyond the current popularity threshold.
+- Respect "no enums" when saving as .puz.
+- Minor css tweak.
+
 ### Version: Exet v0.46 June 15 2021
 
 - Bug-fix: When showing a question for editing, quotes in the question
