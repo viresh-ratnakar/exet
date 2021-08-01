@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.48 August 1 2021
+
+- Add deletion/insertion/substitution wordplay candidates in a new tab.
+
 ### Version: Exet v0.47 July 9 2021
 
 - Bug-fix: When setting preferred/not-preferred words, look everywhere

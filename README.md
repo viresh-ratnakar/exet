@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.47 July 9 2021
+#### Version: Exet v0.48 August 1 2021
 
 #### Author: Viresh Ratnakar
 
@@ -172,7 +172,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of July 2021) has 250,192 entries. Providing a popularity threshold can
+  as of August 2021) has 250,192 entries. Providing a popularity threshold can
   be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -402,19 +402,20 @@ word/phrase in the current light:
 For cryptic crosswords, there are some additional tabs that setters may find
 useful. These are:
 
-- **Charades...**: Shows candidate charade wordplays, including anagrams and
-  containers, wordplays for the current light, sorted in decreasing order of
-  the average length of wordplay components.
-- **Anagrams...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
+- **Charades**: Shows candidate charade wordplays, including anagrams and
+  containers, sorted in decreasing order of the average length of wordplay
+  components.
+- **Del+subs**: Shows candidate wordplays for deletion, insertion, substitution.
+- **Anagrams**: Uses [nutrimatic.org](https://nutrimatic.org) to show
   meaningful anagrams of the current light. The Nutrimatic anagrams may cover
   more possibilities than the anagrams shown in the Charades tab, as the
   anagrams shown in the Charades tab are restricted to words and phrases in the
   lexicon. This tab also shows a panel with possibilities for composite
   anagrams (which can also be used for creating anagrams with deletions).
-- **Hidden...**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
+- **Hidden**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay ppossibilities for the
   current light. Setters can tweak the wordplay as they choose.
-- **Alternations...**: Uses [nutrimatic.org](https://nutrimatic.org) to show
+- **Alternations**: Uses [nutrimatic.org](https://nutrimatic.org) to show
   "alternation" and "reversed alternation" wordplays for the current light.
 - **Lists**: This is not specific to the current light. This tab provides
   convenient links to curated lists of wordplay indicators (for wordplays of

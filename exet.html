@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.47 July 9 2021
+Current version: v0.48 August 1 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1244,7 +1244,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.47 July 9 2021'
+  this.version = 'v0.48 August 1 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1496,7 +1496,7 @@ Exet.prototype.setPuzzle = function(puz) {
     "exet": {
       id: "exet",
       display: "Exet",
-      hover: "Main Exet functions: load, save, grid-fill, edit, etc...",
+      hover: "Main Exet functions: load, save, grid-fill, edit, etc.",
       sections: [],
       url: "",
     },
@@ -1504,21 +1504,27 @@ Exet.prototype.setPuzzle = function(puz) {
       id: "dicts",
       display: "Dictionaries",
       hover: "Chambers, The Free Dictionary, Onelook, Google, Etymonline: " +
-             "definitions, roots, synonyms, encycolopedia...",
+             "definitions, roots, synonyms, encyclopedia...",
       sections: [],
-    },
-    "wordplay0": {
-      id: "wordplay0",
-      display: "Charades",
-      hover: "Charades, including anagrams, reversals, and containers...",
-      sections: [{id: "xet-charades", maker: this.makeCharadeParam,
-                  title: "Charades, including anagrams, reversals, and " +
-                         "containers"}],
     },
     "wordplay1": {
       id: "wordplay1",
+      display: "Charades",
+      hover: "Charades, including anagrams, reversals, containers",
+      sections: [{id: "xet-charades", maker: this.makeCharadeParam,
+                  title: "Charades, including anagrams, reversals, containers"}],
+    },
+    "wordplay2": {
+      id: "wordplay2",
+      display: "Del+subs",
+      hover: "Deletions, insertions, and substitutions",
+      sections: [{id: "xet-delsub", maker: this.makeCharadeParam,
+                  title: "Deletions, insertions, and substitutions"}]
+    },
+    "wordplay3": {
+      id: "wordplay3",
       display: "Anagrams",
-      hover: "Nutrimatic anagrams, composite anagrams...",
+      hover: "Nutrimatic anagrams, composite anagrams",
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam,
          title: "Anagrams"},
@@ -1526,10 +1532,10 @@ Exet.prototype.setPuzzle = function(puz) {
          title: "Composite and extended anagrams"},
       ],
     },
-    "wordplay2": {
-      id: "wordplay2",
+    "wordplay4": {
+      id: "wordplay4",
       display: "Hidden",
-      hover: "Nutrimatic: hidden answers and reversed hidden answers...",
+      hover: "Nutrimatic: hidden answers and reversed hidden answers",
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeHiddenParam,
          title: "Hidden answers"},
@@ -1540,7 +1546,7 @@ Exet.prototype.setPuzzle = function(puz) {
     "alternations": {
       id: "alternations",
       display: "Alternations",
-      hover: "Nutrimatic: alternations and reversed alternations...",
+      hover: "Nutrimatic: alternations and reversed alternations",
       sections: [
         {url: "https://nutrimatic.org/?q=", maker: this.makeAlternationParam,
          title: "Alternations"},
@@ -1551,8 +1557,8 @@ Exet.prototype.setPuzzle = function(puz) {
     "inds": {
       id: "inds",
       display: "Lists",
-      hover: "Crossword Unclued, Wikipedia: cryptic indicators and " +
-             "abbreviations lists...",
+      hover: "Crossword Unclued, Wikipedia, Highlight Press: cryptic " +
+             "indicators and abbreviations lists",
       sections: [],
     },
   }
@@ -3228,6 +3234,130 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   }
 }
 
+Exet.prototype.lcs = function(a, b, dp) {
+  // dp is already an (n+1)x(m+1) array.
+  // dp[i][j] = length of longest common subseq. of a[0..i-1], j[0..j-1].
+  const n = a.length;
+  const m = b.length;
+  if (n == 0 || m == 0) return [0, 0, 0];
+  let besti = 0, bestj = 0, best = 0;
+  for (let i = 0; i <= n; i++) dp[i][0] = 0;
+  for (let j = 0; j <= m; j++) dp[0][j] = 0;
+  for (let i = 1; i <= n; i++) {
+    const achar = a[i - 1];
+    for (let j = 1; j <= m; j++) {
+      const bchar = b[j - 1];
+      if (achar != bchar) {
+        dp[i][j] = 0;
+        continue;
+      }
+      dp[i][j] = 1 + dp[i-1][j-1];
+      if (dp[i][j] > best) {
+        best = dp[i][j];
+        besti = i;
+        bestj = j;
+      }
+    }
+  }
+  return [besti - best, bestj - best, best];
+}
+
+Exet.prototype.delsubMatch = function(fodder, phrase, dp,
+                                      match_thresh, delta_thresh, candidates) {
+  const phrase_norm = this.makeCharadeParam(phrase);
+  const match = this.lcs(fodder, phrase_norm, dp);
+  if (match[2] < match_thresh) {
+    return;
+  }
+  const prefix_f = fodder.substr(0, match[0]);
+  const prefix_p = phrase_norm.substr(0, match[1]);
+  const prefix_match = this.lcs(prefix_f, prefix_p, dp);
+  const suffix_f = fodder.substr(match[0] + match[2]);
+  const suffix_p = phrase_norm.substr(match[1] + match[2]);
+  const suffix_match = this.lcs(suffix_f, suffix_p, dp);
+
+  const n = fodder.length;
+  const m = phrase_norm.length;
+  const delta = n + m - 2 * (match[2] + prefix_match[2] + suffix_match[2]);
+  if (delta > delta_thresh) {
+    return;
+  }
+
+  const corresp = [];
+  let j = -1;
+  const phrase_lc = phrase.toLowerCase();
+  for (let i = 0; i < m; i++) {
+    j++;
+    while (phrase_norm[i] != phrase_lc[j]) {
+      j++;
+    }
+    corresp.push(j);
+  }
+  corresp.push(j + 1);
+
+  // fodder and phrase_norm have both been segmented into seven parts:
+  // UMUMUMU (unmatched/matched).
+  const p1 = phrase.substring(corresp[0], corresp[prefix_match[1]]);
+  const p2 = phrase.substring(corresp[prefix_match[1]], corresp[prefix_match[1] + prefix_match[2]]);
+  const p3 = phrase.substring(corresp[prefix_match[1] + prefix_match[2]], corresp[match[1]]);
+  const offset = match[1] + match[2];
+  const p4 = phrase.substring(corresp[match[1]], corresp[offset])
+  const p5 = phrase.substring(corresp[offset], corresp[offset + suffix_match[1]]);
+  const p6 = phrase.substring(corresp[offset + suffix_match[1]], corresp[offset + suffix_match[1] + suffix_match[2]]);
+  const p7 = phrase.substring(corresp[offset + suffix_match[1] + suffix_match[2]], corresp[m]);
+
+  const f1 = prefix_f.substr(0, prefix_match[0]);
+  const f3 = prefix_f.substr(prefix_match[0] + prefix_match[2]);
+  const f5 = suffix_f.substr(0, suffix_match[0]);
+  const f7 = suffix_f.substr(suffix_match[0] + suffix_match[2]);
+
+  candidate = phrase + ' &rarr; ';
+  if (p1) candidate += `<span class="xet-red">${p1}</span>`;
+  if (f1) candidate += `<span class="xet-blue">(+${f1})</span>`;
+  if (p2) candidate += p2;
+  if (p3) candidate += `<span class="xet-red">${p3}</span>`;
+  if (f3) candidate += `<span class="xet-blue">(+${f3})</span>`;
+  if (p4) candidate += p4;
+  if (p5) candidate += `<span class="xet-red">${p5}</span>`;
+  if (f5) candidate += `<span class="xet-blue">(+${f5})</span>`;
+  if (p6) candidate += p6;
+  if (p7) candidate += `<span class="xet-red">${p7}</span>`;
+  if (f7) candidate += `<span class="xet-blue">(+${f7})</span>`;
+
+  candidates.push(candidate);
+}
+
+Exet.prototype.updateDelsub = function(fodder) {
+  const n = fodder.length;
+  const maxl = Math.min(n + 5, n * 2);
+  const dp = new Array(n + 1);
+  for (let i = 0; i <= n; i++) {
+    dp[i] = new Array(maxl + 1);
+  }
+  const candidates = [];
+
+  const match_thresh = Math.max(3, Math.floor(n / 2));
+  for (let len = n; len <= maxl; len++) {
+    const delta_thresh = Math.floor(len / 2);
+    const key = '?'.repeat(len);
+    if (!exetLexicon.index[key]) break;
+    const indices = exetLexicon.index[key];
+    for (let idx of indices) {
+      const phrase = exetLexicon.lexicon[idx];
+      this.delsubMatch(fodder, phrase, dp,
+                       match_thresh, delta_thresh, candidates);
+    }
+  }
+
+  let html = '<table id="xet-delsub-choices">';
+  for (let candidate of candidates) {
+    html = html + `
+      <tr><td>${candidate}</td></tr>`
+  }
+  html = html + '</table>'
+  this.delsub.innerHTML = html;
+}
+
 Exet.prototype.updateCA = function() {
   let fodder = this.caFodder.value.toLowerCase().replace(
       /[^a-z]/g, '').split('').sort()
@@ -3419,12 +3549,21 @@ Exet.prototype.populateFrame = function() {
       tab.content = document.getElementById(`xet-${id}-content`)
     }
   }
-  let ch = document.getElementById('xet-charades')
+
+  const ch = document.getElementById('xet-charades')
   ch.innerHTML = `
     <div id="xet-charades-box" style="margin:16px 0;border:0">
     </div>
   `
   this.charades = document.getElementById('xet-charades-box')
+
+  const ds = document.getElementById('xet-delsub')
+  ds.innerHTML = `
+    <div id="xet-delsub-box" style="margin:16px 0;border:0">
+    </div>
+  `
+  this.delsub = document.getElementById('xet-delsub-box')
+
   this.populateCompanag()
 
   this.makeExetTab()
@@ -3901,6 +4040,9 @@ Exet.prototype.handleTabClick = function(id) {
     } else if (section.id == 'xet-charades' && section.param != wordParam) {
       section.param = wordParam
       this.updateCharades(wordParam)
+    } else if (section.id == 'xet-delsub' && section.param != wordParam) {
+      section.param = wordParam
+      this.updateDelsub(wordParam)
     } else if (section.id == 'xet-companag' && section.param != wordParam) {
       section.param = wordParam
       this.caFodder.value = wordParam
