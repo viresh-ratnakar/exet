@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.48 August 1 2021
+#### Version: Exet v0.49 August 7 2021
 
 #### Author: Viresh Ratnakar
 
@@ -278,8 +278,8 @@ as listed above.
 
 ### Providing the clues
 
-The clue for the current light is shown above the grid and can be edited in
-place right there. You can navigate through the clues using standard
+The clue for the entry in the current light is shown above the grid and can be
+edited in place right there. You can navigate through the clues using standard
 controls such as clicking on a cell or a clue, using the arrow keys, or
 using the tab and shift-tab keys.
 
@@ -400,23 +400,32 @@ word/phrase in the current light:
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
 For cryptic crosswords, there are some additional tabs that setters may find
-useful. These are:
+useful. In all of these (other than "Lists"), the wordplay candidates are shown
+for the entry in the currently selected light. However, you can generate wordplay
+candidates for any other word or phrase, by editing the input field(s) near the
+top in each tab. These tabs are:
 
-- **Charades**: Shows candidate charade wordplays, including anagrams and
-  containers, sorted in decreasing order of the average length of wordplay
-  components.
-- **Del+subs**: Shows candidate wordplays for deletion, insertion, substitution.
+- **Charades**: Shows candidate charade wordplays, including anagrams,
+  reversals, and containers, sorted in decreasing order of the average length
+  of wordplay components.
+- **Edits + &#x1F56A;**: Shows candidate wordplays for deletion, insertion,
+  substitution, sorted in increasing order of a kind of edit distance (sum
+  of lengths of deletions, insertions, substitutions, with the length of a
+  substitution being the max of the plus and minus term lengths). Also shows
+  homophones and Spoonerisms (derived using the Carnegie Mellon Pronouncing
+  Dictionary—see their copyright notice at the end of this document).
 - **Anagrams**: Uses [nutrimatic.org](https://nutrimatic.org) to show
-  meaningful anagrams of the current light. The Nutrimatic anagrams may cover
-  more possibilities than the anagrams shown in the Charades tab, as the
-  anagrams shown in the Charades tab are restricted to words and phrases in the
-  lexicon. This tab also shows a panel with possibilities for composite
+  meaningful anagrams of the entry in the current light. The Nutrimatic anagrams
+  may cover more possibilities than the anagrams shown in the Charades tab, as
+  the anagrams shown in the Charades tab are restricted to words and phrases in
+  the lexicon. This tab also shows a panel with possibilities for composite
   anagrams (which can also be used for creating anagrams with deletions).
 - **Hidden**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
-  "hidden word" and "reversed hidden word" wordplay ppossibilities for the
-  current light. Setters can tweak the wordplay as they choose.
+  "hidden word" and "reversed hidden word" wordplay possibilities for the
+  entry in the current light. Setters can tweak the wordplay as they choose.
 - **Alternations**: Uses [nutrimatic.org](https://nutrimatic.org) to show
-  "alternation" and "reversed alternation" wordplays for the current light.
+  "alternation" and "reversed alternation" wordplays for the entry in the
+  current light.
 - **Lists**: This is not specific to the current light. This tab provides
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and acceptable cryptic abbreviations. The source is
@@ -832,6 +841,60 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+### CMUdict
+
+```
+CMUdict
+-------
+
+CMUdict (the Carnegie Mellon Pronouncing Dictionary) is a free
+pronouncing dictionary of English, suitable for uses in speech
+technology and is maintained by the Speech Group in the School of
+Computer Science at Carnegie Mellon University.
+
+The Carnegie Mellon Speech Group does not guarantee the accuracy of
+this dictionary, nor its suitability for any specific purpose. In
+fact, we expect a number of errors, omissions and inconsistencies to
+remain in the dictionary. We intend to continually update the
+dictionary by correction existing entries and by adding new ones. From
+time to time a new major version will be released.
+
+We welcome input from users: Please send email to Alex Rudnicky
+(air+cmudict@cs.cmu.edu).
+
+The Carnegie Mellon Pronouncing Dictionary, in its current and
+previous versions is Copyright (C) 1993-2014 by Carnegie Mellon
+University.  Use of this dictionary for any research or commercial
+purpose is completely unrestricted. If you make use of or
+redistribute this material we request that you acknowledge its
+origin in your descriptions, as per the license information included
+in the dictionary file (a Simplified BSD lincense).
+
+If you add words to or correct entries in your version of this
+dictionary, we would appreciate it if you could send these additions
+and corrections to us (air+cmudict@cs.cmu.edu) for consideration in a
+subsequent version. All submissions will be reviewed and approved by
+the current maintainer, Alex Rudnicky at Carnegie Mellon University.
+
+----------------------------------------------------------------------
+The current version of cmudict is now cmudict-0.7b 
+[First released November 19, 2014]
+
+Note that the first '.' in the file name has changed to a '-' as it
+was observed that file systems occasionally get confused about the
+scope of the extension.
+
+Please note that the dictionary is modified incrementally, to correct
+errors are incorporate new words. If you require a unique version, be
+sure to specify a revision when you check it out.
+
+cmudict-0.7b includes various systematic fixes and additional words.
+As always please let us know if you see a problem or want to suggest a
+word.
+
+----------------------------------------------------------------------
 ```
 
 ### Exet

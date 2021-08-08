@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.48 August 1 2021
+Current version: v0.49 August 7 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1244,7 +1244,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.48 August 1 2021'
+  this.version = 'v0.49 August 7 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1319,6 +1319,11 @@ function Exet() {
     if (x < 0.7) x = 0.7;
     this.letterRarities[c] = 1.5 * (x - 0.7) / 0.3;
   }
+  this.vowelPhonemes = {
+    'AA': true, 'AE': true, 'AH': true, 'AO': true, 'AW': true, 'AY': true,
+    'EH': true, 'ER': true, 'EY': true, 'IH': true, 'IY': true, 'OW': true,
+    'OY': true, 'UH': true, 'UW': true,
+  };
 };
 
 Exet.prototype.setMinPop = function(m) {
@@ -1516,10 +1521,15 @@ Exet.prototype.setPuzzle = function(puz) {
     },
     "wordplay2": {
       id: "wordplay2",
-      display: "Del+subs",
-      hover: "Deletions, insertions, and substitutions",
-      sections: [{id: "xet-delsub", maker: this.makeCharadeParam,
-                  title: "Deletions, insertions, and substitutions"}]
+      display: "Edits + &#x1F56A;",
+      hover: "Edits (deletions, insertions, and substitutions), " +
+             "Homophones, Spoonerisms",
+      sections: [
+        {id: "xet-edits", maker: this.makeCharadeParam,
+         title: "Edits (deletions, insertions, and substitutions)"},
+        {id: "xet-sounds", maker: this.makeSoundsParam,
+         title: "&#x1F56A; Homophones~ and &#x1F50A; Spoonerisms&lrhar;"},
+      ]
     },
     "wordplay3": {
       id: "wordplay3",
@@ -3033,6 +3043,198 @@ Exet.prototype.makeDictsTab = function(panelH) {
   this.dictsUrl = document.getElementById('xet-dicts-choice-url')
 }
 
+Exet.prototype.dedupe = function(a) {
+  const ret = [];
+  const haves = {};
+  for (let e of a) {
+    if (haves[e]) continue;
+    haves[e] = true;
+    ret.push(e);
+  }
+  return ret;
+}
+
+Exet.prototype.getPhones = function(phrase) {
+  const phones = [];
+  const savedMinPop = this.indexMinPop;
+  this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
+  let inLexicon = this.getLexChoices(phrase, 1)
+  for (let p of inLexicon) {
+    if (!exetLexicon.phones[p]) continue;
+    for (let phone of exetLexicon.phones[p]) {
+      phones.push(phone);
+    }
+  }
+  this.indexMinPop = savedMinPop;
+  if (phones.length == 0) {
+    const space = phrase.indexOf(' ');
+    if (space > 0) {
+      const part1 = phrase.substr(0, space);
+      const part1_phones = this.getPhones(part1);
+      if (part1_phones.length > 0) {
+        const part2 = phrase.substr(space + 1);
+        const part2_phones = this.getPhones(part2);
+        for (let p2 of part2_phones) {
+          for (let p1 of part1_phones) {
+            phones.push(p1 + ' ' + p2);
+          }
+        }
+      }
+    }
+  }
+  return this.dedupe(phones);
+}
+
+Exet.prototype.getSpoonerismsInner = function(phrase, phones) {
+  const spoons = [];
+  const nphrase = this.makeCharadeParam(phrase);
+  const NUM_SHARDS = exetLexicon.phindex.length;
+
+  for (let phone of phones) {
+    const pparts = phone.split(' ');
+    const nonVowelSpans = [];
+    let currSpan = [-1, -1];
+    for (let i = 0; i < pparts.length; i++) {
+      if (!this.vowelPhonemes[pparts[i]]) {
+        if (currSpan[0] < 0) {
+          currSpan[0] = i;
+        }
+      } else {
+        if (currSpan[0] >= 0) {
+          currSpan[1] = i;
+          nonVowelSpans.push(currSpan);
+          currSpan = [-1, -1];
+          if (nonVowelSpans.length == 2) {
+            break;
+          }
+        }
+      }
+    }
+    if (currSpan[0] >= 0 && currSpan[1] < 0) {
+      currSpan[1] = pparts.length;
+      nonVowelSpans.push(currSpan);
+    }
+    if (nonVowelSpans.length == 0) {
+      continue;
+    }
+    if (nonVowelSpans[0][0] > 0) {
+      // We do not deal with phrases that start with vowels.
+      continue;
+    }
+    if (nonVowelSpans.length < 2) {
+      continue;
+    }
+    for (let last1 = nonVowelSpans[0][0]; last1 < nonVowelSpans[0][1]; last1++) {
+      for (let last2 = nonVowelSpans[1][0]; last2 < nonVowelSpans[1][1]; last2++) {
+        for (let start2 = nonVowelSpans[1][0]; start2 <= last2; start2++) {
+          const phone1_arr = pparts.slice(start2, last2 + 1).concat(
+              pparts.slice(last1 + 1, start2));
+          if (phone1_arr.length == 0) continue;
+          const phone2_arr = pparts.slice(0, last1 + 1).concat(
+              pparts.slice(last2 + 1));
+          if (phone2_arr.length == 0) continue;
+
+          const phone1 = phone1_arr.join(' ');
+          let shard = this.javaHash(phone1) % NUM_SHARDS;
+          if (shard < 0) shard += NUM_SHARDS;
+          const q1list = [];
+          for (let q1 of exetLexicon.phindex[shard]) {
+            if (!exetLexicon.phones[q1] ||
+                !exetLexicon.phones[q1].includes(phone1)) continue;
+            q1list.push(exetLexicon.lexicon[q1]);
+          }
+
+          if (q1list.length == 0) continue;
+
+          const phone2 = phone2_arr.join(' ');
+          shard = this.javaHash(phone2) % NUM_SHARDS;
+          if (shard < 0) shard += NUM_SHARDS;
+          const q2list = [];
+          for (let q2 of exetLexicon.phindex[shard]) {
+            if (!exetLexicon.phones[q2] ||
+                !exetLexicon.phones[q2].includes(phone2)) continue;
+            q2list.push(exetLexicon.lexicon[q2]);
+          }
+
+          if (q2list.length == 0) continue;
+
+          for (let q1 of q1list) {
+            for (let q2 of q2list) {
+              spoons.push([q1, q2]);
+            }
+          }
+        }
+      }
+    }
+  }
+  return this.dedupe(spoons);
+}
+
+Exet.prototype.getSpoonerisms = function(phrase) {
+  return this.getSpoonerismsInner(phrase, this.getPhones(phrase));
+}
+
+Exet.prototype.getHomophonesInner = function(phrase, phones) {
+  const hp = [];
+  const nphrase = this.makeCharadeParam(phrase);
+  const NUM_SHARDS = exetLexicon.phindex.length;
+
+  for (let phone of phones) {
+    let shard = this.javaHash(phone) % NUM_SHARDS;
+    if (shard < 0) shard += NUM_SHARDS;
+    for (let q of exetLexicon.phindex[shard]) {
+      if (!exetLexicon.phones[q] ||
+          !exetLexicon.phones[q].includes(phone)) continue;
+      const qphrase = exetLexicon.lexicon[q];
+      if (nphrase == this.makeCharadeParam(qphrase)) {
+        continue;
+      }
+      hp.push(qphrase);
+    }
+
+    // Now try splitting phone into two parts.
+    const pparts = phone.split(' ');
+    for (let i = 1; i <= pparts.length - 1; i++) {
+      const phone1 = pparts.slice(0, i).join(' ');
+      shard = this.javaHash(phone1) % NUM_SHARDS;
+      if (shard < 0) shard += NUM_SHARDS;
+      const q1list = [];
+      for (let q1 of exetLexicon.phindex[shard]) {
+        if (!exetLexicon.phones[q1] ||
+            !exetLexicon.phones[q1].includes(phone1)) continue;
+        q1list.push(exetLexicon.lexicon[q1]);
+      }
+
+      if (q1list.length == 0) continue;
+
+      const phone2 = pparts.slice(i).join(' ');
+      shard = this.javaHash(phone2) % NUM_SHARDS;
+      if (shard < 0) shard += NUM_SHARDS;
+      const q2list = [];
+      for (let q2 of exetLexicon.phindex[shard]) {
+        if (!exetLexicon.phones[q2] ||
+            !exetLexicon.phones[q2].includes(phone2)) continue;
+        q2list.push(exetLexicon.lexicon[q2]);
+      }
+
+      if (q2list.length == 0) continue;
+
+      for (let q1 of q1list) {
+        for (let q2 of q2list) {
+          const candidate = q1 + ' ' + q2;
+          if (nphrase == this.makeCharadeParam(candidate)) continue;
+          hp.push(candidate);
+        }
+      }
+    }
+  }
+  return this.dedupe(hp);
+}
+
+Exet.prototype.getHomophones = function(phrase) {
+  return this.getHomophonesInner(phrase, this.getPhones(phrase));
+}
+
 Exet.prototype.getAllSplits = function(fodder, k) {
   let n = fodder.length
   if (n < 1 || k < 1 || k > n ) return []
@@ -3067,33 +3269,33 @@ Exet.prototype.pushCharadeCandidate = function(elements) {
   }
   let charade = ''
   let score = 0;
-  let i = 0
-  let numScores = elements.length
+  let i = 0;
+  let numScores = elements.length;
   while (i < elements.length) {
-    let x = elements[i]
+    let x = elements[i];
     if (!x.possible) {
-      return
+      return;
     }
-    if (charade) charade = charade + '<span class="xet-blue"> + </span>'
-    charade = charade + x.possible
-    score += x.score
-    i++
+    if (charade) charade = charade + '<span class="xet-blue"> + </span>';
+    charade = charade + x.possible;
+    score += x.score;
+    i++;
     if (x.container) {
-      contents = ''
+      contents = '';
       while (i < x.container) {
-        let y = elements[i]
+        let y = elements[i];
         if (!y.possible) {
-          return
+          return;
         }
-        if (contents) contents = contents + ' '
-        contents = contents + y.possible
-        score += y.score
-        i++
+        if (contents) contents = contents + ' ';
+        contents = contents + y.possible;
+        score += y.score;
+        i++;
       }
       charade = charade + ' <span class="xet-blue">around (</span>' +
-        contents + '<span class="xet-blue">)</span>'
-      i++
-      numScores = elements.length - 1
+                contents + '<span class="xet-blue">)</span>';
+      i++;
+      numScores = elements.length - 1;
     }
   }
   score = score / numScores
@@ -3101,7 +3303,7 @@ Exet.prototype.pushCharadeCandidate = function(elements) {
     this.charadeCandidates.push({
       charade: charade,
       score: score
-    })
+    });
   }
 }
 
@@ -3234,6 +3436,11 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   }
 }
 
+/**
+ * Find the longest common substring between strings a and b. Use dp as the
+ * preallocated buffer for the dynamic program.
+ * Return [index_in_a, index_in_b, length]
+ */
 Exet.prototype.lcs = function(a, b, dp) {
   // dp is already an (n+1)x(m+1) array.
   // dp[i][j] = length of longest common subseq. of a[0..i-1], j[0..j-1].
@@ -3262,8 +3469,13 @@ Exet.prototype.lcs = function(a, b, dp) {
   return [besti - best, bestj - best, best];
 }
 
-Exet.prototype.delsubMatch = function(fodder, phrase, dp,
-                                      match_thresh, delta_thresh, candidates) {
+/**
+ * Add del/ins/sub candidates for wordplay for "fodder" to candidates. For
+ * each potential candidate phrase, we find the LCS (longest common substring)
+ * and then find the LCS between the prefix parts and the suffix parts.
+ */
+Exet.prototype.editsMatch = function(fodder, phrase, dp,
+                                     match_thresh, delta_thresh, candidates) {
   const phrase_norm = this.makeCharadeParam(phrase);
   const match = this.lcs(fodder, phrase_norm, dp);
   if (match[2] < match_thresh) {
@@ -3298,18 +3510,35 @@ Exet.prototype.delsubMatch = function(fodder, phrase, dp,
   // fodder and phrase_norm have both been segmented into seven parts:
   // UMUMUMU (unmatched/matched).
   const p1 = phrase.substring(corresp[0], corresp[prefix_match[1]]);
-  const p2 = phrase.substring(corresp[prefix_match[1]], corresp[prefix_match[1] + prefix_match[2]]);
-  const p3 = phrase.substring(corresp[prefix_match[1] + prefix_match[2]], corresp[match[1]]);
+  const p1_l = prefix_match[1];
+  const p2 = phrase.substring(
+      corresp[prefix_match[1]], corresp[prefix_match[1] + prefix_match[2]]);
+  const p3 = phrase.substring(corresp[prefix_match[1] + prefix_match[2]],
+                              corresp[match[1]]);
+  const p3_l = match[1] - (prefix_match[1] + prefix_match[2]);
   const offset = match[1] + match[2];
   const p4 = phrase.substring(corresp[match[1]], corresp[offset])
-  const p5 = phrase.substring(corresp[offset], corresp[offset + suffix_match[1]]);
-  const p6 = phrase.substring(corresp[offset + suffix_match[1]], corresp[offset + suffix_match[1] + suffix_match[2]]);
-  const p7 = phrase.substring(corresp[offset + suffix_match[1] + suffix_match[2]], corresp[m]);
+  const p5 = phrase.substring(corresp[offset],
+                              corresp[offset + suffix_match[1]]);
+  const p5_l = suffix_match[1];
+  const p6 = phrase.substring(
+      corresp[offset + suffix_match[1]],
+      corresp[offset + suffix_match[1] + suffix_match[2]]);
+  const p7 = phrase.substring(
+      corresp[offset + suffix_match[1] + suffix_match[2]], corresp[m]);
+  const p7_l = m - (offset + suffix_match[1] + suffix_match[2]);
 
   const f1 = prefix_f.substr(0, prefix_match[0]);
   const f3 = prefix_f.substr(prefix_match[0] + prefix_match[2]);
   const f5 = suffix_f.substr(0, suffix_match[0]);
   const f7 = suffix_f.substr(suffix_match[0] + suffix_match[2]);
+
+  // We sort candidates in order of increasing diff. A substitution counts
+  // for a diff of the max of the lengthd of the  plus and minus terms.
+  const diff = Math.max(p1_l, f1.length) +
+               Math.max(p3_l, f3.length) +
+               Math.max(p5_l, f5.length) +
+               Math.max(p7_l, f7.length);
 
   candidate = phrase + ' &rarr; ';
   if (p1) candidate += `<span class="xet-red">${p1}</span>`;
@@ -3324,10 +3553,10 @@ Exet.prototype.delsubMatch = function(fodder, phrase, dp,
   if (p7) candidate += `<span class="xet-red">${p7}</span>`;
   if (f7) candidate += `<span class="xet-blue">(+${f7})</span>`;
 
-  candidates.push(candidate);
+  candidates.push([candidate, diff]);
 }
 
-Exet.prototype.updateDelsub = function(fodder) {
+Exet.prototype.updateEdits = function(fodder) {
   const n = fodder.length;
   const maxl = Math.min(n + 5, n * 2);
   const dp = new Array(n + 1);
@@ -3344,18 +3573,38 @@ Exet.prototype.updateDelsub = function(fodder) {
     const indices = exetLexicon.index[key];
     for (let idx of indices) {
       const phrase = exetLexicon.lexicon[idx];
-      this.delsubMatch(fodder, phrase, dp,
-                       match_thresh, delta_thresh, candidates);
+      this.editsMatch(fodder, phrase, dp,
+                      match_thresh, delta_thresh, candidates);
     }
   }
+  candidates.sort((a, b) => a[1] - b[1]);
 
-  let html = '<table id="xet-delsub-choices">';
+  let html = '<table id="xet-edits-choices">';
   for (let candidate of candidates) {
     html = html + `
-      <tr><td>${candidate}</td></tr>`
+      <tr><td>${candidate[0]}</td></tr>`
   }
   html = html + '</table>'
-  this.delsub.innerHTML = html;
+  this.edits.innerHTML = html;
+}
+
+Exet.prototype.updateSounds = function(fodder) {
+  let html = '<table id="xet-sounds-choices">';
+  const homophones = this.getHomophones(fodder); 
+  for (let hp of homophones) {
+    html = html + `
+      <tr title="Homophone of ${hp}"><td>&#x1F56A;
+        <span class="xet-blue">~</span> ${hp}</td></tr>`
+  }
+  const spoonerisms = this.getSpoonerisms(fodder); 
+  for (let sp of spoonerisms) {
+    html = html + `
+      <tr title="Spoonerism of ${sp[0]} + ${sp[1]}">
+        <td>&#x1F50A; ${sp[0]} <span class="xet-blue">&lrhar;</span>
+            ${sp[1]}</td></tr>`
+  }
+  html = html + '</table>'
+  this.sounds.innerHTML = html;
 }
 
 Exet.prototype.updateCA = function() {
@@ -3404,7 +3653,7 @@ Exet.prototype.updateCA = function() {
 }
 
 Exet.prototype.populateCompanag = function() {
-  let ca = document.getElementById('xet-companag')
+  const ca = document.getElementById('xet-companag')
   ca.className = 'xet-companag'
   ca.innerHTML = `
     <table class="xet-table-midline">
@@ -3503,9 +3752,21 @@ Exet.prototype.populateFrame = function() {
                height="${h}" width="${panelW}px" id="xet-${id}-content-${i}">
             </iframe>`
         } else {
+          let paramHtml = '';
+          if (section.id != 'xet-companag') {
+            paramHtml = `
+            <br>
+            <input id="${section.id}-param" class="xlv-answer"
+              size="32" type="text"
+              title="Press <Esc> to reset from grid"
+              placeholder="Press <Esc> to reset from grid">
+            </input>
+            `;
+          }
           frameHTML = frameHTML + `
             <div class="xet-bold">${section.title || ''}</div>
-            <div id=${section.id}
+            ${paramHtml}
+            <div id="${section.id}"
               class="xet-panel"
               style="height:${h}px;width:${panelW}px;">
             </div>`
@@ -3529,18 +3790,50 @@ Exet.prototype.populateFrame = function() {
   }
   this.frame.innerHTML = frameHTML
 
+  const ch = document.getElementById('xet-charades')
+  ch.innerHTML = `
+    <div id="xet-charades-box" style="margin:16px 0;border:0">
+    </div>
+  `
+  this.charades = document.getElementById('xet-charades-box')
+
+  const eds = document.getElementById('xet-edits');
+  eds.innerHTML = `
+    <div id="xet-edits-box" style="margin:16px 0;border:0">
+    </div>
+  `
+  this.edits = document.getElementById('xet-edits-box');
+
+  const sd = document.getElementById('xet-sounds');
+  sd.innerHTML = `
+    <div id="xet-sounds-box" style="margin:16px 0;border:0">
+    </div>
+  `
+  this.sounds = document.getElementById('xet-sounds-box')
+
+  this.populateCompanag()
+
   for (let id in this.tabs) {
     let tab = this.tabs[id]
     tab.button = document.getElementById(`xet-${id}`)
     tab.button.title = tab.hover
-    tab.button.addEventListener(
-      'click', this.handleTabClick.bind(this, id));
+    const handler = this.handleTabClick.bind(this, id);
+    tab.button.addEventListener('click', handler);
     tab.frame = document.getElementById(`xet-${id}-frame`)
     if (tab.sections.length > 0) {
       for (let i = 0; i < tab.sections.length; i++) {
         let section = tab.sections[i]
         if (!section.url) {
-          continue
+          section.paramInput = document.getElementById(`${section.id}-param`)
+          if (section.paramInput) {
+            section.paramInput.addEventListener('input', handler);
+            section.paramInput.addEventListener('keyup', e => {
+              if (e.key == "Escape") {
+                exet.restoreParam(id, section);
+              }
+            });
+          }
+          continue;
         }
         section.content = document.getElementById(`xet-${id}-content-${i}`)
         section.urldisp = document.getElementById(`xet-${id}-url-${i}`)
@@ -3549,22 +3842,6 @@ Exet.prototype.populateFrame = function() {
       tab.content = document.getElementById(`xet-${id}-content`)
     }
   }
-
-  const ch = document.getElementById('xet-charades')
-  ch.innerHTML = `
-    <div id="xet-charades-box" style="margin:16px 0;border:0">
-    </div>
-  `
-  this.charades = document.getElementById('xet-charades-box')
-
-  const ds = document.getElementById('xet-delsub')
-  ds.innerHTML = `
-    <div id="xet-delsub-box" style="margin:16px 0;border:0">
-    </div>
-  `
-  this.delsub = document.getElementById('xet-delsub-box')
-
-  this.populateCompanag()
 
   this.makeExetTab()
   this.makeIndsTab(panelInnerH)
@@ -3913,56 +4190,60 @@ Exet.prototype.downloadDotPuz = function() {
 }
 
 Exet.prototype.makeWordParam = function(s) {
-  return s.toLowerCase()
+  return s.toLowerCase();
+}
+
+Exet.prototype.makeSoundsParam = function(s) {
+  return s.toLowerCase().replace(/\?/g, '');
 }
 
 Exet.prototype.makeCharadeParam = function(s) {
-  return s.toLowerCase().replace(/\?/g, '').replace(/[^a-z]/g, '')
+  return s.toLowerCase().replace(/\?/g, '').replace(/[^a-z]/g, '');
 }
 
 Exet.prototype.makeAnagramParam = function(s) {
-  s = this.makeCharadeParam(s)
-  return "<" + s + ">"
+  s = this.makeCharadeParam(s);
+  return "<" + s + ">";
 }
 
 Exet.prototype.makeCAParam = function(s) {
-  return s.toLowerCase().replace(/\?/g, '')
+  return s.toLowerCase().replace(/\?/g, '');
 }
 
 Exet.prototype.makeAlternationParam = function(s) {
-  s = this.makeCharadeParam(s)
-  let out = 'A%3F'
+  s = this.makeCharadeParam(s);
+  let out = 'A%3F';
   for (let c of s) {
-    out = out + c + 'A'
+    out = out + c + 'A';
   }
-  return out + '%3F'
+  return out + '%3F';
 }
 
 Exet.prototype.makeRevAlternationParam = function(s) {
-  s = this.makeCharadeParam(s)
-  let out = 'A%3F'
+  s = this.makeCharadeParam(s);
+  let out = 'A%3F';
   for (let i = s.length - 1; i >= 0; i--) {
-    out = out + s.charAt(i) + 'A'
+    out = out + s.charAt(i) + 'A';
   }
-  return out + '%3F'
+  return out + '%3F';
 }
 
 Exet.prototype.makeHiddenParam = function(s) {
-  s = this.makeCharadeParam(s)
-  if (s.length < 2) return s
+  s = this.makeCharadeParam(s);
+  if (s.length < 2) return s;
   return 'A*"A' + s.charAt(0) + '"' + s.substr(1, s.length - 2) +
-         '"' + s.charAt(s.length - 1) + 'A"A*'
+         '"' + s.charAt(s.length - 1) + 'A"A*';
 }
 
 Exet.prototype.makeRevHiddenParam = function(s) {
-  s = this.makeCharadeParam(s)
-  if (s.length < 2) return s
-  let sr = ''
+  s = this.makeCharadeParam(s);
+  if (s.length < 2) return s;
+  let sr = '';
   for (let i = s.length - 1; i >= 0; i--) {
-    sr = sr + s.charAt(i)
+    sr = sr + s.charAt(i);
   }
   return 'A*"A' + sr.charAt(0) + '"' + sr.substr(1, sr.length - 2) +
-         '"' + sr.charAt(sr.length - 1) + 'A"A*'
+         '"' + sr.charAt(sr.length - 1) + 'A"A*';
 }
 
 Exet.prototype.currClueIndex = function() {
@@ -4007,49 +4288,68 @@ Exet.prototype.handleTabClick = function(id) {
   tab.button.className += " active";
 
   if (id == "exet") {
-    return
+    return;
   }
   if (id == "inds") {
     this.indsTabNav();
-    return
+    return;
   }
 
-  let theClue = this.currClue()
+  let theClue = this.currClue();
   if (!theClue) {
-    return
+    return;
   }
-  let words = theClue.solution
-  if (!words) {
-    return
-  }
+  let words = theClue.solution;
   if (id == "dicts") {
     tab.words = this.makeWordParam(words);
     this.dictsTabNav();
-    return
+    return;
   }
   for (let i = 0; i < tab.sections.length; i++) {
     let section = tab.sections[i]
     let wordParam = section.maker ? section.maker.call(this, words) :
                     this.makeWordParam(words)
-    if (section.url && (!section.param || section.param != wordParam)) {
-      section.param = wordParam
-      let url = section.url + wordParam
-      section.content.src = url
-      section.urldisp.innerText = url
-      section.urldisp.href = url
-    } else if (section.id == 'xet-charades' && section.param != wordParam) {
-      section.param = wordParam
-      this.updateCharades(wordParam)
-    } else if (section.id == 'xet-delsub' && section.param != wordParam) {
-      section.param = wordParam
-      this.updateDelsub(wordParam)
-    } else if (section.id == 'xet-companag' && section.param != wordParam) {
-      section.param = wordParam
-      this.caFodder.value = wordParam
-      this.caAnagram.value = ''
-      this.updateCA()
+    if (section.url) {
+      if (!section.param || section.param != wordParam) {
+        section.param = wordParam;
+        const url = section.url + wordParam;
+        section.content.src = url
+        section.urldisp.innerText = url;
+        section.urldisp.href = url;
+      }
+      continue;
+    }
+    if (section.param == wordParam) {
+      if (section.paramInput && section.paramInput.value != wordParam) {
+        wordParam = section.paramInput.value;
+      } else {
+        continue;
+      }
+    } else {
+      section.param = wordParam;
+      if (section.paramInput) {
+        section.paramInput.value = wordParam;
+      }
+    }
+
+    if (section.id == 'xet-charades') {
+      this.updateCharades(wordParam);
+    } else if (section.id == 'xet-edits') {
+      this.updateEdits(wordParam);
+    } else if (section.id == 'xet-sounds') {
+      this.updateSounds(wordParam);
+    } else if (section.id == 'xet-companag') {
+      this.caFodder.value = wordParam;
+      this.caAnagram.value = '';
+      this.updateCA();
     }
   }
+}
+
+Exet.prototype.restoreParam = function(id, section) {
+  section.paramInput.value = section.param;
+  section.param = section.param + '_';  // forced to be different.
+  this.handleTabClick(id);
 }
 
 Exet.prototype.navDarkness = function(row, col) {

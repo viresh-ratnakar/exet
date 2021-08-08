@@ -1,5 +1,20 @@
 # Changelog
 
+### Version: Exet v0.49 August 7 2021
+
+- Update the lexicon to a new version, adding CMUdict pronunciations.
+- Add Homophones and Spoonerisms!
+- Rename the "Del+subs" tab to "Edits + &#x1F56A;" and make it show
+  both edits (substitutions, insertions, deletions) as well as homophones
+  and Spoonerisms.
+- To the tops of charades, edits, and homophones/spoonerisms sections,
+  add a text input field where you can make changes to the entry, possibly
+  to try out alternatives. Hitting escape in the field will restore the
+  value taken from the grid.
+- Sort the Edits results by a form of edit distance (substitutions count
+  for max(plus-length, minus-length)).
+- Minor code-cleanup (more semicolons, mostly).
+
 ### Version: Exet v0.48 August 1 2021
 
 - Add deletion/insertion/substitution wordplay candidates in a new tab.
