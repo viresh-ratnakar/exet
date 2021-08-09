@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.49 August 7 2021
+Current version: v0.50 August 9 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1244,7 +1244,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.49 August 7 2021'
+  this.version = 'v0.50 August 9 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -3067,7 +3067,10 @@ Exet.prototype.getPhones = function(phrase) {
   }
   this.indexMinPop = savedMinPop;
   if (phones.length == 0) {
-    const space = phrase.indexOf(' ');
+    let space = phrase.indexOf(' ');
+    if (space < 0) {
+      space = phrase.indexOf('-');
+    }
     if (space > 0) {
       const part1 = phrase.substr(0, space);
       const part1_phones = this.getPhones(part1);
@@ -3104,9 +3107,6 @@ Exet.prototype.getSpoonerismsInner = function(phrase, phones) {
           currSpan[1] = i;
           nonVowelSpans.push(currSpan);
           currSpan = [-1, -1];
-          if (nonVowelSpans.length == 2) {
-            break;
-          }
         }
       }
     }
@@ -3114,53 +3114,55 @@ Exet.prototype.getSpoonerismsInner = function(phrase, phones) {
       currSpan[1] = pparts.length;
       nonVowelSpans.push(currSpan);
     }
-    if (nonVowelSpans.length == 0) {
+    if (nonVowelSpans.length < 2) {
       continue;
     }
     if (nonVowelSpans[0][0] > 0) {
       // We do not deal with phrases that start with vowels.
       continue;
     }
-    if (nonVowelSpans.length < 2) {
-      continue;
-    }
     for (let last1 = nonVowelSpans[0][0]; last1 < nonVowelSpans[0][1]; last1++) {
-      for (let last2 = nonVowelSpans[1][0]; last2 < nonVowelSpans[1][1]; last2++) {
-        for (let start2 = nonVowelSpans[1][0]; start2 <= last2; start2++) {
-          const phone1_arr = pparts.slice(start2, last2 + 1).concat(
-              pparts.slice(last1 + 1, start2));
-          if (phone1_arr.length == 0) continue;
-          const phone2_arr = pparts.slice(0, last1 + 1).concat(
-              pparts.slice(last2 + 1));
-          if (phone2_arr.length == 0) continue;
+      for (let second_span = 1; second_span < nonVowelSpans.length;
+           second_span++) {
+        for (let last2 = nonVowelSpans[second_span][0];
+             last2 < nonVowelSpans[second_span][1]; last2++) {
+          for (let start2 = nonVowelSpans[second_span][0];
+               start2 <= last2; start2++) {
+            const phone1_arr = pparts.slice(start2, last2 + 1).concat(
+                pparts.slice(last1 + 1, start2));
+            if (phone1_arr.length == 0) continue;
+            const phone2_arr = pparts.slice(0, last1 + 1).concat(
+                pparts.slice(last2 + 1));
+            if (phone2_arr.length == 0) continue;
 
-          const phone1 = phone1_arr.join(' ');
-          let shard = this.javaHash(phone1) % NUM_SHARDS;
-          if (shard < 0) shard += NUM_SHARDS;
-          const q1list = [];
-          for (let q1 of exetLexicon.phindex[shard]) {
-            if (!exetLexicon.phones[q1] ||
-                !exetLexicon.phones[q1].includes(phone1)) continue;
-            q1list.push(exetLexicon.lexicon[q1]);
-          }
+            const phone1 = phone1_arr.join(' ');
+            let shard = this.javaHash(phone1) % NUM_SHARDS;
+            if (shard < 0) shard += NUM_SHARDS;
+            const q1list = [];
+            for (let q1 of exetLexicon.phindex[shard]) {
+              if (!exetLexicon.phones[q1] ||
+                  !exetLexicon.phones[q1].includes(phone1)) continue;
+              q1list.push(exetLexicon.lexicon[q1]);
+            }
 
-          if (q1list.length == 0) continue;
+            if (q1list.length == 0) continue;
 
-          const phone2 = phone2_arr.join(' ');
-          shard = this.javaHash(phone2) % NUM_SHARDS;
-          if (shard < 0) shard += NUM_SHARDS;
-          const q2list = [];
-          for (let q2 of exetLexicon.phindex[shard]) {
-            if (!exetLexicon.phones[q2] ||
-                !exetLexicon.phones[q2].includes(phone2)) continue;
-            q2list.push(exetLexicon.lexicon[q2]);
-          }
+            const phone2 = phone2_arr.join(' ');
+            shard = this.javaHash(phone2) % NUM_SHARDS;
+            if (shard < 0) shard += NUM_SHARDS;
+            const q2list = [];
+            for (let q2 of exetLexicon.phindex[shard]) {
+              if (!exetLexicon.phones[q2] ||
+                  !exetLexicon.phones[q2].includes(phone2)) continue;
+              q2list.push(exetLexicon.lexicon[q2]);
+            }
 
-          if (q2list.length == 0) continue;
+            if (q2list.length == 0) continue;
 
-          for (let q1 of q1list) {
-            for (let q2 of q2list) {
-              spoons.push([q1, q2]);
+            for (let q1 of q1list) {
+              for (let q2 of q2list) {
+                spoons.push([q1, q2]);
+              }
             }
           }
         }
@@ -3590,14 +3592,22 @@ Exet.prototype.updateEdits = function(fodder) {
 
 Exet.prototype.updateSounds = function(fodder) {
   let html = '<table id="xet-sounds-choices">';
-  const homophones = this.getHomophones(fodder); 
+  const phones = this.getPhones(fodder);
+  const homophones = this.getHomophonesInner(fodder, phones); 
+  const hpSet = {};
   for (let hp of homophones) {
+    hpSet[this.makeCharadeParam(hp)] = true;
     html = html + `
       <tr title="Homophone of ${hp}"><td>&#x1F56A;
         <span class="xet-blue">~</span> ${hp}</td></tr>`
   }
-  const spoonerisms = this.getSpoonerisms(fodder); 
+  const spoonerisms = this.getSpoonerismsInner(fodder, phones);
+  hpSet[this.makeCharadeParam(fodder)] = true;
   for (let sp of spoonerisms) {
+    if (hpSet[this.makeCharadeParam(sp[0] + sp[1])]) {
+      // Not really a Spoonerism.
+      continue;
+    }
     html = html + `
       <tr title="Spoonerism of ${sp[0]} + ${sp[1]}">
         <td>&#x1F50A; ${sp[0]} <span class="xet-blue">&lrhar;</span>

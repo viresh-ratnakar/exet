@@ -1,5 +1,17 @@
 # Changelog
 
+### Version: Exet v0.50 August 9 2021
+
+- When getting pronunciations of a phrase, split of hyphen if present,
+  if there is no space in the phrase.
+- Call getPhones() only once when we have to get both homophones and
+  Spoonerisms.
+- Create Spoonerisms from non-vowel spans beyond the second one too!
+- Minor tweak to Spoonerisms: after you have lists of Spoonerisms as
+  well as homophones, delete any Spoonerisms that are also homophones
+  (this can happen with the swapped parts in the Spoonerism have
+  the same sound).
+
 ### Version: Exet v0.49 August 7 2021
 
 - Update the lexicon to a new version, adding CMUdict pronunciations.
