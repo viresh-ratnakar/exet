@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.52 August 10 2021
+
+- Bugfix: make the param input area in charades/edits/homophones/Spoonerisms
+  show wordplay candidates for manually entered phrases even when there is
+  currently active light in the grid.
+
 ### Version: Exet v0.51 August 10 2021
 
 - Bugfix: in getPhones() don't limit getLexChoices() to one result

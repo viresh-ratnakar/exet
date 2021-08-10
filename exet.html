@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.50 August 9 2021
+Current version: v0.52 August 10 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1244,7 +1244,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.50 August 9 2021'
+  this.version = 'v0.52 August 10 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -4309,10 +4309,7 @@ Exet.prototype.handleTabClick = function(id) {
   }
 
   let theClue = this.currClue();
-  if (!theClue) {
-    return;
-  }
-  let words = theClue.solution;
+  let words = theClue ? theClue.solution : '';
   if (id == "dicts") {
     tab.words = this.makeWordParam(words);
     this.dictsTabNav();
