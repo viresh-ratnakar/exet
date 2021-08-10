@@ -3057,8 +3057,10 @@ Exet.prototype.dedupe = function(a) {
 Exet.prototype.getPhones = function(phrase) {
   const phones = [];
   const savedMinPop = this.indexMinPop;
+  const savedNoProper = this.noProperNouns;
   this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
-  let inLexicon = this.getLexChoices(phrase, 1)
+  this.noProperNouns = false;
+  let inLexicon = this.getLexChoices(phrase, 5);
   for (let p of inLexicon) {
     if (!exetLexicon.phones[p]) continue;
     for (let phone of exetLexicon.phones[p]) {
@@ -3066,6 +3068,7 @@ Exet.prototype.getPhones = function(phrase) {
     }
   }
   this.indexMinPop = savedMinPop;
+  this.noProperNouns = savedNoProper;
   if (phones.length == 0) {
     let space = phrase.indexOf(' ');
     if (space < 0) {
@@ -7875,7 +7878,9 @@ Exet.prototype.setPreflex = function(preflex) {
   }
   this.preflexByLen = {}
   const savedMinPop = this.indexMinPop;
+  const savedNoProper = this.noProperNouns;
   this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
+  this.noProperNouns = false;
   for (let p of this.preflex) {
     let len = this.makeLexKey(p).length
     let inLexicon = this.getLexChoices(p, 1)
@@ -7890,6 +7895,7 @@ Exet.prototype.setPreflex = function(preflex) {
     this.preflexSet[p] = true
   }
   this.indexMinPop = savedMinPop;
+  this.noProperNouns = savedNoProper;
 }
 
 Exet.prototype.throttledUpdatePreflex = function() {
@@ -7964,7 +7970,9 @@ Exet.prototype.updateUnpreflex = function() {
   let saved = this.unpreflex
   this.unpreflex = {}
   const savedMinPop = this.indexMinPop;
+  const savedNoProper = this.noProperNouns;
   this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
+  this.noProperNouns = false;
   for (let p of unpreflexes) {
     p = p.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ')
     if (!p) continue
@@ -7981,6 +7989,7 @@ Exet.prototype.updateUnpreflex = function() {
     this.unpreflex[p] = true
   }
   this.indexMinPop = savedMinPop;
+  this.noProperNouns = savedNoProper;
   this.unpreflexSize.innerText = Object.keys(this.unpreflex).length
   if (JSON.stringify(this.unpreflex) == JSON.stringify(saved)) {
     return

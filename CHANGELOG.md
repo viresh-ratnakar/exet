@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.51 August 10 2021
+
+- Bugfix: in getPhones() don't limit getLexChoices() to one result
+  (but still have a limit of 5, guarding against wanton use of wildcard ?s
+  in user-entered phrases in the UI).
+- Bugfix: set noProperNouns to false in getPhones() and in checking
+  preflex/unpreflex.
+
 ### Version: Exet v0.50 August 9 2021
 
 - When getting pronunciations of a phrase, split of hyphen if present,
