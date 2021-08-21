@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.52 August 10 2021
+Current version: v0.53 August 21 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -504,7 +504,7 @@ Current version: v0.52 August 10 2021
 .xet-full-width {
   width: 100%;
 }
-#xet-charade-choices td {
+.xet-wordplay-choices td {
   padding: 3px 0;
 }
 .xet-sweeping-box {
@@ -667,6 +667,9 @@ ExetModals.prototype.showModal = function(elt) {
 ExetModals.prototype.hide = function() {
   if (!this.modal) {
     return
+  }
+  if (exet.postscript && this.modal.id == 'xet-other-sections') {
+    exet.postscript.style.display = 'none';
   }
   this.modal.style.display = 'none'
   this.modal = null;
@@ -1244,7 +1247,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.52 August 10 2021'
+  this.version = 'v0.53 August 21 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1582,6 +1585,10 @@ Exet.prototype.setPuzzle = function(puz) {
       `${this.puz.prefix}-report-bug`).style.display = 'none'
   document.getElementById(
       `${this.puz.prefix}-exolve-link`).style.display = 'none'
+  this.postscript = document.getElementById(`${this.puz.prefix}-postscript`);
+  if (this.postscript) {
+    this.postscript.style.display = 'none';
+  }
 
   this.copyright = document.getElementById(`${this.puz.prefix}-copyright`)
   this.copyright.innerHTML = `<span class="xet-action">Edit optional
@@ -2455,6 +2462,9 @@ Exet.prototype.makeExetTab = function() {
   document.getElementById("xet-edit-other-sections").addEventListener(
       'click', e => {
     this.puz.deactivator();
+    if (this.postscript) {
+      this.postscript.style.display = '';
+    }
     this.otherSecText.value = this.exolveOtherSec;
     this.otherSecError.innerText = '';
     exetModals.showModal(this.otherSecPanel)
@@ -2921,6 +2931,9 @@ Exet.prototype.updateOtherSections = function() {
     delete exolvePuzzles[tempId]
     if (specsOK) {
       this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
+      if (this.postscript) {
+        this.postscript.style.display = '';
+      }
     } else {
       this.exolveOtherSec = saved;
     }
@@ -3069,21 +3082,21 @@ Exet.prototype.getPhones = function(phrase) {
   }
   this.indexMinPop = savedMinPop;
   this.noProperNouns = savedNoProper;
-  if (phones.length == 0) {
-    let space = phrase.indexOf(' ');
-    if (space < 0) {
-      space = phrase.indexOf('-');
-    }
-    if (space > 0) {
-      const part1 = phrase.substr(0, space);
-      const part1_phones = this.getPhones(part1);
-      if (part1_phones.length > 0) {
-        const part2 = phrase.substr(space + 1);
-        const part2_phones = this.getPhones(part2);
-        for (let p2 of part2_phones) {
-          for (let p1 of part1_phones) {
-            phones.push(p1 + ' ' + p2);
-          }
+
+  // Try breaking into parts.
+  let space = phrase.indexOf(' ');
+  if (space < 0) {
+    space = phrase.indexOf('-');
+  }
+  if (space > 0) {
+    const part1 = phrase.substr(0, space);
+    const part1_phones = this.getPhones(part1);
+    if (part1_phones.length > 0) {
+      const part2 = phrase.substr(space + 1);
+      const part2_phones = this.getPhones(part2);
+      for (let p2 of part2_phones) {
+        for (let p1 of part1_phones) {
+          phones.push(p1 + ' ' + p2);
         }
       }
     }
@@ -3426,7 +3439,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
     }
   }
   let candidates = this.charadeCandidates.sort((a, b) => b.score - a.score);
-  let html = '<table id="xet-charade-choices">'
+  let html = '<table class="xet-wordplay-choices">'
   for (let candidate of candidates) {
     html = html + `
       <tr><td><span style="color:gray">[${
@@ -3584,7 +3597,7 @@ Exet.prototype.updateEdits = function(fodder) {
   }
   candidates.sort((a, b) => a[1] - b[1]);
 
-  let html = '<table id="xet-edits-choices">';
+  let html = '<table class="xet-wordplay-choices">';
   for (let candidate of candidates) {
     html = html + `
       <tr><td>${candidate[0]}</td></tr>`
@@ -6903,6 +6916,9 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   this.puz.currCol = col
   this.puz.scratchPad.value = scratch
   if (editingOtherSections) {
+    if (this.postscript) {
+      this.postscript.style.display = '';
+    }
     this.otherSecText.value = this.exolveOtherSec;
     exetModals.showModal(this.otherSecPanel);
     this.otherSecText.focus();

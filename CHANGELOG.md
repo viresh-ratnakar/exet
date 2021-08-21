@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.53 August 21 2021
+
+- When getting pronunciations, even if you've found something, still
+  look for alternatives by splitting on space/hyphen.
+- Hide the postscript section if present, but show it while
+  "Other Exolve sections" is being edited.
+- Show some space between rows of alternatives in xet-edits, unifying
+  with xet-charades.
+
 ### Version: Exet v0.52 August 10 2021
 
 - Bugfix: make the param input area in charades/edits/homophones/Spoonerisms

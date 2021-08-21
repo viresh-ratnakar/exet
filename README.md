@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.52 August 10 2021
+#### Version: Exet v0.53 August 21 2021
 
 #### Author: Viresh Ratnakar
 
@@ -689,6 +689,12 @@ If there are any problems in parsing the specified text, then the error is shown
 in red and the specified text is not used until the error is fixed. The
 specified Exolve sections, when free from errors, are updated as you type (with
 a short lag).
+
+The  `exolve-postscript` section is typically used to saw site-specific
+navigational elements. This section (if present) is normally hidden in Exet.
+The only exception is when you are actively editing "Other Exolve sections"
+(as you may want to edit the `exolve-postscript` section itself and see what the
+results look like).
 
 ### Circles and prefills
 
