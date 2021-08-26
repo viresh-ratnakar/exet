@@ -771,7 +771,7 @@ at some point.
 ## Notes and acknowledgements
 
 - [Qxw](https://www.quinapalus.com/qxw.html) is excellent free software for
-  crossword construction that I have been using extensively. I found myself
+  crossword construction that I have used extensively. I found myself
   jumping from Qxw to various online resources during the clue-setting phases
   of crossword construction, and have tried to make these resources
   readily accessible in-context within Exet.
@@ -781,7 +781,7 @@ at some point.
 - The "viablots" that I display in Exet are inspired by a similar construct
   in Qxw.
 - I added Wikipedia-importance scores to the lexicon using code
-  ([Lufz](https://github.com/viresh-ratnakar/lufz)) inspired by the the code
+  ([Lufz](https://github.com/viresh-ratnakar/lufz)) inspired by the code
   used in the [Nutrimatic project](https://github.com/egnor/nutrimatic).
 - I used this [.puz format
   documentation](https://code.google.com/archive/p/puz/wikis/FileFormat.wiki)
