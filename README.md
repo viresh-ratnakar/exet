@@ -418,7 +418,7 @@ top in each tab. These tabs are:
 - **Charades**: Shows candidate charade wordplays, including anagrams,
   reversals, and containers, sorted in decreasing order of the average length
   of wordplay components.
-- **Edits + &#x1F56A;**: Shows candidate wordplays for deletion, insertion,
+- **Edits, Sounds**: Shows candidate wordplays for deletion, insertion,
   substitution, sorted in increasing order of a kind of edit distance (sum
   of lengths of deletions, insertions, substitutions, with the length of a
   substitution being the max of the plus and minus term lengths). Also shows
