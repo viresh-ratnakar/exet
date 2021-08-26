@@ -1,5 +1,17 @@
 # Changelog
 
+### Version: Exet v0.54 August 25 2021
+
+- Make clues and clue linkages survive grid changes (with renumbering
+  as needed) if their constituent cells have remained intact.
+- Rename tab to 'Edits, Sounds' to avoid the speaker emoji.
+- Allow creating .PUZ even when there are linked clues.
+- Rename '-solved.html' and '-unsolved.html' to '-with-solutions.html'
+  and '-sans-solutions.html' respectively.
+- Show grid warnings in red in Analysis.
+- Add a grid warning in Analysis if there are lights that have too
+  many unches in a blocked grid.
+
 ### Version: Exet v0.53 August 21 2021
 
 - When getting pronunciations, even if you've found something, still

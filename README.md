@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.53 August 21 2021
+#### Version: Exet v0.54 August 25 2021
 
 #### Author: Viresh Ratnakar
 
@@ -309,6 +309,16 @@ if you change the setting, depending on some browser peculiarities, the
 updated setting may only become active after you have navigated to a new
 clue and/or clicked on the clue or anno.
 
+##### Modifying the grid after some clues have been provided
+
+If you make changes to the grid (such as adding/removing blocks/bars) that
+result in a modified numbering of clues, any clues or annotations that you
+may already have provided, for lights that survive the grid changes, will
+remain intact. This is the case even when their clue numbers get modified
+because of the grid changes. Moreover, any linked clues that you may have
+created will survive (with automatic renumbering if needed), as long as
+all the lights involved survive the grid change.
+
 #### Formatting clues and annotations
 
 Note that when editing the current clue or annotation, you are working with
@@ -451,13 +461,14 @@ following, \<title\> in a filename stands for the puzzle title.
   Note also that when exporting the crossword in the .puz format, any rich
   formatting in clues will get stripped out as the .puz format does not support
   it (.puz does not support annotations either).
-- **Download Exolve file with solutions (exet-exolve-\<title\>-solved.html)**:
+- **Download Exolve file with solutions
+  (exet-exolve-\<title\>-with-solutions.html)**:
   Download an HTML file that uses Exolve and that allows solvers to check/see
   solutions.  Such files can also be opened by Exet from the "Open" menu and
   can be further edited. This might be useful, for example, when you want to
   edit an old crossword that you have deleted from Exet's limited local storage.
 - **Download Exolve file without solutions
-  (exet-exolve-\<title\>-unsolved.html)**:
+  (exet-exolve-\<title\>-sans-solutions.html)**:
   Download an HTML file that uses Exolve and does not allow solvers to check/see
   solutions.
 - **Copy Exolve widget code with solutions 📋**: Copy (into the clipboard)

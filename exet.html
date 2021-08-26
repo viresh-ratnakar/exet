@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.53 August 21 2021
+Current version: v0.54 August 25 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1247,7 +1247,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.53 August 21 2021'
+  this.version = 'v0.54 August 25 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1524,7 +1524,7 @@ Exet.prototype.setPuzzle = function(puz) {
     },
     "wordplay2": {
       id: "wordplay2",
-      display: "Edits + &#x1F56A;",
+      display: "Edits, Sounds",
       hover: "Edits (deletions, insertions, and substitutions), " +
              "Homophones, Spoonerisms",
       sections: [
@@ -1896,10 +1896,10 @@ Exet.prototype.makeExetTab = function() {
           <hr>
           <div class="xet-dropdown-item" onclick="exet.download(true)">
               Download Exolve file with solutions<br>(exet-exolve-<span
-                  class="xet-filetitle"></span>-solved.html)</div>
+                  class="xet-filetitle"></span>-with-solutions.html)</div>
           <div class="xet-dropdown-item" onclick="exet.download(false)">
               Download Exolve file without solutions<br>(exet-exolve-<span
-                  class="xet-filetitle"></span>-unsolved.html)</div>
+                  class="xet-filetitle"></span>-sans-solutions.html)</div>
           <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">
               Download PUZ file<br>
               (exet-<span class="xet-filetitle"></span>.puz)
@@ -2630,11 +2630,13 @@ Exet.prototype.getLightInfos = function() {
       let lexl = exetLexicon.lexicon.length
       let index = lexl
       let fillClue = this.fillState.clues[ci]
+      let solText = theClue.solution;
       if (fillClue && fillClue.lChoices.length == 1) {
         index = fillClue.lChoices[0]
+        solText = exetLexicon.lexicon[index];
       }
       let pop = 5 * Math.round(20 * (lexl - index) / lexl)
-      label += ': ' + exetLexicon.lexicon[index]
+      label += ': ' + solText;
       this.addStat(allInfo.popularities, pop, label)
       this.addStat(dirInfo.popularities, pop, label)
     }
@@ -2697,12 +2699,12 @@ Exet.prototype.updateAnalysis = function(elt) {
   let h = this.puz.gridHeight
   html = html + `<li>${w*h} cells, dimensions: ${w} &times; ${h}</li>`
   if (!this.gridConnected(grid, w, h)) {
-    html += '<li><i>Does not have all light cells connected</i></li>'
+    html += '<li class="xet-red"><i>Does not have all light cells connected</i></li>'
   } else {
     html += '<li>All light cells are connected</li>'
   }
   if (!this.gridSymmetric(grid, w, h)) {
-    html += '<li><i>Not symmetric</i></li>'
+    html += '<li class="xet-red"><i>Not symmetric</i></li>'
   } else {
     html += '<li>Symmetric</li>'
   }
@@ -2721,10 +2723,13 @@ Exet.prototype.updateAnalysis = function(elt) {
   }
   if (this.gridUnchequeredOK(grid, w, h, false)) {
     html += '<li>Every light cell is checked</li>'
-  } else  if (this.gridChequeredOK(grid, w, h, false)) {
+  } else  if (this.gridChequeredOK(grid, w, h, false, false)) {
     html += '<li>No consecutive unches</li>'
+    if (!this.gridChequeredOK(grid, w, h, false, true)) {
+      html += '<li class="xet-red"><i>Some lights shorter than 9 letters have &gt;50% unches</i></li>'
+    }
   } else {
-    html += '<li><i>Has consecutive unches</i></li>'
+    html += '<li class="xet-red"><i>Has consecutive unches</i></li>'
   }
   html += '</ul></p>'
 
@@ -4108,14 +4113,21 @@ Exet.prototype.getDotPuz = function() {
     let clueLens = []
     for (let ci of orderedClueIndices) {
       let theClue = this.puz.clues[ci]
-      if (theClue.parentClueIndex) {
-        throw 'This puzzle has linked clues';
-      }
       const startOffset = offset;
       clueOffsets.push(startOffset);
-      offset = this.enc8859(this.showClue(
-            theClue.clueSpan.innerText.replace(/\s+/g,' '),
-        false, exetState.showEnums), buffer, offset);
+      let puzClue = this.showClue(
+          theClue.clueSpan.innerText.replace(/\s+/g,' '),
+          false, exetState.showEnums);
+      if (theClue.children.length > 0) {
+        let chI = theClue.displayLabel.indexOf(',');
+        if (chI >= 0) {
+          const chLabel = theClue.displayLabel.substr(chI + 1).trim();
+          if (chLabel) {
+            puzClue = '(+'+ chLabel + ') ' + puzClue;
+          }
+        }
+      }
+      offset = this.enc8859(puzClue, buffer, offset);
       clueLens.push(offset - startOffset);
       buffer[offset++] = 0
     }
@@ -5250,7 +5262,8 @@ Exet.prototype.gridNumBars = function(grid, w, h) {
   return count
 }
 
-Exet.prototype.gridChequeredOK = function(grid, w, h, checkStrict=true) {
+Exet.prototype.gridChequeredOK = function(
+      grid, w, h, checkSpanLen=true, checkUnchFrac=true) {
   let crossers = new Array(h)
   for (let i = 0; i < h; i++) {
     crossers[i] = new Array(w)
@@ -5278,7 +5291,7 @@ Exet.prototype.gridChequeredOK = function(grid, w, h, checkStrict=true) {
   for (let i = 0; i < h; i++) {
     let spans = this.gridAcrossSpans(grid, w, i)
     for (let span of spans) {
-      if (checkStrict && span[1] < minSpan) {
+      if (checkSpanLen && span[1] < minSpan) {
         return false
       }
       let numChecked = 0
@@ -5290,7 +5303,7 @@ Exet.prototype.gridChequeredOK = function(grid, w, h, checkStrict=true) {
       if (numUnches > numChecked + 1) {
         return false
       }
-      if (checkStrict && numUnches == numChecked + 1 && numUnches < 5) {
+      if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
         return false
       }
     }
@@ -5298,7 +5311,7 @@ Exet.prototype.gridChequeredOK = function(grid, w, h, checkStrict=true) {
   for (let j = 0; j < w; j++) {
     let spans = this.gridDownSpans(grid, h, j)
     for (let span of spans) {
-      if (checkStrict && span[1] < minSpan) {
+      if (checkSpanLen && span[1] < minSpan) {
         return false
       }
       let numChecked = 0
@@ -5310,7 +5323,7 @@ Exet.prototype.gridChequeredOK = function(grid, w, h, checkStrict=true) {
       if (numUnches > numChecked + 1) {
         return false
       }
-      if (checkStrict && numUnches == numChecked + 1 && numUnches < 5) {
+      if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
         return false
       }
     }
@@ -5318,7 +5331,7 @@ Exet.prototype.gridChequeredOK = function(grid, w, h, checkStrict=true) {
   return true
 }
 
-Exet.prototype.gridUnchequeredOK = function(grid, w, h, checkStrict=true) {
+Exet.prototype.gridUnchequeredOK = function(grid, w, h, checkSpanLen=true) {
   let crossers = new Array(h)
   for (let i = 0; i < h; i++) {
     crossers[i] = new Array(w)
@@ -5340,7 +5353,7 @@ Exet.prototype.gridUnchequeredOK = function(grid, w, h, checkStrict=true) {
       }
     }
   }
-  if (!checkStrict) {
+  if (!checkSpanLen) {
     return true
   }
   const minSpan = 3
@@ -6265,23 +6278,96 @@ Exet.prototype.handleGridInput = function(revType=null) {
   return needsUpdate
 }
 
+Exet.prototype.remapDisplayLabel = function(displayLabel, labelMap) {
+  let s = 0;
+  let mapped = '';
+  while (s < displayLabel.length) {
+    let c = displayLabel.charAt(s++);
+    if (c < '0' || c > '9') {
+      mapped += c;
+      continue;
+    }
+    let old = '' + c;
+    while (s < displayLabel.length &&
+           ((c = displayLabel.charAt(s)) >= '0' && c <= '9')) {
+      old += c;
+      s++;
+    }
+    if (labelMap[old]) mapped += labelMap[old];
+    else mapped += old;
+  }
+  return mapped;
+}
+
 Exet.prototype.killInvalidatedClues = function(row, col) {
-  const tempId = this.puz.id + '-temp'
-  const specs = this.getExolve(tempId, true)
-  const xetTemp = document.getElementById("xet-temp")
-  xetTemp.innerHTML = ''
-  const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false)
+  const tempId = this.puz.id + '-temp';
+  const specs = this.getExolve(tempId, true /*skipClues*/);
+  const xetTemp = document.getElementById("xet-temp");
+  xetTemp.innerHTML = '';
+  const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
+  // First build a map of cell-lists to new-clue-index
+  const cellsToIndex = {};
+  for (let ci in newPuz.clues) {
+    const ckey = JSON.stringify(newPuz.clues[ci].cells);
+    cellsToIndex[ckey] = ci;
+  }
+  const getsRelocated = {};  // Keys are clue indices from the old grid
+  const isRelocated = {};  // Keys are clue indices from the new grid
   for (let ci in this.puz.clues) {
-    if (!newPuz.clues[ci] ||
-        !newPuz.sameCells(newPuz.clues[ci].cells, this.puz.clues[ci].cells)) {
-      const theClue = this.puz.clues[ci];
-      if (theClue.parentClueIndex) {
-        this.unlinkClue(theClue.parentClueIndex);
-      } else if (theClue.childrenClueIndices &&
-                 theClue.childrenClueIndices.length > 0) {
-        this.unlinkClue(ci);
+    const ckey = JSON.stringify(this.puz.clues[ci].cells);
+    if (!cellsToIndex[ckey]) continue;
+    const newCi = cellsToIndex[ckey];
+    getsRelocated[ci] = newCi;
+    isRelocated[newCi] = Object.assign({}, this.puz.clues[ci]);
+  }
+  // Preserve linked clues, if possible
+  for (let ci in this.puz.clues) {
+    const oldClue = this.puz.clues[ci];
+    if (!oldClue.children || !oldClue.children.length) continue;
+    const oldList = this.puz.getLinkedClues(ci);
+    console.assert(oldList.length > 1 && oldList[0] == ci, oldList);
+    let allMatch = true;
+    for (let cci of oldList) {
+      if (!getsRelocated[cci]) {
+        allMatch = false;
+        break;
       }
-      delete this.puz.clues[ci]
+    }
+    if (!allMatch) {
+      for (let cci of oldList) {
+        if (!getsRelocated[cci]) {
+          continue;
+        }
+        const newCi = getsRelocated[cci];
+        delete getsRelocated[cci];
+        delete isRelocated[newCi];
+      }
+    }
+  }
+  for (let ci in this.puz.clues) {
+    if (!getsRelocated[ci] && !this.isDraftClue(this.puz.clues[ci].clue)) {
+      console.log('Non-draft clue ' + ci + ' got deleted: ' +
+                  this.puz.clues[ci].clue);
+    }
+  }
+  const labelMap = {};
+  for (let ci in getsRelocated) {
+    labelMap[ci.substr(1)] = getsRelocated[ci].substr(1);
+  }
+  this.puz.clues = {};
+  for (let newCi in isRelocated) {
+    this.puz.clues[newCi] = this.puz.newClue(newCi);
+    const theClue = this.puz.clues[newCi];
+    const oldClue = isRelocated[newCi];
+    theClue.displayLabel = this.remapDisplayLabel(oldClue.displayLabel, labelMap);
+    theClue.clue = oldClue.clue;
+    theClue.anno = oldClue.anno;
+    theClue.solution = oldClue.solution;
+    if (oldClue.parentClueIndex) {
+      console.assert(getsRelocated[oldClue.parentClueIndex], oldClue);
+      theClue.parentClueIndex = getsRelocated[oldClue.parentClueIndex];
+      // Update "See XX"
+      theClue.clue = this.remapDisplayLabel(oldClue.clue, labelMap);
     }
   }
   xetTemp.innerHTML = ''
