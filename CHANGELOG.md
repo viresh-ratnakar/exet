@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.55 September 9 2021
+
+- Deal with missing/hidden annos in loaded Exolve files properly.
+- When patching up clues formats for an exolve file, do all of them
+  together.
+
 ### Version: Exet v0.54 August 25 2021
 
 - Make clues and clue linkages survive grid changes (with renumbering

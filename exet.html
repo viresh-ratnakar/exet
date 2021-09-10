@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.54 August 25 2021
+Current version: v0.55 September 9 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1247,7 +1247,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.54 August 25 2021'
+  this.version = 'v0.55 September 9 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1477,17 +1477,17 @@ Exet.prototype.setPuzzle = function(puz) {
     else if (clue.dir == 'D') numD++
     if (!clue.clue) {
       clue.clue = this.draftClue(idx);
-      clueChanges = true
-      break
+      clueChanges = true;
+      continue;
     }
-    // Restore enum possibly hidden by *
     const parseEnum = this.puz.parseEnum(clue.clue)
-    if (parseEnum.enumLen == 0 && clue.enumStr) {
-      clue.clue += ' ' + clue.enumStr
-      clueChanges = true
-      break
+    if (!parseEnum.enumStr && clue.enumStr) {
+      // Restore enum hidden by *
+      clue.clue += ' ' + clue.enumStr;
+      clueChanges = true;
+      continue;
     }
-    this.renderClue(clue)
+    this.renderClue(clue);
   }
   if (clueChanges) {
     this.updatePuzzle(exetRevManager.REV_CLUE_CHANGE)
@@ -7070,15 +7070,20 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
     if (clue.dir != dir) {
       continue
     }
-    clues = clues + '\n  ' + (clue.displayLabel || clue.label) +
-            ' ' + this.showClue(clue.clue, true, showEnums)
-    if (clue.parentClueIndex) {
+    const thisClue = this.showClue(clue.clue, true, showEnums);
+    clues = clues + '\n  ' + (clue.displayLabel || clue.label) + ' ' + thisClue;
+    if (!solved || clue.parentClueIndex) {
       continue
     }
-    if (solved && clue.solution) {
+    const parsedEnum = this.puz.parseEnum(thisClue);
+    if (!parsedEnum.enumStr && (clue.solution || clue.anno)) {
+      // Allow appending solution/anno.
+      clue += ' (?)*';
+    }
+    if (clue.solution) {
       clues = clues + ' [' + clue.solution + ']'
     }
-    if (solved && clue.anno) {
+    if (clue.anno) {
       clues = clues + ' ' + clue.anno
     }
   }
