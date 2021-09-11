@@ -3922,7 +3922,7 @@ Exet.prototype.download = function(solved=true) {
   let filetitle = this.fileTitle()
   if (filetitle) fileprefix += "-" + filetitle
   a.setAttribute("download", fileprefix +
-    (solved ? "-solved.html" : "-unsolved.html"));
+    (solved ? "-with-solutions.html" : "-sans-solutions.html"));
   a.click();
   window.URL.revokeObjectURL(a.href);
   document.body.removeChild(a);

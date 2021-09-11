@@ -1,5 +1,10 @@
 # Changelog
 
+### Unnumbered minor tweak
+
+- Make saved file names actually be \*-with-solutions.html and
+  \*-sans-solutions.html (as had already been intended from v0.54).
+
 ### Version: Exet v0.55 September 9 2021
 
 - Deal with missing/hidden annos in loaded Exolve files properly.
