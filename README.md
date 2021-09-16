@@ -214,7 +214,9 @@ clues. This sweep to weed out non-viable grid-fill suggestions happens in
 the background, and also updates the viablots. When this background sweep
 is going on, a flashing red indicator is shown under the grid, in the
 bottom-right corner. You may notice grid-fill suggestions getting
-modified while such a sweep is going on.
+modified while such a sweep is going on. Grid-fill suggestions that lead
+to dead ends are moved to the bottom of the list and are shown with a purple
+background (and a warning tooltip).
 
 When Exet determines (using its lexicon) that for some unfilled cell, exactly
 one letter choice is viable, it shows that letter choice in gray. You can use
@@ -234,6 +236,17 @@ in the crossword, by clicking on the "Set fill exclusions" button.
 
 Clicking anywhere outside the shown panel (for preferred fills or fill
 exclusions) dismisses it.
+
+#### Going back-and forth between filling the grid and changing the grid
+
+Sometimes, setters design the grid first (or use a pre-designed grid) and then
+fill it. But sometimes, setters choose to do the grid-design and the grid-fill
+together. As mentioned above, entries that agree with the letters filled so
+far but that are not viable towards a complete grid-fill (in the current state
+of the grid) are still shown as possible choices for lights (albeit below the
+viable entries, and with a distinctive purple background). Such entries may be
+particularly useful for this use case, as you can select one of them that you
+like, and then modify the grid itself to make it viable.
 
 #### Autofill
 

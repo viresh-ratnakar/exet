@@ -1,5 +1,18 @@
 # Changelog
 
+### Version: Exet v0.56 September 16 2021
+
+- Grid-fill suggestions that are seemingly not viable were simply not
+  shown earlier. With this change, they get shown, but below the viable
+  suggestions, and with a distinctive purple background. This is to
+  help the use-case of setters designing the grid and doing the grid-fill
+  simultaneously (as they can potentially modify the grid to turn a
+  non-viable entry that they really like into a viable entry).
+- Show tool-tips in addition to the distinctive backgrounds to identify
+  viable and non-viable entries.
+- Do not stop pruning fill suggestions after the current state is determined
+  to be non-viable.
+
 ### Unnumbered minor tweak
 
 - Make saved file names actually be \*-with-solutions.html and
