@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.56 September 16 2021
+Current version: v0.57 October 8 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1250,7 +1250,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.56 September 16 2021'
+  this.version = 'v0.57 October 8 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1260,8 +1260,12 @@ function Exet() {
   this.noProperNouns = false
   this.DEFAULT_MINPOP = 80
   this.setMinPop(this.DEFAULT_MINPOP)
-  this.DRAFT = '[DRAFT]'
+  this.DRAFT = '[DRAFT]';
+  this.CLUE_NOT_SET = 'Set clue and clear draft marker...';
   this.MENU_SEPARATOR = '<option disabled>' +
+    '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
+    '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
+    '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
      '</option>'; 
@@ -1511,11 +1515,11 @@ Exet.prototype.setPuzzle = function(puz) {
       sections: [],
       url: "",
     },
-    "dicts": {
-      id: "dicts",
-      display: "Dictionaries",
-      hover: "Chambers, The Free Dictionary, Onelook, Google, Etymonline: " +
-             "definitions, roots, synonyms, encyclopedia...",
+    "research": {
+      id: "research",
+      display: "Research",
+      hover: "Dictionaries (Chambers, The Free Dictionary, Onelook, ...) and " +
+             "usage in published cryptic crosswords (cryptics.eigenfoo.zyz)",
       sections: [],
     },
     "wordplay1": {
@@ -1573,8 +1577,8 @@ Exet.prototype.setPuzzle = function(puz) {
     "inds": {
       id: "inds",
       display: "Lists",
-      hover: "Crossword Unclued, Wikipedia, Highlight Press: cryptic " +
-             "indicators and abbreviations lists",
+      hover: "Crossword Unclued, Wikipedia, Highlight Press, Mythic beasts, " +
+             "cryptics.eigenfoo.xyz: cryptic indicators and abbreviations lists",
       sections: [],
     },
   }
@@ -1670,6 +1674,9 @@ Exet.prototype.setPuzzle = function(puz) {
   // Make current cell closer to white (so nina/colour can be seen better
   // when overlapping).
   this.puz.colorScheme['input'] = '#ffc6c4';
+
+  // No special printing from this page.
+  this.puz.printAsIs = true;
 
   // Add darkness and viability indicators ("viablots").
   for (let i = 0; i < puz.gridHeight; i++) {
@@ -2957,12 +2964,17 @@ Exet.prototype.updateOtherSections = function() {
   }, 2000);
 }
 
+Exet.prototype.trimUrl = function(url) {
+  if (url.length < 100) return url;
+  return url.substr(0, 97) + '...';
+}
+
 Exet.prototype.indsTabNav = function() {
   if (this.indsIframe.src == this.indsSelect.value) {
     return
   }
   this.indsIframe.src = this.indsSelect.value;
-  this.indsUrl.innerText = this.indsSelect.value;
+  this.indsUrl.innerText = this.trimUrl(this.indsSelect.value);
   this.indsUrl.href = this.indsSelect.value;
 }
 
@@ -2987,7 +2999,6 @@ Exet.prototype.makeIndsTab = function(panelH) {
     {name: "Crossword Unclued's letter-picking indicators",
      url: "https://www.crosswordunclued.com/2009/04/" +
           "letter-sequence-indicators.html"},
-    {name: "separator"},
     {name: "Highlight Press's containment indicators",
      url: "https://www.highlightpress.com.au/containers.html"},
     {name: "Crossword Unclued's containment indicators",
@@ -3001,6 +3012,21 @@ Exet.prototype.makeIndsTab = function(panelH) {
      url: "https://en.wikipedia.org/wiki/Crossword_abbreviations"},
     {name: "Mythic beasts list of abbreviations",
      url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
+    {name: "separator"},
+    {name: "Anagram indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=anagram"},
+    {name: "Hidden word indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=hidden"},
+    {name: "Reversal indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=reversal"},
+    {name: "Homophone indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=homophone"},
+    {name: "Container indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=container"},
+    {name: "Insertion indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=insertion"},
+    {name: "Deletion indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
+     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=deletion"},
   ]
   let indsTab = this.tabs["inds"]
   let html = `
@@ -3029,18 +3055,23 @@ Exet.prototype.makeIndsTab = function(panelH) {
   this.indsUrl = document.getElementById('xet-inds-choice-url')
 }
 
-Exet.prototype.dictsTabNav = function() {
-  let words = this.tabs["dicts"].words
-  if (this.dictsIframe.src == this.dictsSelect.value + words) {
+Exet.prototype.researchTabNav = function() {
+  let words = this.tabs["research"].words
+  let url = this.researchSelect.value;
+  if (url.startsWith("https://cryptics.eigenfoo.xyz/data/indicators")) {
+    words = this.tabs["research"].clueWords
+  }
+  url += words;
+  if (this.researchIframe.src == url) {
     return
   }
-  this.dictsIframe.src = this.dictsSelect.value + words;
-  this.dictsUrl.innerText = this.dictsSelect.value + words;
-  this.dictsUrl.href = this.dictsSelect.value + words;
+  this.researchIframe.src = url;
+  this.researchUrl.innerText = this.trimUrl(url);
+  this.researchUrl.href = url;
 }
 
-Exet.prototype.makeDictsTab = function(panelH) {
-  let dicts = [
+Exet.prototype.makeResearchTab = function(panelH) {
+  let research = [
     {url: "https://chambers.co.uk/search/?title=21st&query=",
      name: "Chambers"},
     {url: "https://chambers.co.uk/search/?title=thes&query=",
@@ -3050,27 +3081,37 @@ Exet.prototype.makeDictsTab = function(panelH) {
     {url: "https://api.dictionaryapi.dev/api/v1/entries/en/",
      name: "Google Dictionary"},
     {url: "https://www.etymonline.com/search?q=", name: "Etymonline"},
+    {name: "separator"},
+    // The next link only shows definitions in published cryptic crosswords,
+    // not the clues themselves, by choice.
+    {url: "https://cryptics.eigenfoo.xyz/data?sql=select+lower%28definition%29+as+def%2C+count%28%2A%29+as+popularity+from+clues+where+%22answer%22+%3D+upper%28%3Ap0%29+and+def+not+in+%28%22nan%22%2C+%22%22%29+group+by+def+order+by+popularity+desc&_hide_sql=1&p0=", name: "Definitions in published cryptic crosswords (cryptics.eigenfoo.xyz)"},
+    {url: "https://cryptics.eigenfoo.xyz/data/indicators?indicator__in=", name: "Clue phrases as indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)"},
+    {name: "separator"},
   ]
-  let dictsTab = this.tabs["dicts"]
+  let researchTab = this.tabs["research"]
   let html = `
   <div>
-  <select name="xet-dicts-select" id="xet-dicts-select" value="${dicts[0].url}"
-    onchange="exet.dictsTabNav()">`
-  for (let dict of dicts) {
+  <select name="xet-research-select" id="xet-research-select" value="${research[0].url}"
+    onchange="exet.researchTabNav()">`
+  for (let ru of research) {
+    if (ru.name == "separator") {
+      html = html + this.MENU_SEPARATOR
+      continue;
+    }
     html = html + `
-    <option value="${dict.url}">${dict.name}</option>`
+    <option value="${ru.url}">${ru.name}</option>`
   }
   html = html + '</select></div><br>'
   html = html + `
-  <a href="" target="_blank" id="xet-dicts-choice-url"
+  <a href="" target="_blank" id="xet-research-choice-url"
       class="xet-blue xet-small"></a><br>
-  <iframe id="xet-dicts-iframe" class="xet-iframe" src=""
+  <iframe id="xet-research-iframe" class="xet-iframe" src=""
     style="height:${panelH}px" height="${panelH}"></iframe>
   `;
-  dictsTab.content.innerHTML = html;
-  this.dictsIframe = document.getElementById('xet-dicts-iframe')
-  this.dictsSelect = document.getElementById('xet-dicts-select')
-  this.dictsUrl = document.getElementById('xet-dicts-choice-url')
+  researchTab.content.innerHTML = html;
+  this.researchIframe = document.getElementById('xet-research-iframe')
+  this.researchSelect = document.getElementById('xet-research-select')
+  this.researchUrl = document.getElementById('xet-research-choice-url')
 }
 
 Exet.prototype.dedupe = function(a) {
@@ -3888,7 +3929,7 @@ Exet.prototype.populateFrame = function() {
 
   this.makeExetTab()
   this.makeIndsTab(panelInnerH)
-  this.makeDictsTab(panelInnerH)
+  this.makeResearchTab(panelInnerH)
 }
 
 Exet.prototype.fileTitle = function() {
@@ -4239,6 +4280,42 @@ Exet.prototype.downloadDotPuz = function() {
   exetModals.hide()
 }
 
+/**
+ * Return a SQL-usable array of words and ngrams in the clue string s.
+ */
+Exet.prototype.makeClueWordsArray = function(s) {
+  if (s.startsWith(this.DRAFT)) {
+    s = s.substr(this.DRAFT.length).trim();
+  }
+  if (s.startsWith(this.CLUE_NOT_SET)) {
+    s = s.substr(this.CLUE_NOT_SET.length).trim();
+  }
+  s = s.toLowerCase().replace(/[^a-z'-]/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = s.split(' ');
+  const wordsSet = {};
+  for (let w of words) {
+    if (['a', 'an', 'the'].includes(w)) continue;
+    wordsSet[w] = true;
+  }
+  // ngrams: only bigrams for now
+  for (let n of [2]) {
+    for (let i = 0; i + n <= words.length; i++) {
+      let ngram = '';
+      for (let j = 0; j < n; j++) {
+        if (ngram) ngram += ' ';
+        ngram += words[i + j];
+      }
+      wordsSet[ngram] = true;
+    }
+  }
+  let ret = '';
+  for (let w in wordsSet) {
+    if (ret) ret += ',';
+    ret += '"' + w + '"';
+  }
+  return '[' + ret + ']';
+}
+
 Exet.prototype.makeWordParam = function(s) {
   return s.toLowerCase();
 }
@@ -4314,7 +4391,7 @@ Exet.prototype.draftClue = function(ci) {
     const parent = this.puz.clues[clue.parentClueIndex];
     return 'See ' + parent.label + parent.dir.toLowerCase();
   }
-  let ret = this.DRAFT + ` Set clue and clear draft marker...`
+  let ret = this.DRAFT + ' ' + this.CLUE_NOT_SET;
   let cells = this.cellsOfClue(clue)
   if (cells.length > 0) {
     ret = ret + ' (' + cells.length + ')'
@@ -4347,9 +4424,11 @@ Exet.prototype.handleTabClick = function(id) {
 
   let theClue = this.currClue();
   let words = theClue ? theClue.solution : '';
-  if (id == "dicts") {
+  let clue = theClue ? theClue.clue : '';
+  if (id == "research") {
     tab.words = this.makeWordParam(words);
-    this.dictsTabNav();
+    tab.clueWords = this.makeClueWordsArray(clue);
+    this.researchTabNav();
     return;
   }
   for (let i = 0; i < tab.sections.length; i++) {
@@ -4361,7 +4440,7 @@ Exet.prototype.handleTabClick = function(id) {
         section.param = wordParam;
         const url = section.url + wordParam;
         section.content.src = url
-        section.urldisp.innerText = url;
+        section.urldisp.innerText = this.trimUrl(url);
         section.urldisp.href = url;
       }
       continue;
@@ -5153,6 +5232,9 @@ Exet.prototype.handleClueChange = function() {
 
   this.restoreCursor();
 
+  if (this.currTab == "research") {
+    this.handleTabClick(exet.currTab)
+  }
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {
       // throttledSaveRev() got called already

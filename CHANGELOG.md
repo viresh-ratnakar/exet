@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.57 October 8 2021
+
+- Disable Exolve's fancy printing (as it does not work on the Exet screen).
+- Add "pulished crosswords" (cryptics.eigenfoo.xyz) resources:
+  - indicator lists
+  - look up definitions that other setters may have used
+  - look up cryptic indicators (from your clues) that other setters may
+    have used.
+
 ### Version: Exet v0.56 September 16 2021
 
 - Grid-fill suggestions that are seemingly not viable were simply not

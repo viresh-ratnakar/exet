@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.56 September 16 2021
+#### Version: Exet v0.57 October 8 2021
 
 #### Author: Viresh Ratnakar
 
@@ -172,7 +172,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of September 2021) has 250,192 entries. Providing a popularity threshold
+  as of October 2021) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -412,7 +412,7 @@ clues.
 
 When creating a clue for a word or a phrase, setters typically like to
 look at the definition of the word/phrase, look at its synonyms, examples of
-usage, pronunciation, and etymology. The "Dictionaries" tab lets you do that
+usage, pronunciation, and etymology. The "Research" tab lets you do that
 by using reputed online resources, conveniently linking directly to the
 word/phrase in the current light:
 
@@ -421,6 +421,18 @@ word/phrase in the current light:
 - **Onelook**: [onelook.com](https://onelook.com)
 - **Google Dictionary**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
+
+In addition, the "Research" tab lets you search
+[cryptics.eigenfoo.xyz/](https://cryptics.eigenfoo.xyz/), which is an excellent
+database of published cryptic clues, for:
+
+- Definitions that others might have used for an entry, in cryptic clues.
+- Phrases from the clue that others might have used as cryptic indicators. In
+  particular, if you have used a cryptic indicator that you're not sure about,
+  this is an excellent research to check wheter setters in published newspapers
+  have used it in the same way. Only 1-word and 2-word phrases from the clue
+  are searched for by default, but you can easily edit the SQL query to add
+  any longer phrase that you may have used as an indicator.
 
 For cryptic crosswords, there are some additional tabs that setters may find
 useful. In all of these (other than "Lists"), the wordplay candidates are shown
@@ -451,9 +463,11 @@ top in each tab. These tabs are:
   current light.
 - **Lists**: This is not specific to the current light. This tab provides
   convenient links to curated lists of wordplay indicators (for wordplays of
-  various types) and acceptable cryptic abbreviations. The source is
-  mostly the [Crossword Unclued](https://www.crosswordunclued.com) blog
-  (and Wikipedia).
+  various types) and cryptic abbreviations. The sources are:
+  [Crossword Unclued](https://www.crosswordunclued.com), Wikipedia,
+  [Highlight press](https://www.highlightpress.com.au/),
+  [Mythic beasts](http://sphinx.mythic-beasts.com/), and
+  [cryptics.eigenfoo.xyz](https://cryptics.eigenfoo.xyz/).
 
 ### Final touches
 
