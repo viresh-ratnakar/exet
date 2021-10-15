@@ -3055,13 +3055,15 @@ Exet.prototype.makeIndsTab = function(panelH) {
   this.indsUrl = document.getElementById('xet-inds-choice-url')
 }
 
+Exet.prototype.researchingClue = function() {
+  return this.researchSelect.value.startsWith(
+      "https://cryptics.eigenfoo.xyz/data/indicators");
+}
+
 Exet.prototype.researchTabNav = function() {
-  let words = this.tabs["research"].words
-  let url = this.researchSelect.value;
-  if (url.startsWith("https://cryptics.eigenfoo.xyz/data/indicators")) {
-    words = this.tabs["research"].clueWords
-  }
-  url += words;
+  const words = this.researchingClue() ? this.tabs["research"].clueWords :
+    this.tabs["research"].words;
+  const url = this.researchSelect.value + words;
   if (this.researchIframe.src == url) {
     return
   }
@@ -5232,7 +5234,7 @@ Exet.prototype.handleClueChange = function() {
 
   this.restoreCursor();
 
-  if (this.currTab == "research") {
+  if (this.currTab == "research" && this.researchingClue()) {
     this.handleTabClick(exet.currTab)
   }
   if (oldEnum != newEnum) {
