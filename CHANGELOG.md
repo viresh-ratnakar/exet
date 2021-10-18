@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.58 October 18 2021
+
+- If you modify the enum part in the clue to something that indicates a
+  multi-word phrase (for example, by changing "(10)" to "(4,6)") then the
+  grid-fill suggestions will now be reordered to prefer entries that match the
+  implied punctuation, i.e., the presence of interword space/dash/apostrophe
+  characters.
+- Ditto for the list of rejected entries shown in purple.
+
 ### Version: Exet v0.57 October 8 2021
 
 - Disable Exolve's fancy printing (as it does not work on the Exet screen).

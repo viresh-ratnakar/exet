@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.57 October 8 2021
+#### Version: Exet v0.58 October 18 2021
 
 #### Author: Viresh Ratnakar
 
@@ -168,6 +168,11 @@ these, the clue enum is automatically adjusted. For example, for 1A, if you
 pick "birds of a feather," then the enum will automatically change to
 (5,2,1,7).
 
+If you modify the enum part in the clue to something that indicates a multi-word
+phrase (for example, by changing "(10)" to "(4,6)") then the grid-fill
+suggestions will be reordered to prefer entries that match the implied
+punctuation, i.e., the presence of interword space/dash/apostrophe characters.
+
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
@@ -308,7 +313,7 @@ coloured gray.
 
 You can also edit the enum part of the clue, but the software will reset it
 if it does not add up to the needed number. For example, if a light spans 10
-cells, and you edit the anno to be "(5-4)," the software will reset it to
+cells, and you edit the enum part to be "(5-4)," the software will reset it to
 "(10)."
 
 You can optionally provide annotations for clues. These annotations are

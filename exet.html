@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.57 October 8 2021
+Current version: v0.58 October 18 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.00"/>
@@ -1250,7 +1250,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.57 October 8 2021'
+  this.version = 'v0.58 October 18 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -8219,6 +8219,23 @@ Exet.prototype.updateUnpreflex = function() {
   exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
 }
 
+Exet.prototype.numEnumPunctMatches = function(p, e) {
+  let num = 0;
+  let minl = Math.min(p.length, e.length);
+  for (let i = 0; i < minl; i++) {
+    if (p[i] != '?' && p[i] == e[i]) num++;
+    if (p[i] == '?' && !this.allLetters[e[i].toUpperCase()]) num--;
+  }
+  return num;
+}
+
+Exet.prototype.enumMatchSorter = function(p, k1, k2) {
+  const entry1 = exetLexicon.lexicon[k1];
+  const entry2 = exetLexicon.lexicon[k2];
+  return this.numEnumPunctMatches(p, entry2) -
+         this.numEnumPunctMatches(p, entry1);
+}
+
 Exet.prototype.updateFillChoices = function() {
   let ci = this.currClueIndex();
   if (!ci) {
@@ -8236,8 +8253,19 @@ Exet.prototype.updateFillChoices = function() {
     }
   }
 
+  let lChoices = theClue.lChoices;
+  let lRejects = theClue.lRejects;
+  if (gridClue.placeholder && gridClue.enumLen &&
+      gridClue.placeholder.length > gridClue.enumLen) {
+    // Move up choices that match the specified enum
+    lChoices = theClue.lChoices.slice(0, theClue.lChoices.length);
+    lChoices.sort(this.enumMatchSorter.bind(this, gridClue.placeholder));
+    lRejects = theClue.lRejects.slice(0, theClue.lRejects.length);
+    lRejects.sort(this.enumMatchSorter.bind(this, gridClue.placeholder));
+  }
+
   let numShown = 0
-  for (let choice of theClue.lChoices) {
+  for (let choice of lChoices) {
     html = html + `
       <tr><td>${exetLexicon.lexicon[choice]}</td></tr>
     `
@@ -8247,7 +8275,7 @@ Exet.prototype.updateFillChoices = function() {
 
   let htmlRej = ''
   let numRejects = 0
-  for (let choice of theClue.lRejects) {
+  for (let choice of lRejects) {
     htmlRej = htmlRej + `
       <tr>
         <td>${exetLexicon.lexicon[choice]}</td>
@@ -8265,17 +8293,17 @@ Exet.prototype.updateFillChoices = function() {
   this.lChoices.innerHTML = html;
   this.lRejects.innerHTML = htmlRej;
   let trs = this.lChoices.getElementsByTagName('tr')
-  let lim = Math.min(theClue.lChoices.length, trs.length)
+  let lim = Math.min(lChoices.length, trs.length)
   for (let i = 0; i < lim; i++) {
     trs[i].addEventListener(
-    'click', this.fillLight.bind(this, theClue.lChoices[i], '',
+    'click', this.fillLight.bind(this, lChoices[i], '',
                                  exetRevManager.REV_GRIDFILL_CHANGE))
   }
   trs = this.lRejects.getElementsByTagName('tr')
-  lim = Math.min(theClue.lRejects.length, trs.length)
+  lim = Math.min(lRejects.length, trs.length)
   for (let i = 0; i < lim; i++) {
     trs[i].addEventListener(
-    'click', this.fillLight.bind(this, theClue.lRejects[i], '',
+    'click', this.fillLight.bind(this, lRejects[i], '',
                                  exetRevManager.REV_GRIDFILL_CHANGE))
   }
 }

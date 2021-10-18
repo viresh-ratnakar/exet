@@ -3,8 +3,8 @@
   - Make README.md more complete
 - option for US dictionary
 - "Smart-delete" to purge excessive revisions
-- When the clue has an enum like (4-3), only show fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
 
+- When the clue has an enum like (4-3), prefer fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
 - Show unches distribution [Instead, done: Show warning in analysis]
 - Reassign clue numbers, preserving clues if possible [Done]
 - Intercept ctrl-q/Q before they reach Exolve [Done]
