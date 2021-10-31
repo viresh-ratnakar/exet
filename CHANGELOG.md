@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.59 October 31 2021
+
+- Add support for 3-D crosswords. Right now, the support only is for loading
+  already drafted puzzles. Will add better and lots more support soon.
+- When there is a bug that leads exet to reload repeatedly, it's hard to
+  debug. Stop after 5 reloads now.
+- Minor bug-fix for the research tab (reload the indicators research link
+  when the clue has changed, even in some corner cases that were missed).
+
 ### Version: Exet v0.58 October 18 2021
 
 - If you modify the enum part in the clue to something that indicates a
