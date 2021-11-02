@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Unnumbered quick-fix
+
+- The "stop after 5 reloads" was not really doing what it intended, removed.
+
 ### Version: Exet v0.59 October 31 2021
 
 - Add support for 3-D crosswords. Right now, the support only is for loading
