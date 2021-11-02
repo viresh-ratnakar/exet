@@ -1497,10 +1497,6 @@ Exet.prototype.setPuzzle = function(puz) {
     this.renderClue(clue);
   }
   if (clueChanges) {
-    if (!this.reloadCount) this.reloadCount = 1;
-    if (this.reloadCount++ > 5) {
-      this.puz.throwErr('Too many Exet reloads: check JavaScript console');
-    }
     this.updatePuzzle(exetRevManager.REV_CLUE_CHANGE)
     return;
   }
