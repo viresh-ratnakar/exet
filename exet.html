@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.59 October 31 2021
+Current version: v0.60 November 3 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -684,6 +684,7 @@ function ExetRevManager() {
   this.REV_CREATED_AUTOBLOCK = 3
   this.REV_JUMPED_TO_REV = 10
   this.REV_GRID_CHANGE = 20
+  this.REV_LIGHT_REVERSAL = 24
   this.REV_AUTOFILL_GRIDFILL_CHANGE = 28
   this.REV_GRIDFILL_CHANGE = 30
   this.REV_ENUM_CHANGE = 40
@@ -698,6 +699,7 @@ function ExetRevManager() {
       "with automagic blocks"
   this.revMsgs[this.REV_JUMPED_TO_REV] = "Jumped to a previous revision"
   this.revMsgs[this.REV_GRID_CHANGE] = "Grid change"
+  this.revMsgs[this.REV_LIGHT_REVERSAL] = "Light reversal"
   this.revMsgs[this.REV_AUTOFILL_GRIDFILL_CHANGE] = "Autofilled grid-fill " +
       "change"
   this.revMsgs[this.REV_GRIDFILL_CHANGE] = "Grid-fill change"
@@ -1250,7 +1252,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.59 October 31 2021'
+  this.version = 'v0.60 November 3 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1373,15 +1375,15 @@ Exet.prototype.startNav = function(dir='A', row=0, col=0) {
 Exet.prototype.setPuzzle = function(puz) {
   if (puz.hasDgmlessCells) {
     alert('Diagramless cells are not supported')
-    return false
+    return;
   }
   if (puz.hasNodirClues) {
     alert('Nodir clues not yet supported')
-    return false
+    return;
   }
   if (puz.offNumClueIndices.length > 0) {
     alert('Non-numeric clues not yet supported')
-    return false
+    return;
   }
   if (puz.columnarLayout) {
     puz.columnarLayout = false;
@@ -1394,7 +1396,7 @@ Exet.prototype.setPuzzle = function(puz) {
       let gridCell = puz.grid[i][j]
       if (gridCell.skipNum) {
         alert('Skipped-number cells not yet supported')
-        return false
+        return;
       }
       if (gridCell.solution == '0') {
         gridCell.solution = '?'
@@ -1427,10 +1429,14 @@ Exet.prototype.setPuzzle = function(puz) {
         '<\/html>\n'
   }
   this.exolveOtherSec = ''
+
+  const sectionsToSkip = ['begin', 'grid', 'width', 'height', 'id', 'title',
+                          'setter', 'copyright', 'nina', 'colour', 'color',
+                          'question', 'across', 'down', '3d', '3d-across',
+                          '3d-away', '3d-down', 'prelude', 'preamble',
+                          'explanations', 'maker', 'reversals'];
   const rangesToSkip = [];
-  for (let sec of ['grid', 'across', 'down', '3d-across',
-                   '3d-towards', '3d-down', 'prelude', 'preamble',
-                   'explanations', 'maker']) {
+  for (let sec of sectionsToSkip) {
     if (this.puz.sectionLines[sec]) {
       rangesToSkip.push(this.puz.sectionLines[sec]);
     }
@@ -1441,20 +1447,16 @@ Exet.prototype.setPuzzle = function(puz) {
     if (line.startsWith('exolve-end')) {
       break
     }
-    if (line.startsWith('exolve-begin') ||
-        line.startsWith('exolve-width') ||
-        line.startsWith('exolve-height') ||
-        line.startsWith('exolve-id') ||
-        line.startsWith('exolve-title') ||
-        line.startsWith('exolve-setter') ||
-        line.startsWith('exolve-copyright') ||
-        line.startsWith('exolve-nina') ||
-        line.startsWith('exolve-colour') ||
-        line.startsWith('exolve-color') ||
-        line.startsWith('exolve-question')) {
-      continue
-    }
     let shouldSkip = false;
+    for (let section of sectionsToSkip) {
+      if (line.startsWith('exolve-' + section)) {
+        shouldSkip = true;
+        break;
+      }
+    }
+    if (shouldSkip) {
+      continue;
+    }
     for (let range of rangesToSkip) {
       if (l >= range[0] && l <= range[1]) {
         shouldSkip = true;
@@ -1636,7 +1638,7 @@ Exet.prototype.setPuzzle = function(puz) {
     <div id="xet-linking" class="xet-linking">
       <button id="xet-add-linked" class="xlv-small-button">Add</button>
       <input id="xet-add-linked-num" name="xet-add-linked-num"
-        title="Enter a clue number, optionally followed by A/D"
+        title="Enter a clue number followed by a direction suffix"
             class="xlv-answer" size="4" type="text"></input>
       as a linked clue.
       &nbsp;
@@ -1688,9 +1690,11 @@ Exet.prototype.setPuzzle = function(puz) {
         const viablot =
             document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         viablot.setAttributeNS(
-            null, 'cx', puz.cellLeftPos(j, puz.circleR + puz.GRIDLINE));
+            null, 'cx', puz.cellLeftPos(j, puz.circleR + puz.GRIDLINE +
+                                           (puz.cellW/2 - puz.circleR)));
         viablot.setAttributeNS(
-            null, 'cy', puz.cellTopPos(i, puz.circleR + puz.GRIDLINE));
+            null, 'cy', puz.cellTopPos(i, puz.circleR + puz.GRIDLINE +
+                                          (puz.cellH/2 - puz.circleR)));
         viablot.setAttributeNS(null, 'class', 'xlv-cell-circle');
         viablot.style.fill = 'transparent'
         viablot.setAttributeNS(null, 'r', puz.circleR * 0.1);
@@ -1706,9 +1710,9 @@ Exet.prototype.setPuzzle = function(puz) {
         darkness.setAttributeNS(null, 'y', this.puz.cellTopPos(
             i, this.puz.GRIDLINE + border))
         darkness.setAttributeNS(null, 'width',
-                                this.puz.squareDim - (2 * border));
+                                this.puz.cellW - (2 * border));
         darkness.setAttributeNS(null, 'height',
-                                this.puz.squareDim - (2 * border));
+                                this.puz.cellH - (2 * border));
         darkness.style.fill = 'transparent';
         if (!gridCell.cellGroup) {
           gridCell.cellGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1716,7 +1720,7 @@ Exet.prototype.setPuzzle = function(puz) {
         }
         gridCell.cellGroup.appendChild(darkness)
         gridCell.darkness = darkness
-        darkness.addEventListener('click', this.navDarkness.bind(this, i, j))
+        gridCell.cellGroup.addEventListener('click', this.navDarkness.bind(this, i, j))
       }
     }
   }
@@ -1750,8 +1754,6 @@ Exet.prototype.setPuzzle = function(puz) {
   this.resetViability();
   this.updateSweepInd()
   this.reposition();
-
-  return true
 }
 
 Exet.prototype.makeExetTab = function() {
@@ -1779,10 +1781,12 @@ Exet.prototype.makeExetTab = function() {
             <div class="xet-dropdown-submenu">
               <div style="padding:4px;text-align:center">
                 <div>
+                  <label for="xet-w">Width:</label>
                   <input id="xet-w" name="xet-w" value="15"
                     type="text" size="3" maxlength="3" placeholder="W">
                   </input>
                   &times;
+                  <label for="xet-h">Height:</label>
                   <input id="xet-h" name="xet-h" value="15"
                     type="text" size="3" maxlength="3" placeholder="H">
                   </input>
@@ -1812,7 +1816,7 @@ Exet.prototype.makeExetTab = function() {
                 <div class="xet-dropdown-subitem"
                      title="Blocked with no top/left unches"
                   onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, ` +
+                      `document.getElementById('xet-h').value, 1, ` +
                       `document.getElementById('xet-id').value, ` +
                       `document.getElementById('xet-autoblock').checked, ` +
                       `true, false, false);">
@@ -1821,7 +1825,7 @@ Exet.prototype.makeExetTab = function() {
                 <div class="xet-dropdown-subitem"
                      title="Blocked with top but not left unches"
                   onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, ` +
+                      `document.getElementById('xet-h').value, 1, ` +
                       `document.getElementById('xet-id').value, ` +
                       `document.getElementById('xet-autoblock').checked, ` +
                       `true, true, false);">
@@ -1830,7 +1834,7 @@ Exet.prototype.makeExetTab = function() {
                 <div class="xet-dropdown-subitem"
                      title="Blocked with left but not top unches"
                   onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, ` +
+                      `document.getElementById('xet-h').value, 1, ` +
                       `document.getElementById('xet-id').value, ` +
                       `document.getElementById('xet-autoblock').checked, ` +
                       `true, false, true);">
@@ -1839,7 +1843,7 @@ Exet.prototype.makeExetTab = function() {
                 <div class="xet-dropdown-subitem"
                      title="Blocked with top/left unches"
                   onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, ` +
+                      `document.getElementById('xet-h').value, 1, ` +
                       `document.getElementById('xet-id').value, ` +
                       `document.getElementById('xet-autoblock').checked, ` +
                       `true, true, true);">
@@ -1847,12 +1851,55 @@ Exet.prototype.makeExetTab = function() {
                 </div>
                 <div class="xet-dropdown-subitem" title="No blocks"
                   onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, ` +
+                      `document.getElementById('xet-h').value, 1, ` +
                       `document.getElementById('xet-id').value, ` +
                       `document.getElementById('xet-autoblock').checked, ` +
                       `false);">
                   <img class="xet-icon" src="no-blocks.png"/>
                 </div>
+              </div>
+            </div>
+          </div>
+          <div class="xet-dropdown-item">
+            New 3-D grid:
+            <div class="xet-dropdown-submenu">
+              <div style="padding:4px;text-align:center">
+                <div>
+                  <label for="xet-3d-w">Width:</label>
+                  <input id="xet-3d-w" name="xet-3d-w" value="7"
+                    type="text" size="3" maxlength="3" placeholder="W">
+                  </input>
+                  &times;
+                  <label for="xet-3d-h">Height:</label>
+                  <input id="xet-3d-h" name="xet-3d-h" value="5"
+                    type="text" size="3" maxlength="3" placeholder="H">
+                  </input>
+                </div>
+                <br>
+                <div>
+                  &times;
+                  <label for="xet-3d-d">Depth:</label>
+                  <input id="xet-3d-d" name="xet-3d-d" value="5"
+                    type="text" size="3" maxlength="3" placeholder="D">
+                  </input>
+                </div>
+                <br>
+                <div>
+                  Unique ID:
+                  <input id="xet-3d-id" name="xet-3d-id"
+                    value="xet-${Math.random().toString(36).substring(2, 8)}"
+                    title="Please change to a meaningful alphanumeric id (beginning with a letter) to identify easily later"
+                    type="text" size="15" maxlength="30" placeholder="alphanumeric unique id">
+                  </input>
+                </div>
+              </div>
+              <hr/>
+              <div class="xet-dropdown-subitem"
+                  onclick="exetBlank3D(document.getElementById('xet-3d-w').value, ` +
+                    `document.getElementById('xet-3d-h').value, ` +
+                    `document.getElementById('xet-3d-d').value, ` +
+                    `document.getElementById('xet-3d-id').value);">
+                Create new 3-D grid!
               </div>
             </div>
           </div>
@@ -1970,7 +2017,8 @@ Exet.prototype.makeExetTab = function() {
                   class="xlv-button">Clear</button>
               </div>
               <hr>
-              <div style="padding:4px">
+              <div title="Increasing this may make the algorithm slower but may improve its success rate"
+                  style="padding:4px">
                 Beam search width:
                 <input id="xet-autofill-max-beam"
                     name="xet-autofill-max-beam"
@@ -2038,9 +2086,11 @@ Exet.prototype.makeExetTab = function() {
                 (<span id="xet-autofill-speed">--</span> ms/step)
               </div>
               <div style="padding:4px">
-                Last status: <span id="xet-autofill-status"></span>
-                (beam width: <span id="xet-autofill-curr-beam"></span>)
+                Beam size: <span id="xet-autofill-curr-beam"></span>
                  &nbsp;
+              </div>
+              <div style="padding:4px">
+                Last status: <span id="xet-autofill-status"></span>
               </div>
             </div>
           </div>
@@ -2129,6 +2179,12 @@ Exet.prototype.makeExetTab = function() {
                Other Exolve sections
               </div>
             </div>
+          </div>
+
+          <div class="xet-dropdown-item"
+               title="Reverse the orientation of the currently active light. If it's part of a linked group of clues, the linked group will get broken up."
+               onclick="exet.reverseLight()">
+             Reverse current light
           </div>
 
           <div class="xet-dropdown-item" onclick="exet.puz.clearAll()">
@@ -2722,11 +2778,12 @@ Exet.prototype.getLightInfos = function() {
 
 Exet.prototype.updateAnalysis = function(elt) {
   let html = '<p><b>Grid</b></p><p><ul>'
-  let grid = this.puz.grid
-  let w = this.puz.gridWidth
-  let h = this.puz.gridHeight
+  const grid = this.puz.grid
+  const w = this.puz.gridWidth
+  const h = this.puz.gridHeight
+  const layers3d = this.puz.layers3d
   html = html + `<li>${w*h} cells, dimensions: ${w} &times; ${h}</li>`
-  if (!this.gridConnected(grid, w, h)) {
+  if (!this.gridConnected(grid, w, h, layers3d)) {
     html += '<li class="xet-red"><i>Does not have all light cells connected</i></li>'
   } else {
     html += '<li>All light cells are connected</li>'
@@ -4406,7 +4463,7 @@ Exet.prototype.draftClue = function(ci) {
   }
   if (clue.parentClueIndex) {
     const parent = this.puz.clues[clue.parentClueIndex];
-    return 'See ' + parent.label + parent.dir.toLowerCase();
+    return 'See ' + this.puz.clueLabelDisp(parent);
   }
   let ret = this.DRAFT + ' ' + this.CLUE_NOT_SET;
   let cells = this.puz.getAllCells(ci);
@@ -4493,11 +4550,12 @@ Exet.prototype.restoreParam = function(id, section) {
   this.handleTabClick(id);
 }
 
-Exet.prototype.navDarkness = function(row, col) {
+Exet.prototype.navDarkness = function(row, col, ev=null) {
   darkness = this.puz.grid[row][col].darkness
   if (!darkness) {
     return
   }
+  if (ev) ev.stopPropagation();
   this.puz.deactivateCurrCell()
   this.puz.currRow = row
   this.puz.currCol = col
@@ -4513,6 +4571,15 @@ Exet.prototype.navDarkness = function(row, col) {
   this.puz.gridInputDarr.style.display = 'none'
   this.puz.gridInputLarr.style.display = 'none'
   this.puz.gridInputUarr.style.display = 'none'
+  if (this.puz.layers3d > 1) {
+    const li = row % this.puz.h3dLayer;
+    const offset = (this.puz.h3dLayer - li) * this.puz.offset3d;
+    this.puz.gridInputWrapper.style.transformOrigin = 'top left';
+    const transform = `skewX(${this.puz.angle3d - 90}deg) ` +
+                      `translate(${offset}px)`;
+    this.puz.gridInputWrapper.style.transform = transform;
+  }
+
   this.puz.gridInputWrapper.style.display = ''
   this.puz.gridInput.focus()
 }
@@ -5487,7 +5554,7 @@ Exet.prototype.gridUnchequeredOK = function(grid, w, h, checkSpanLen=true) {
   return true
 }
 
-Exet.prototype.gridConnected = function(grid, w, h) {
+Exet.prototype.gridConnected = function(grid, w, h, layers3d) {
   let cells = []
   let visited = new Array(h)
   for (let i = 0; i < h; i++) {
@@ -5503,6 +5570,7 @@ Exet.prototype.gridConnected = function(grid, w, h) {
   let reachable = [cells[0]]
   visited[cells[0][0]][cells[0][1]] = true
   let x = 0
+  const lh = h / layers3d;
   while (x < reachable.length) {
     let r = reachable[x][0]
     let c = reachable[x][1]
@@ -5527,6 +5595,18 @@ Exet.prototype.gridConnected = function(grid, w, h) {
       visited[r+1][c] = true
       reachable.push([r+1,c])
     }
+    if (layers3d > 1) {
+      const prevR = r - lh;
+      if (prevR >= 0 && grid[prevR][c].isLight && !visited[prevR][c]) {
+        visited[prevR][c] = true
+        reachable.push([prevR,c])
+      }
+      const nextR = r + lh;
+      if (nextR < h && grid[nextR][c].isLight && !visited[nextR][c]) {
+        visited[nextR][c] = true
+        reachable.push([nextR,c])
+      }
+    }
   }
   return reachable.length == cells.length
 }
@@ -5547,6 +5627,7 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
   let wby2 = Math.ceil(w / 2)
   let h = this.puz.gridHeight
   let hby2 = Math.ceil(h / 2)
+  let layers3d = this.puz.layers3d
   let numCandidates = 0
   let numChanges = 0
   let rowcols = []
@@ -5585,7 +5666,7 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
         }
         gridCell.isLight = false
         gridSymCell.isLight = false
-        if (this.gridConnected(grid, w, h) &&
+        if (this.gridConnected(grid, w, h, layers3d) &&
             ((chequered && this.gridChequeredOK(grid, w, h)) ||
              (!chequered && this.gridUnchequeredOK(grid, w, h)))) {
           candidates.push(k2)
@@ -5631,9 +5712,10 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
 }
 
 Exet.prototype.automagicBlocks = function(showAlerts=true) {
-  let grid = this.puz.grid
-  let w = this.puz.gridWidth
-  let h = this.puz.gridHeight
+  const grid = this.puz.grid
+  const w = this.puz.gridWidth
+  const h = this.puz.gridHeight
+  const layers3d = this.puz.layers3d
   if (this.gridNumBars(grid, w, h) > 0) {
     if (showAlerts) {
       alert('Cannot add automagic blocks when the grid has barred cells');
@@ -5646,7 +5728,7 @@ Exet.prototype.automagicBlocks = function(showAlerts=true) {
     }
     return false
   }
-  if (!this.gridConnected(grid, w, h)) {
+  if (!this.gridConnected(grid, w, h, layers3d)) {
     if (showAlerts) {
       alert('Cannot add automagic blocks when the grid cells are not ' +
             'fully connected');
@@ -5939,7 +6021,9 @@ Exet.prototype.beamSearchStep = function() {
   } else {
     this.autofill.accept.disabled = false
     this.autofill.clear.disabled = false
-    this.resetAutofill('Failed')
+    this.resetAutofill('<span class="xet-red">Failed.</span> ' +
+                       '<span class="xet-small-action">Try lowering ' +
+                       'min popularity score or increasing beam width</span>')
   }
 }
 
@@ -6149,7 +6233,7 @@ Exet.prototype.resetAutofill = function(status) {
     this.autofill.throttledTimer = null
   }
   this.autofill.status = status
-  this.autofill.statusSpan.innerText = status
+  this.autofill.statusSpan.innerHTML = status
   this.autofill.running = false
   this.updateSweepInd()
   this.autofill.startstop.innerText = 'Start'
@@ -6423,7 +6507,7 @@ Exet.prototype.remapDisplayLabel = function(displayLabel, labelMap) {
   return mapped;
 }
 
-Exet.prototype.killInvalidatedClues = function(row, col) {
+Exet.prototype.killInvalidatedClues = function() {
   const tempId = this.puz.id + '-temp';
   const specs = this.getExolve(tempId, true /*skipClues*/);
   const xetTemp = document.getElementById("xet-temp");
@@ -6487,6 +6571,7 @@ Exet.prototype.killInvalidatedClues = function(row, col) {
     theClue.clue = oldClue.clue;
     theClue.anno = oldClue.anno;
     theClue.solution = oldClue.solution;
+    theClue.reversed = oldClue.reversed;
     if (oldClue.parentClueIndex) {
       console.assert(getsRelocated[oldClue.parentClueIndex], oldClue);
       theClue.parentClueIndex = getsRelocated[oldClue.parentClueIndex];
@@ -6532,68 +6617,78 @@ Exet.prototype.addLinkedClue = function() {
   if (!theClue) return;
   const num = document.getElementById("xet-add-linked-num");
   if (!num) return;
-  let parsed = this.puz.parseClueLabel(num.value);
-  if (!parsed.label) {
-    alert('Please provide a clue number');
+  const clueLabel = num.value.trim();
+  const parsed = this.puz.parseClueLabel(clueLabel);
+  if (!parsed.label || parsed.notLabel || !parsed.dir || !parsed.dirStr ||
+      parsed.dirIsPrefix || parsed.skip != clueLabel.length) {
+    alert('Please provide a clue number and direction suffix ' +
+          '(a/d/b/u for 2-D, ac/aw/dn/ba/to/up for 3-D) and nothing else');
     return
   }
-  let aClue = this.puz.clues['A' + parsed.label];
-  let dClue = this.puz.clues['D' + parsed.label];
-  let dispDir = ''
-  if (!parsed.dir) {
-    if (aClue && !dClue) {
-      parsed.dir = 'A';
-    } else if (dClue && !aClue) {
-      parsed.dir = 'D';
-    } else if (!aClue && !dClue) {
-      alert('There is no ' + parsed.label + ' Across/Down clue');
-      return
-    } else {
-      parsed.dir = theClue.dir
-    }
-  } else {
-    if (parsed.dir == 'A') {
-      if (!aClue) {
-        alert('There is no ' + parsed.label + ' Across clue');
-        return
-      }
-      if (dClue && theClue.dir != 'A') dispDir = 'a';
-    } else if (parsed.dir == 'D') {
-      if (!dClue) {
-        alert('There is no ' + parsed.label + ' Down clue');
-        return
-      }
-      if (aClue && theClue.dir != 'D') dispDir = 'd';
-    } else {
-      alert('Unsupported direction: ' + parsed.dir)
-      return
-    }
-  }
-  const cci = parsed.dir + parsed.label
+  const cci = this.puz.getDirClueIndex(parsed.dir, parsed.label);
   if (cci == ci) {
     alert('Cannot link a clue to itself');
     return;
   }
   const cClue = this.puz.clues[cci];
+  if (!cClue) {
+    alert(parsed.label + parsed.dirStr +
+          ' is already part of another linked clue');
+    return
+  }
+  if (parsed.reversed != cClue.reversed) {
+    alert(parsed.label + parsed.dirStr + ' does not have the current light ' +
+          'orientation: reversed should be ' + cClue.reversed);
+    return
+  }
   if (cClue.parentClueIndex) {
-    alert(parsed.label + parsed.dir +
+    alert(parsed.label + parsed.dirStr +
           ' is already part of another linked clue');
     return
   }
   if (cClue.childrenClueIndices && cClue.childrenClueIndices.length > 0) {
-    alert(parsed.label + parsed.dir + ' is itself a linked clue');
+    alert(parsed.label + parsed.dirStr + ' is itself a linked clue');
     return
-  }
+  } 
   cClue.parentClueIndex = ci
   cClue.clue = this.draftClue(cci);
   cClue.solution = ''
   cClue.anno = ''
   theClue.childrenClueIndices.push(cci)
-  theClue.displayLabel = theClue.displayLabel + ', ' + parsed.label + dispDir;
+  theClue.displayLabel = theClue.displayLabel + ', ' + parsed.label + parsed.dirStr;
   theClue.clue = this.draftClue(ci);
   theClue.solution = ''
   theClue.anno = ''
   this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+}
+
+Exet.prototype.reverseLight = function() {
+  if (!this.puz) return
+  const ci = this.puz.currClueIndex;
+  if (!ci) return;
+  const clue = this.puz.clues[ci];
+  if (!clue) return;
+  if (clue.dir != 'A' && clue.dir != 'D' && clue.dir != 'Z') {
+    console.log('Cannot reverse nodir light at ' + ci);
+    return;
+  }
+  const lastInd = clue.cells.length - 1;
+  if (lastInd <= 0) {
+    console.log('Cannot reverse light at ' + ci + ' with ' +
+                clue.cells.length + ' cells');
+    return;
+  }
+  const origCells = clue.reversed ? clue.cells.slice().reverse() : clue.cells;
+  const key = this.puz.reversalKey(origCells);
+  if (clue.reversed) {
+    delete this.puz.usedReversals[key];
+  } else {
+    this.puz.usedReversals[key] =
+        this.cellCode(origCells[0][0], origCells[0][1]) + '-' +
+        this.cellCode(origCells[lastInd][0], origCells[lastInd][1]);
+  }
+  this.killInvalidatedClues();
+  this.updatePuzzle(exetRevManager.REV_LIGHT_REVERSAL);
 }
 
 Exet.prototype.killQuestion = function(idx, e) {
@@ -7220,8 +7315,11 @@ Exet.prototype.cellCode = function(r, c) {
          'c' + (c + 1);
 }
 Exet.prototype.lightCode = function(ci) {
-  return ci.substr(1) + ci.charAt(0).toLowerCase();
+  const clue = this.puz.clues[ci];
+  if (!clue) return ''; 
+  return this.puz.clueLabelDisp(clue);
 }
+
 Exet.prototype.getExolveColours = function() {
   const colours = {}
   for (let c of this.puz.cellColours) {
@@ -7286,7 +7384,7 @@ Exet.prototype.getExolveQuestions = function(solved) {
 
 Exet.prototype.getExolve = function(id='', skipClues=false,
                                     solved=true, showEnums=true) {
-  maker = `
+  const maker = `
     Software: <a target="_blank" href="http://exet.app">Exet</a><br>
     Version: ${this.version}<br>
     Lexicon: ${exetLexicon.id}<br>
@@ -7295,6 +7393,8 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
   exolve-id: ${(id ? id : this.puz.id)}
   exolve-width: ${this.puz.gridWidth}
   exolve-height: ${this.puz.gridHeight}` +
+  (this.puz.layers3d > 1 ? `
+  exolve-3d: ${this.puz.layers3d}` : '') +
   (this.puz.title ? `
   exolve-title: ${this.puz.title}` : '') +
   (this.puz.setter ? `
@@ -7330,12 +7430,22 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
     ${this.exolveOtherSec}`;
   }
 
+  let reversals = '';
+  for (let k in this.puz.usedReversals) {
+    if (reversals) reversals += ' ';
+    reversals += this.puz.usedReversals[k];
+  }
+  if (reversals) {
+    exolve += `
+    exolve-reversals: ${reversals}`;
+  }
+
   exolve += `
   exolve-grid: ${this.getGrid(solved)}` +
   (!skipClues ? `
-    ${this.puz.layers3d > 1 ? 'exolve-3d-across' :
+  ${this.puz.layers3d > 1 ? 'exolve-3d-across' :
       'exolve-across'}: ${this.getClues('A', solved, showEnums)}
-    ${this.puz.layers3d > 1 ? 'exolve-3d-towards' :
+  ${this.puz.layers3d > 1 ? 'exolve-3d-away' :
       'exolve-down'}: ${this.getClues('D', solved, showEnums)}` : '') +
   (!skipClues && this.puz.layers3d > 1 ? `
   exolve-3d-down: ${this.getClues('Z', solved, showEnums)}` : '') + `
@@ -8397,8 +8507,8 @@ function exetFromHistory(exetRev) {
   }
 }
 
-function exetBlank(w=15, h=15, id='', automagic=false, chequered=true,
-                   topUnches=false, leftUnches=false) {
+function exetBlank(w=15, h=15, layers3d=1, id='', automagic=false,
+                   chequered=true, topUnches=false, leftUnches=false) {
   if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
     alert('Width and height must be specified in the range, 1-100')
     return
@@ -8428,9 +8538,39 @@ function exetBlank(w=15, h=15, id='', automagic=false, chequered=true,
       gridRow[1] = gridRow[1] + '?'
     }
   }
-  let grid = ''
-  for (let i = 0; i < h; i++) {
-    grid = grid + '\n  ' + gridRow[i % 2]
+
+  let grid = '';
+  let thirdDSpec = '';
+  let acrossLine = 'exolve-across:'
+  let downLine = 'exolve-down:'
+  if (layers3d == 1) {
+    for (let i = 0; i < h; i++) {
+      grid = grid + '\n  ' + gridRow[i % 2]
+    }
+  } else {
+    if (layers3d <= 0 || h % layers3d != 0) {
+      alert("#layers in 3-D crosswords must be a positive divisor of height");
+      return;
+    }
+    acrossLine = 'exolve-3d-across:'
+    downLine = 'exolve-3d-away:'
+    thirdDSpec = `\n    exolve-3d-down:\n    exolve-3d: ${layers3d}`;
+    let darkRow = '';
+    for (let j = 0; j < w; j++) darkRow += '.';
+    const lh = h / layers3d;
+    for (let i = 0; i < h; i++) {
+      const l = Math.floor(i / lh);
+      const li = (lh - 1) - (i % lh);
+      if (l % 2 == 0) {
+        grid = grid + '\n  ' + gridRow[li % 2];
+      } else {
+        if (li % 2 == 0) {
+          grid = grid + '\n  ' + gridRow[1];
+        } else {
+          grid = grid + '\n  ' + darkRow;
+        }
+      }
+    }
   }
 
   let specs = `exolve-begin
@@ -8440,8 +8580,9 @@ function exetBlank(w=15, h=15, id='', automagic=false, chequered=true,
     exolve-width: ${w}
     exolve-height: ${h}
     exolve-grid: ${grid}
-    exolve-across:
-    exolve-down:
+    ${acrossLine}
+    ${downLine}
+    ${thirdDSpec}
   exolve-end
   `
   exet.prefix = ''
@@ -8463,6 +8604,15 @@ function exetBlank(w=15, h=15, id='', automagic=false, chequered=true,
     return
   }
   exetRevManager.throttledSaveRev(exetRevManager.REV_CREATED_BLANK)
+}
+
+function exetBlank3D(w3d, h3d, d3d, id='') {
+  if (w3d <= 0 || h3d <= 0 || d3d <= 0 ||
+      w3d % 2 != 1 || h3d % 2 != 1 || d3d % 2 != 1) {
+    alert("All dimensions in 3-D crosswords should be positive odd numbers");
+    return
+  }
+  return exetBlank(w3d, h3d * d3d, h3d, id);
 }
 
 function exetLoadFile() {
@@ -8552,9 +8702,9 @@ if (!exet.puz) {
   let url = new URL(location.href)
   let newgrid = url.searchParams.get('newgrid')
   if (newgrid == 'blank') {
-    exetBlank(15, 15, '', false, false)
+    exetBlank(15, 15, 1, '', false, false)
   } else {
-    exetBlank(15, 15, '', true, true)
+    exetBlank(15, 15, 1, '', true, true)
   }
 }
 exet.finishSetup()

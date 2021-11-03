@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.59 October 31 2021
+#### Version: Exet v0.60 November 3 2021
 
 #### Author: Viresh Ratnakar
 
@@ -109,6 +109,12 @@ template). After creating a grid, you can customize it by manually
 adding/removing blocks/bars, or by letting the software automatically add
 blocks.
 
+You can also create a 3-D grid from the "Open" menu. In a 3-D grid, there are
+multiple "layers", with "down" clues running through the layers and "across"
+and "away" clues within the layers. See the
+[Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
+for details on 3-D crosswords.
+
 You can navigate to any cell using the arrow keys or by clicking on it
 (including the dark, block cells). The following controls are all available
 from the "Edit" menu as well as through some keyboard shortcuts listed below
@@ -135,6 +141,7 @@ active grid cell):
   - Explanations
   - Questions
   - Other Exolve sections
+- Reverse current light
 - Clear all the lights! (Ctrl-Q)
 - Preferences:
   - \[ \] Spellcheck clues/annos
@@ -157,6 +164,21 @@ format (when you save such a crossword after editing it, the saved Exolve file
 will replicate whatever is there before and after the Exolve part in the
 original HTML file that you opened).
 
+#### Reversing the current light
+When you choose the option to reverse a light from the Edit menu, the
+orientation of the cell is reversed. This entails the following direction changes:
+- Across (a) &harr; Back (b)
+- Down (d) &harr; Up (u)
+- Across (ac) &harr; Back (ba) in 3-D
+- Away (aw) &harr; Towards (to) in 3-D
+- Down (dn) &harr; Up (up) in 3-D
+
+Note that reversing a light has no impact on other lights/clues (except that
+their numbering may change), unless the reversed light is part of a linked group
+(in which case the linked group is broken up). So, for a light that is not
+a part of a linked group, reversing it and then reversing it again will return
+the crossword to its state before the first reversal.
+
 ### Filling the grid
 
 You can fill any light by typing into its cells. You can also use grid-fill
@@ -177,7 +199,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of October 2021) has 250,192 entries. Providing a popularity threshold
+  as of November 2021) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -262,6 +284,10 @@ click on "Pause"  to pause the Autofill (clicking on "Start" will resume it).
 You can accept or clear the Autofill suggestions by clicking on the "Accept"
 / "Clear" buttons, respectively, when Autofill is paused or has finished.
 
+When Autofill is running, it won't stop if you move away from its control panel
+(by moving the mouse out): you can return to monitor its status again by
+clicking again on "Autofill" in the "Edit" menu.
+
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
 Autofill also respects the "fill exclusions" settings (min-popularity,
 exclusion of proper nouns, as well as any entries in the explicitly forbidden
@@ -281,6 +307,8 @@ If Autofill fails, you can try to rerun it a few times. It may succeed
 on a subsequent run, because of the slight randomness in the choices that it
 makes. If it fails consistently, you should reduce constraints by doing one
 or more of:
+- Increase "beam search" width (this allows it to explore more options,
+  at the expense of speed).
 - Reduce minimum word/phrase popularity threshold.
 - Allow proper nouns if they have been disallowed.
 - Remove words/phrases from the "fill exclusions" list.
@@ -406,12 +434,13 @@ You can link clues, creating sequences of lights that make up a single solution
 that is clued using the "parent" clue (the first one in the sequence). To
 create such linkages, you can click on the clue number of the current clue,
 which will bring up a panel through which you can add a linked clue to the
-current clue. The same panel also provides a button for breaking up a group
-of previously linked clues. When you break up a group of linked clues, any
-existing clue text from them will also get deleted.
-
-Grid-fill suggestions as well as autofill work as you might expect with linked
-clues.
+current clue. You have to specify the clue to be linked by providing its
+number as well as direction suffix ("7d" or "9a" or "6u" or "13b" or—in
+3-D—"7dn" or "9ac" or "8aw" or "12up" or "19ba" or "3to", etc.). The same panel
+also provides a button for breaking up a group of
+previously linked clues. When you break up a group of linked clues, any existing
+clue text from them will also get deleted. Grid-fill suggestions as well as
+autofill work as you might expect with linked clues.
 
 #### Resources for clues
 

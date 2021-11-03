@@ -1,5 +1,18 @@
 # Changelog
 
+### Version: Exet v0.60 November 3 2021
+
+- Add support for creating 3-D crosswords.
+- Add support for reversing lights.
+- Bug-fix: viablots and darkness were not getting centered in non-square cells.
+- Add the 3-d vertical direction to the connectivity-checking algorithm.
+- Bug-fix: in 3-D, when the "darkness" square sits atop a dark background
+  cell-square (as opposed to a large grid-sized background), stop the click
+  event from propagating.
+- Simplify the code for linked-clue creation by always requiring the direction
+  suffix explicitly.
+- Show a helpful message when auto-fill fails, suggesting reducing constraints.
+
 ### Version: Unnumbered quick-fix
 
 - The "stop after 5 reloads" was not really doing what it intended, removed.
