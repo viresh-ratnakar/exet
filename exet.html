@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.60 November 3 2021
+Current version: v0.61 November 5 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1036,8 +1036,8 @@ ExetRevManager.prototype.saveLocal = function(k, v) {
   try {
     window.localStorage.setItem(k, v)
   } catch (err) {
-    alert('No available local storage left. Please use the "Manage storage" ' +
-          'menu option to free up some space.')
+    alert('No available local storage left. Please use the ' +
+          '"Manage local storage" menu option to free up some space.');
     console.log('Could not save value of length ' + v.length + ' for key: ' + k)
   }
 }
@@ -1252,7 +1252,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.60 November 3 2021'
+  this.version = 'v0.61 November 5 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -6676,6 +6676,17 @@ Exet.prototype.reverseLight = function() {
   if (lastInd <= 0) {
     console.log('Cannot reverse light at ' + ci + ' with ' +
                 clue.cells.length + ' cells');
+    return;
+  }
+  const checks = [];
+  if (clue.solution && clue.solution.indexOf('?') < 0) {
+    checks.push('The current light has already been filled.');
+  }
+  if ((clue.childrenClueIndices && clue.childrenClueIndices.length > 0) ||
+      clue.parentClueIndex) {
+    checks.push('Reversal will break a linked group.');
+  }
+  if (checks.length > 0 && !confirm(checks.join(' ') + ' Still reverse light?')) {
     return;
   }
   const origCells = clue.reversed ? clue.cells.slice().reverse() : clue.cells;

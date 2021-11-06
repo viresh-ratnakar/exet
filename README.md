@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.60 November 3 2021
+#### Version: Exet v0.61 November 5 2021
 
 #### Author: Viresh Ratnakar
 
@@ -173,11 +173,11 @@ orientation of the cell is reversed. This entails the following direction change
 - Away (aw) &harr; Towards (to) in 3-D
 - Down (dn) &harr; Up (up) in 3-D
 
-Note that reversing a light has no impact on other lights/clues (except that
-their numbering may change), unless the reversed light is part of a linked group
-(in which case the linked group is broken up). So, for a light that is not
-a part of a linked group, reversing it and then reversing it again will return
-the crossword to its state before the first reversal.
+When you reverse a light, you lose the clue (and annotation) that you might have
+already written for it. Reversing a light has no impact on other lights/clues
+(except that their numbering may change), unless the reversed light is part of a
+linked group (in which case the linked group is broken up, and any clue/anno
+text for the linked clue gets removed).
 
 ### Filling the grid
 

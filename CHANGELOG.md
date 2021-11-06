@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.61 November 5 2021
+
+- When a light is reversed, its existing clue is lost. Update the README to
+  say this (instead of the misleading statement that was previously present,
+  saying "reverse of reverse = original"). Add confirmation for reversals
+  when a light has already been filled or when the light is part of a linked
+  group.
+
 ### Version: Exet v0.60 November 3 2021
 
 - Add support for creating 3-D crosswords.
