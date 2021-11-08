@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Exet v0.62 November 7 2021
+
+- Bug-fix: Setting/removing light-level colours/ninas was broken.
+- Bug-fix: Grid changes and light reversals were not dealing properly
+  with light-level colours/ninas.
+- Avoid saving state when there is an error.
+
 ### Version: Exet v0.61 November 5 2021
 
 - When a light is reversed, its existing clue is lost. Update the README to

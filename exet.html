@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.61 November 5 2021
+Current version: v0.62 November 7 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1252,7 +1252,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.61 November 5 2021'
+  this.version = 'v0.62 November 7 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -2143,11 +2143,11 @@ Exet.prototype.makeExetTab = function() {
                 Toggle marking prefilled (!)
               </div>
               <div class="xet-dropdown-subitem" id="xet-toggle-nina"
-                  title="Toggle marking cell as part of a nina">
+                  title="Toggle marking cell/light as part of a nina">
                 Toggle nina ($)
               </div>
               <div class="xet-dropdown-subitem"
-                  id = "xet-toggle-colour" title="Toggle colouring cell">
+                  id = "xet-toggle-colour" title="Toggle colouring cell/light">
                 Toggle colouring (^)
               </div>
               <div class="xet-dropdown-subitem"
@@ -2505,6 +2505,7 @@ Exet.prototype.makeExetTab = function() {
   })
   document.getElementById("xet-toggle-colour").addEventListener('click', e => {
     this.toggleColour(e);
+    e.stopPropagation();
   })
 
   const explanations = document.getElementById("xet-explanations")
@@ -6507,9 +6508,41 @@ Exet.prototype.remapDisplayLabel = function(displayLabel, labelMap) {
   return mapped;
 }
 
+Exet.prototype.updateColourNinaLights = function(nOrCList, fullNewLabels) {
+  const old = nOrCList.slice();
+  nOrCList.splice(0);  // empty it out.
+  for (let nOrC of old) {
+    const list = nOrC.list;
+    nOrC.list = [];
+    for (let cccc of list) {
+      if (!cccc.isLight) {
+        nOrC.list.push(cccc);
+        continue;
+      }
+      const clue = this.puz.clueFromLabel(cccc.str);
+      if (!clue) {
+        console.log('Old colour/nina light ' + cccc.str + ' was invalid!');
+        continue;
+      }
+      if (!fullNewLabels[clue.index]) {
+        console.log('Old colour/nina light ' + cccc.str + ' no longer exists!');
+        continue;
+      }
+      cccc.str = fullNewLabels[clue.index];
+      nOrC.list.push(cccc);
+    }
+    if (nOrC.list.length > 0) {
+      nOrCList.push(nOrC);
+    }
+  }
+}
+
 Exet.prototype.killInvalidatedClues = function() {
   const tempId = this.puz.id + '-temp';
-  const specs = this.getExolve(tempId, true /*skipClues*/);
+  // New puzzle, but no clues/ninas/colours (these may contain invalid entries).
+  const specs = this.getExolve(
+      tempId, true /*skipClues*/, false /* solved */,
+      true /* showEnums */, false /* showColoursNinas */);
   const xetTemp = document.getElementById("xet-temp");
   xetTemp.innerHTML = '';
   const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
@@ -6520,12 +6553,14 @@ Exet.prototype.killInvalidatedClues = function() {
     cellsToIndex[ckey] = ci;
   }
   const getsRelocated = {};  // Keys are clue indices from the old grid
-  const isRelocated = {};  // Keys are clue indices from the new grid
+  const fullNewLabels = {};  // Keys are clue indices from the old grid
+  const isRelocated = {};    // Keys are clue indices from the new grid
   for (let ci in this.puz.clues) {
     const ckey = JSON.stringify(this.puz.clues[ci].cells);
     if (!cellsToIndex[ckey]) continue;
     const newCi = cellsToIndex[ckey];
     getsRelocated[ci] = newCi;
+    fullNewLabels[ci] = newPuz.clueLabelDisp(newPuz.clues[newCi]);
     isRelocated[newCi] = Object.assign({}, this.puz.clues[ci]);
   }
   // Preserve linked clues, if possible
@@ -6558,6 +6593,9 @@ Exet.prototype.killInvalidatedClues = function() {
                   this.puz.clues[ci].clue);
     }
   }
+  this.updateColourNinaLights(this.puz.colourfuls, fullNewLabels);;
+  this.updateColourNinaLights(this.puz.ninas, fullNewLabels);;
+
   const labelMap = {};
   for (let ci in getsRelocated) {
     labelMap[ci.substr(1)] = getsRelocated[ci].substr(1);
@@ -6870,25 +6908,28 @@ Exet.prototype.populateColourNina = function(isNina, newColour) {
   });
 }
 
-Exet.prototype.removeNina = function() {
-  let nindex = -1;
+Exet.prototype.removeNinaOrColour = function(nOrCList) {
+  let index = -1;
   let lindex = -1;
   let doBreak = false;
-  for (let i = 0; !doBreak && i < this.puz.ninas.length; i++) {
-    const nina = this.puz.ninas[i];
-    for (let x = 0; x < nina.list.length; x++) {
-      const ninaPart = nina.list[x];
-      if (Array.isArray(ninaPart)) {
-        // Find the first mention of cell, but take any mention of light.
-        if (nindex < 0 &&
-            ninaPart[0] == this.puz.currRow &&
-            ninaPart[1] == this.puz.currCol) {
-          nindex = i;
+  const clue = this.currClue();
+  const clueCells = clue && clue.cells ? JSON.stringify(clue.cells) : 'NONE';
+  for (let i = 0; !doBreak && i < nOrCList.length; i++) {
+    const nOrC = nOrCList[i];
+    for (let x = 0; x < nOrC.list.length; x++) {
+      const cccc = nOrC.list[x];
+      if (!cccc.cells || cccc.cells.length < 1) continue;
+      if (!cccc.isLight) {
+        // Note the first mention of cell, but continue to look for the light.
+        if (index < 0 &&
+            cccc.cells[0][0] == this.puz.currRow &&
+            cccc.cells[0][1] == this.puz.currCol) {
+          index = i;
           lindex = x;
         }
       } else {
-        if (ninaPart == this.puz.currClueIndex) {
-          nindex = i;
+        if (JSON.stringify(cccc.cells) == clueCells) {
+          index = i;
           lindex = x;
           doBreak = true;
           break;
@@ -6896,12 +6937,19 @@ Exet.prototype.removeNina = function() {
       }
     }
   }
+  if (index < 0) {
+    return index;
+  }
+  nOrCList[index].list = nOrCList[index].list.slice(0, lindex).concat(
+      nOrCList[index].list.slice(lindex + 1));
+  return index;
+}
+
+Exet.prototype.removeNina = function() {
+  const nindex = this.removeNinaOrColour(this.puz.ninas);
   if (nindex < 0) {
     return false;
   }
-  this.puz.ninas[nindex].list =
-    this.puz.ninas[nindex].list.slice(0, lindex).concat(
-        this.puz.ninas[nindex].list.slice(lindex + 1));
   if (this.puz.ninas[nindex].list.length == 0) {
     this.puz.ninas = this.puz.ninas.slice(0, nindex).concat(
         this.puz.ninas.slice(nindex + 1));
@@ -6915,6 +6963,10 @@ Exet.prototype.addNina = function(index=-1) {
   if (this.tweakColourNina.style.display == 'none') {
     return
   }
+  const clue = this.currClue();
+  if (this.colourToAddType == 'light' && !clue) {
+    return
+  }
   this.removeNina();
   if (index < 0) {
     index = this.coloursInUseIndex;
@@ -6922,29 +6974,40 @@ Exet.prototype.addNina = function(index=-1) {
     this.coloursInUseIndex = index;
   }
   const colour = this.coloursInUse[index];
-  let nindex = -1;
-  let ninaNum = 0;
-  for (let i = 0; i < this.puz.ninas.length; i++) {
-    const nina = this.puz.ninas[i];
-    const ncolour = nina.colour || this.puz.NINA_COLORS[ninaNum++];
-    if (ncolour == colour) {
-      nindex = i;
+  let nindex = this.findOrAddColour(this.puz.ninas, colour);
+  if (this.colourToAddType == 'cell') {
+    this.puz.ninas[nindex].list.push({
+      str: this.cellCode(this.puz.currRow, this.puz.currCol),
+      cells: [[this.puz.currRow, this.puz.currCol]],
+      isLight: false,
+    });
+  } else {
+    this.puz.ninas[nindex].list.push({
+      str: this.puz.clueLabelDisp(clue),
+      cells: clue.cells,
+      isLight: true,
+    });
+  }
+  this.puz.redisplayNinas();
+  document.getElementById("xet-colour-" + index).checked = true;
+}
+
+Exet.prototype.findOrAddColour = function(nOrCList, colour) {
+  let index = -1;
+  for (let i = 0; i < nOrCList.length; i++) {
+    if (nOrCList[i].colour == colour) {
+      index = i;
       break;
     }
   }
-  if (nindex < 0) {
-    nindex = this.puz.ninas.length;
-    this.puz.ninas.push({
+  if (index < 0) {
+    index = nOrCList.length;
+    nOrCList.push({
       colour: colour,
       list: [],
     });
   }
-  const c = (this.colourToAddType == 'cell') ?
-      [this.puz.currRow, this.puz.currCol] :
-      this.puz.currClueIndex;
-  this.puz.ninas[nindex].list.push(c);
-  this.puz.redisplayNinas();
-  document.getElementById("xet-colour-" + index).checked = true;
+  return index;
 }
 
 Exet.prototype.toggleNina = function(evt) {
@@ -6958,10 +7021,8 @@ Exet.prototype.toggleNina = function(evt) {
   }
   this.coloursInUse = [];
   this.colourToAddType = 'cell'
-  let ninaNum = 0;
   for (let n of this.puz.ninas) {
-    const colour = n.colour || this.puz.NINA_COLORS[ninaNum++];
-    this.coloursInUse.push(colour)
+    this.coloursInUse.push(n.colour);
   }
   this.coloursInUseIndex = this.coloursInUse.length - 1;
   const newColours = this.puz.NINA_COLORS;
@@ -6986,25 +7047,14 @@ Exet.prototype.toggleNina = function(evt) {
 }
 
 Exet.prototype.removeColour = function() {
-  let index = -1;
-  for (let i = 0; i < this.puz.cellColours.length; i++) {
-    const cellOrClue = this.puz.cellColours[i]
-    // Find the first mention of cell, but take any mention of light.
-    if (cellOrClue.length == 3 && index < 0 &&
-        cellOrClue[0] == this.puz.currRow &&
-        cellOrClue[1] == this.puz.currCol) {
-      index = i;
-    } else if (cellOrClue.length == 2 &&
-               cellOrClue[0] == this.puz.currClueIndex) {
-      index = i;
-      break;
-    }
-  }
-  if (index < 0) {
+  const cindex = this.removeNinaOrColour(this.puz.colourfuls);
+  if (cindex < 0) {
     return false;
   }
-  this.puz.cellColours = this.puz.cellColours.slice(
-      0, index).concat(this.puz.cellColours.slice(index + 1));
+  if (this.puz.colourfuls[cindex].list.length == 0) {
+    this.puz.colourfuls = this.puz.colourfuls.slice(0, cindex).concat(
+        this.puz.colourfuls.slice(cindex + 1));
+  }
   this.puz.recolourCells();
   this.puz.activateCell(this.puz.currRow, this.puz.currCol);
   return true;
@@ -7014,6 +7064,10 @@ Exet.prototype.addColour = function(index=-1) {
   if (this.tweakColourNina.style.display == 'none') {
     return
   }
+  const clue = this.currClue();
+  if (this.colourToAddType == 'light' && !clue) {
+    return
+  }
   this.removeColour();
   if (index < 0) {
     index = this.coloursInUseIndex;
@@ -7021,10 +7075,20 @@ Exet.prototype.addColour = function(index=-1) {
     this.coloursInUseIndex = index;
   }
   const colour = this.coloursInUse[index];
-  const c = (this.colourToAddType == 'cell') ?
-      [this.puz.currRow, this.puz.currCol, colour] :
-      [this.puz.currClueIndex, colour];
-  this.puz.cellColours.push(c);
+  let cindex = this.findOrAddColour(this.puz.colourfuls, colour);
+  if (this.colourToAddType == 'cell') {
+    this.puz.colourfuls[cindex].list.push({
+      str: this.cellCode(this.puz.currRow, this.puz.currCol),
+      cells: [[this.puz.currRow, this.puz.currCol]],
+      isLight: false,
+    });
+  } else {
+    this.puz.colourfuls[cindex].list.push({
+      str: this.puz.clueLabelDisp(clue),
+      cells: clue.cells,
+      isLight: true,
+    });
+  }
   this.puz.recolourCells();
   document.getElementById("xet-colour-" + index).checked = true;
 }
@@ -7040,12 +7104,11 @@ Exet.prototype.toggleColour = function(evt) {
   }
   this.coloursInUse = [];
   this.colourToAddType = 'cell'
-  for (let c of this.puz.cellColours) {
-    const colour = c[c.length - 1];
-    if (this.coloursInUse.includes(colour)) {
+  for (let c of this.puz.colourfuls) {
+    if (this.coloursInUse.includes(c.colour)) {
       continue;
     }
-    this.coloursInUse.push(colour)
+    this.coloursInUse.push(c.colour)
   }
   this.coloursInUseIndex = this.coloursInUse.length - 1;
   const newColours = ['blue', 'green', 'red', 'cyan',
@@ -7074,13 +7137,9 @@ Exet.prototype.markNinasAsPrefilled = function() {
   this.ninasMarkedAsPrefilled = [];
   let cells = []
   for (let nina of this.puz.ninas) {
-    // First resolve clue indices to cells.
-    for (let cellOrOther of nina.list) {
-      if (Array.isArray(cellOrOther)) {
-        cells.push(cellOrOther)
-      } else if (this.puz.clues[cellOrOther]) {
-        cells = cells.concat(this.puz.clues[cellOrOther].cells)
-      }
+    for (let cccc of nina.list) {
+      if (!cccc.cells || cccc.cells.length < 1) continue;
+      cells = cells.concat(cccc.cells)
     }
   }
   for (let cell of cells) {
@@ -7121,8 +7180,8 @@ Exet.prototype.clearAllMarkings = function() {
     this.puz.ninas = [];
     changed = true;
   }
-  if (this.puz.cellColours.length > 0) {
-    this.puz.cellColours = [];
+  if (this.puz.colourfuls.length > 0) {
+    this.puz.colourfuls = [];
     changed = true;
   }
   if (changed) {
@@ -7189,11 +7248,11 @@ Exet.prototype.makeExolve = function(specs) {
   if (this.puz) {
     delete exolvePuzzles[this.puz.id]
   }
+  this.puz = null;
   try {
     let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, this.TOP_CLEARANCE, 0, false)
   } catch (err) {
     this.puz = null
-    alert('Could not create/parse Exolve puzzle. Please reload and retry. The JavaScript console might show some diagnostic messages.')
     console.log('Could not parse Exolve specs:')
     console.log(specs)
     console.log('Error thrown was:')
@@ -7201,7 +7260,8 @@ Exet.prototype.makeExolve = function(specs) {
   }
 
   if (!this.puz) {
-    return
+    alert('Could not create/parse Exolve puzzle. Please reload to return to a valid state. The JavaScript console might show some diagnostic messages.')
+    return;
   }
 
   this.handleTabClick(this.currTab);
@@ -7224,8 +7284,13 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   const editingOtherSections = (exetModals.modal &&
                exetModals.modal.id == 'xet-other-sections');
 
+  const oldPuz = this.puz;
   let exolve = this.getExolve();
-  this.makeExolve(exolve)
+  this.makeExolve(exolve);
+  if (!this.puz) {
+    alert('Update failed in makeExolve()! Best to reload.');
+    return;
+  }
 
   this.puz.currDir = dir
   this.puz.currRow = row
@@ -7332,47 +7397,31 @@ Exet.prototype.lightCode = function(ci) {
 }
 
 Exet.prototype.getExolveColours = function() {
-  const colours = {}
-  for (let c of this.puz.cellColours) {
-    let colour = ''
-    let entry = ''
-    if (c.length == 3) {
-      colour = c[2];
-      entry = this.cellCode(c[0], c[1]);
-    } else {
-      colour = c[1];
-      entry = this.lightCode(c[0]);
+  let ret = ''
+  for (let c of this.puz.colourfuls) {
+    let list = '';
+    for (let cccc of c.list) {
+      list += ' ' + cccc.str;
     }
-    if (!colour || !entry) continue;
-    if (!colours[colour]) {
-      colours[colour] = entry;
-    } else {
-      colours[colour] += ' ' + entry;
-    }
-  }
-  let ret = '';
-  for (let colour of Object.keys(colours)) {
+    list = list.trim();
+    if (!list) continue;
     ret += `
-  exolve-colour: ${colour} ${colours[colour]}`
+  exolve-colour: ${c.colour} ${list}`
   }
   return ret;
 }
 Exet.prototype.getExolveNinas = function() {
   let ret = ''
   for (let nina of this.puz.ninas) {
+    let list = '';
+    for (let cccc of nina.list) {
+      list += ' ' + cccc.str;
+    }
+    list = list.trim();
+    if (!list) continue;
     const clr = nina.colour ? ' ' + nina.colour : '';
     ret += `
-  exolve-nina:${clr}`
-    for (let c of nina.list) {
-      let entry = ''
-      if (c.length == 2) {
-        entry = this.cellCode(c[0], c[1]);
-      } else {
-        entry = this.lightCode(c);
-      }
-      if (!entry) continue;
-      ret += ' ' + entry;
-    }
+  exolve-nina:${clr} ${list}`
   }
   return ret;
 }
@@ -7393,8 +7442,8 @@ Exet.prototype.getExolveQuestions = function(solved) {
   return ret;
 }
 
-Exet.prototype.getExolve = function(id='', skipClues=false,
-                                    solved=true, showEnums=true) {
+Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
+                                    showEnums=true, showColoursNinas=true) {
   const maker = `
     Software: <a target="_blank" href="http://exet.app">Exet</a><br>
     Version: ${this.version}<br>
@@ -7414,9 +7463,11 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
   exolve-copyright: ${this.puz.copyright}` : '') + `
   exolve-maker: ${maker}`
 
-  exolve += this.getExolveColours();
-  if (solved) {
-    exolve += this.getExolveNinas();
+  if (showColoursNinas) {
+    exolve += this.getExolveColours();
+    if (solved) {
+      exolve += this.getExolveNinas();
+    }
   }
 
   const preamble = document.getElementById(
@@ -7448,7 +7499,7 @@ Exet.prototype.getExolve = function(id='', skipClues=false,
   }
   if (reversals) {
     exolve += `
-    exolve-reversals: ${reversals}`;
+  exolve-reversals: ${reversals}`;
   }
 
   exolve += `
@@ -8502,7 +8553,7 @@ function exetFromHistory(exetRev) {
   exet.unpreflex = exetRev.unpreflex || {}
   exet.setMinPop(exetRev.minpop || 0)
   exet.noProperNouns = exetRev.noProperNouns || false
-  exet.makeExolve(exetRev.exolve)
+  exet.makeExolve(exetRev.exolve);
   if (exetRev.navState) {
     exet.startNav(exetRev.navState[0],
                   exetRev.navState[1], exetRev.navState[2])
