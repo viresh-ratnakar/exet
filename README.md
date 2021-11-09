@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.62 November 7 2021
+#### Version: Exet v0.63 November 9 2021
 
 #### Author: Viresh Ratnakar
 
@@ -173,12 +173,11 @@ orientation of the cell is reversed. This entails the following direction change
 - Away (aw) &harr; Towards (to) in 3-D
 - Down (dn) &harr; Up (up) in 3-D
 
-When you reverse a light, you lose the clue (and annotation) that you might have
-already written for it. If the entire light was part of a nina or had been
-coloured, you lose that marking as well.  Reversing a light has no impact on
-other lights/clues (except that their numbering may change), unless the reversed
-light is part of a linked group (in which case the linked group is broken up,
-and any clue/anno text for the linked clue gets removed).
+When you reverse a light, you retain the clue (and annotation) that you might
+have already written for it (but you will probably need to revise it!). You will
+also retain any linked group that the light may be a part of (but the order of
+cells in the group will change!). Reversing a light has no impact on other
+lights/clues (except that their numbering may change).
 
 ### Filling the grid
 
@@ -221,6 +220,13 @@ settings that control the nature of fill suggestions. These are:
   |       95  |  12,509  | countless, Saturdays, Green Party |
 
 - Whether to exclude proper nouns.
+- Whether to allow grid-fill suggestions (and autofill) to try to reverse
+  lights (and linked lights). This is false be default for 2-D crosswords, and
+  true by default for 3-D crosswords. When true, if there is a reversed
+  grid-fill suggestion (shown with a &lArr; prefix in the list of suggestions)
+  that you decide to accept, the light will be reversed (clue numberings may
+  change). If the light is part of a linked group, the whole group will get
+  reversed.
 
 As you progress through filling the grid, the software will try to help by
 showing viability indicators (I call them "viablots"). These are red circles
@@ -312,6 +318,7 @@ or more of:
   at the expense of speed).
 - Reduce minimum word/phrase popularity threshold.
 - Allow proper nouns if they have been disallowed.
+- Allow reversals if they have been disallowed.
 - Remove words/phrases from the "fill exclusions" list.
 - Clear some previously filled entries.
 - Break up some long lights by inserting blocks/bars.

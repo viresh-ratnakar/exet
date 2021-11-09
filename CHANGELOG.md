@@ -1,5 +1,27 @@
 # Changelog
 
+### Version: Exet v0.63 November 9 2021
+
+- Add an option to "try reversals" for grid-fills and autofill.
+- The option is set to false by default for 2-D grids and true for 3-D grids.
+- In auto-fill, when "try reversals" is true, show the number of lights
+  reversed.
+- Implement reversals by using negative lexicon indices (this required
+  a minor update to Lufz, to ensure the entry at lexicon[0] is a useless
+  empty string.
+- Reversed fills are placed in priority *after* all unreversed ones.
+- Some tricky code to get light-filling and grid-fill-suggesting and reversals
+  behave correctly in the presence of linked clues, including those where some
+  last-cell == next-first-cell-hence-skipped, and "snake"s ending on the same
+  cell.
+- When accepting a reversed grid-fill for a linked group, for example, you
+  have to first reverse the order of the linked group, and then reverse
+  each light in the group.
+- Bug-fix: updating displayed clue lables when reversing has to take dir
+  suffixes into accoung, can't just map numbers.
+- Bug-fix: in the clue lists, sort clues by number.
+
+
 ### Version: Exet v0.62 November 7 2021
 
 - Bug-fix: Setting/removing light-level colours/ninas was broken.

@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.62 November 7 2021
+Current version: v0.63 November 9 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -706,8 +706,8 @@ function ExetRevManager() {
   this.revMsgs[this.REV_ENUM_CHANGE] = "Enum change"
   this.revMsgs[this.REV_CLUE_CHANGE] = "Clue or anno change"
   this.revMsgs[this.REV_METADATA_CHANGE] = "Metadata change"
-  this.revMsgs[this.REV_PREFLEX_CHANGE] = "Change in the list of preferred " +
-      "words"
+  this.revMsgs[this.REV_PREFLEX_CHANGE] = "Change in the list of or options " +
+      "for preferred words"
 
   // State for throttled revision-saving
   this.throttleRevTimer = null;
@@ -1068,6 +1068,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
         lastRev.unpreflex &&
         JSON.stringify(lastRev.unpreflex) == JSON.stringify(exet.unpreflex) &&
         lastRev.noProperNouns == exet.noProperNouns &&
+        lastRev.tryReversals == exet.tryReversals &&
         lastRev.minpop == exet.minpop) {
       return
     }
@@ -1084,6 +1085,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.preflex = exet.preflex
   exetRev.unpreflex = exet.unpreflex
   exetRev.noProperNouns = exet.noProperNouns
+  exetRev.tryReversals = exet.tryReversals
   exetRev.minpop = exet.minpop
   stored.revs.push(exetRev)
   this.saveLocal(exet.puz.id, JSON.stringify(stored))
@@ -1252,7 +1254,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.62 November 7 2021'
+  this.version = 'v0.63 November 9 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1260,6 +1262,7 @@ function Exet() {
   this.preflex = []
   this.unpreflex = {}
   this.noProperNouns = false
+  this.tryReversals = false
   this.DEFAULT_MINPOP = 80
   this.setMinPop(this.DEFAULT_MINPOP)
   this.DRAFT = '[DRAFT]';
@@ -2054,16 +2057,21 @@ Exet.prototype.makeExetTab = function() {
                   `</span> entries)
                 </div>
                 <div style="padding:4px" title="You can edit the list ` +
-                    `of undesired fills, restrict fills by a ` +
+                    `of undesired fills by clicking on the 'Set fill ` +
+                    `exclusions' button. You can restrict fills by a ` +
                     `popularity cutoff, and allow/disallow proper ` +
-                    `nouns by clicking on the 'Set ` +
-                    `fill exclusions' button">
+                    `nouns and reversals from the Exet tab.">
                   Proper nouns: <span
                     id="xet-autofill-proper-nouns">${this.noProperNouns ?
                           "disallowed" : "allowed"}</span>&nbsp;
                   Undesired fills: <span
                       id="xet-autofill-unpreflex-total">${Object.keys(
                           this.unpreflex).length}</span>
+                  <div style="padding:4px"></div>
+                  Trying reversals: <span
+                    id="xet-autofill-try-reversals">${this.tryReversals ?
+                          "allowed" : "disallowed"}</span>
+                  (<span id="xet-autofill-reversals">0</span> reversed)
                 </div>
               </div>
               <div style="padding:4px">
@@ -2303,9 +2311,14 @@ Exet.prototype.makeExetTab = function() {
             <br>
             <br>
             <b title="If checked, this excludes proper nouns from ` +
-                `fill suggestions">Disallow proper nouns:</b>
+                `fill suggestions">No proper nouns:</b>
             <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
                 value="no-proper-nouns" type="checkbox">
+            </input>
+            <b title="If checked, this allows trying reversals of unfilled ` +
+                `lights, when finding fill suggestions">Try reversals:</b>
+            <input id="xet-try-reversals" name="xet-try-reversals"
+                value="try-reversals" type="checkbox">
             </input>
           </div>
         </div>
@@ -2428,6 +2441,13 @@ Exet.prototype.makeExetTab = function() {
   this.noProperNounsInput.checked = this.noProperNouns
   this.noProperNounsInput.addEventListener('change', e => {
     this.noProperNouns = this.noProperNounsInput.checked
+    this.resetViability()
+    exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
+  })
+  this.tryReversalsInput = document.getElementById("xet-try-reversals")
+  this.tryReversalsInput.checked = this.tryReversals
+  this.tryReversalsInput.addEventListener('change', e => {
+    this.tryReversals = this.tryReversalsInput.checked
     this.resetViability()
     exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
   })
@@ -5697,7 +5717,7 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
     numChanges += 2
   }
   if (numChanges > 0) {
-    this.killInvalidatedClues()
+    this.killInvalidatedClues();
   } else {
     if (showAlerts) {
       if (numCandidates == 0) {
@@ -5900,6 +5920,13 @@ Exet.prototype.setScore = function(fillState) {
 
   fillState.unfilled = []
   fillState.lettersUsed = {}
+  fillState.reversals = 0
+  for (let ci in fillState.clues) {
+    let theClue = fillState.clues[ci]
+    if (theClue.lChoices.length == 1 && theClue.lChoices[0] < 0) {
+      fillState.reversals++;
+    }
+  }
   let numLightCells = 0;
   for (let i = 0; i < fillState.gridHeight; i++) {
     for (let j = 0; j < fillState.gridWidth; j++) {
@@ -6008,6 +6035,7 @@ Exet.prototype.beamSearchStep = function() {
     this.autofill.scoreSpan.innerText = best.score.toFixed(2)
     this.autofill.scoreVSpan.innerText = best.scoreV.toFixed(2)
     this.autofill.scoreFSpan.innerText = best.scoreF.toFixed(2)
+    this.autofill.reversalsSpan.innerText = best.reversals
     this.updateAutofill(best)
 
     if (this.isFull(best)) {
@@ -6080,7 +6108,8 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     }
     let cells = this.puz.getAllCells(ci);
     for (let lchoice of toTryAndViable) {
-      let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+      let key = this.makeLexKey(this.getLex(lchoice))
+      if (lchoice < 0) key = this.reverse(key);
       let child = new ExetFillState(candidate)
       child.clues[ci].lChoices = [lchoice]
       child.clues[ci].lRejects = []
@@ -6157,6 +6186,8 @@ Exet.prototype.updateAutofillPreflex = function() {
       this.indexMinPop).toLocaleString()
   this.autofill.properNounsSpan.innerText = this.noProperNouns ?
       "disallowed" : "allowed"
+  this.autofill.tryReversalsSpan.innerText = this.tryReversals ?
+      "allowed" : "disallowed"
 }
 
 Exet.prototype.startstopAutofill = function() {
@@ -6332,6 +6363,8 @@ Exet.prototype.initAutofill = function() {
   this.autofill.scoreVSpan = document.getElementById('xet-autofill-score-v')
   this.autofill.scoreFSpan = document.getElementById('xet-autofill-score-f')
 
+  this.autofill.reversalsSpan = document.getElementById('xet-autofill-reversals')
+
   this.autofill.preflexTotalSpan = document.getElementById(
       'xet-autofill-preflex-total')
   this.autofill.preflexUsedSpan = document.getElementById(
@@ -6343,6 +6376,8 @@ Exet.prototype.initAutofill = function() {
       'xet-autofill-index-minpop')
   this.autofill.properNounsSpan = document.getElementById(
       'xet-autofill-proper-nouns')
+  this.autofill.tryReversalsSpan = document.getElementById(
+      'xet-autofill-try-reversals')
   this.autofill.pangramSpan = document.getElementById('xet-autofill-pangram')
   this.autofill.isPangram = document.getElementById('xet-is-pangram')
   this.autofill.isPangram.style.display = 'none'
@@ -6355,6 +6390,7 @@ Exet.prototype.initAutofill = function() {
     this.autofill.scoreSpan.innerText = candidate.score.toFixed(2)
     this.autofill.scoreVSpan.innerText = candidate.scoreV.toFixed(2)
     this.autofill.scoreFSpan.innerText = candidate.scoreF.toFixed(2)
+    this.autofill.reversalsSpan.innerText = candidate.reversals
   }
 }
 
@@ -6487,23 +6523,27 @@ Exet.prototype.handleGridInput = function(revType=null) {
   return needsUpdate
 }
 
-Exet.prototype.remapDisplayLabel = function(displayLabel, labelMap) {
+Exet.prototype.remapDisplayLabel = function(displayLabel, dir, newLabels) {
   let s = 0;
   let mapped = '';
   while (s < displayLabel.length) {
-    let c = displayLabel.charAt(s++);
-    if (c < '0' || c > '9') {
-      mapped += c;
+    const parse = this.puz.parseClueLabel(displayLabel.substr(s), false);
+    if (parse.notLabel || !parse.skip || !parse.label) {
+      mapped += displayLabel.charAt(s);
+      s++;
       continue;
     }
-    let old = '' + c;
-    while (s < displayLabel.length &&
-           ((c = displayLabel.charAt(s)) >= '0' && c <= '9')) {
-      old += c;
-      s++;
+    const index = (parse.dir ? parse.dir : dir) + parse.label;
+    let changed = newLabels[index];
+    if (changed && !parse.dir) {
+      // Strip away the direction from changed, if it's natural.
+      const newParse = this.puz.parseClueLabel(changed);
+      if (!newParse.reversed) {
+        changed = newParse.label;
+      }
     }
-    if (labelMap[old]) mapped += labelMap[old];
-    else mapped += old;
+    mapped += parse.leadSpace + (changed || parse.dirStr);
+    s += parse.skip;
   }
   return mapped;
 }
@@ -6552,21 +6592,39 @@ Exet.prototype.killInvalidatedClues = function() {
     const ckey = JSON.stringify(newPuz.clues[ci].cells);
     cellsToIndex[ckey] = ci;
   }
-  const getsRelocated = {};  // Keys are clue indices from the old grid
-  const fullNewLabels = {};  // Keys are clue indices from the old grid
-  const isRelocated = {};    // Keys are clue indices from the new grid
+
+  // Keys are clue indices from the old grid:
+  const getsRelocated = {};
+  const fullNewLabels = {};
+
+  // Keys are clue indices from the new grid:
+  const isRelocated = {};
+  const isReversed = {};
+
   for (let ci in this.puz.clues) {
-    const ckey = JSON.stringify(this.puz.clues[ci].cells);
-    if (!cellsToIndex[ckey]) continue;
+    let ckey = JSON.stringify(this.puz.clues[ci].cells);
+    let reversed = false;
+    if (!cellsToIndex[ckey]) {
+      const rcells = this.puz.clues[ci].cells.slice().reverse();
+      ckey = JSON.stringify(rcells);
+      reversed = true;
+    }
+    if (!cellsToIndex[ckey]) {
+      continue;
+    }
     const newCi = cellsToIndex[ckey];
     getsRelocated[ci] = newCi;
     fullNewLabels[ci] = newPuz.clueLabelDisp(newPuz.clues[newCi]);
     isRelocated[newCi] = Object.assign({}, this.puz.clues[ci]);
+    isReversed[newCi] = reversed;
   }
   // Preserve linked clues, if possible
   for (let ci in this.puz.clues) {
     const oldClue = this.puz.clues[ci];
-    if (!oldClue.children || !oldClue.children.length) continue;
+    if (!oldClue.childrenClueIndices ||
+        !oldClue.childrenClueIndices.length) {
+      continue;
+    }
     const oldList = this.puz.getLinkedClues(ci);
     console.assert(oldList.length > 1 && oldList[0] == ci, oldList);
     let allMatch = true;
@@ -6583,7 +6641,9 @@ Exet.prototype.killInvalidatedClues = function() {
         }
         const newCi = getsRelocated[cci];
         delete getsRelocated[cci];
+        delete fullNewLabels[cci];
         delete isRelocated[newCi];
+        delete isReversed[newCi];
       }
     }
   }
@@ -6596,25 +6656,27 @@ Exet.prototype.killInvalidatedClues = function() {
   this.updateColourNinaLights(this.puz.colourfuls, fullNewLabels);;
   this.updateColourNinaLights(this.puz.ninas, fullNewLabels);;
 
-  const labelMap = {};
-  for (let ci in getsRelocated) {
-    labelMap[ci.substr(1)] = getsRelocated[ci].substr(1);
-  }
   this.puz.clues = {};
   for (let newCi in isRelocated) {
     this.puz.clues[newCi] = this.puz.newClue(newCi);
     const theClue = this.puz.clues[newCi];
     const oldClue = isRelocated[newCi];
-    theClue.displayLabel = this.remapDisplayLabel(oldClue.displayLabel, labelMap);
+    theClue.displayLabel = this.remapDisplayLabel(
+        oldClue.displayLabel, oldClue.dir, fullNewLabels);
     theClue.clue = oldClue.clue;
     theClue.anno = oldClue.anno;
-    theClue.solution = oldClue.solution;
+    theClue.placeholder = oldClue.placeholder;
     theClue.reversed = oldClue.reversed;
+    if (isReversed[newCi]) {
+      theClue.reversed = !theClue.reversed;
+      theClue.solution = '';  // will be recomputed by updatePuzzle().
+    }
     if (oldClue.parentClueIndex) {
       console.assert(getsRelocated[oldClue.parentClueIndex], oldClue);
       theClue.parentClueIndex = getsRelocated[oldClue.parentClueIndex];
       // Update "See XX"
-      theClue.clue = this.remapDisplayLabel(oldClue.clue, labelMap);
+      theClue.clue = this.remapDisplayLabel(
+          oldClue.clue, oldClue.dir, fullNewLabels);
     }
   }
   xetTemp.innerHTML = ''
@@ -6670,8 +6732,7 @@ Exet.prototype.addLinkedClue = function() {
   }
   const cClue = this.puz.clues[cci];
   if (!cClue) {
-    alert(parsed.label + parsed.dirStr +
-          ' is already part of another linked clue');
+    alert(parsed.label + parsed.dirStr + ' is not a valid clue to link to');
     return
   }
   if (parsed.reversed != cClue.reversed) {
@@ -6700,6 +6761,29 @@ Exet.prototype.addLinkedClue = function() {
   this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
 }
 
+Exet.prototype.reverseLightInner = function(clue) {
+  const lastInd = clue.cells.length - 1;
+  console.assert(lastInd >= 1, clue);
+  const origCells = clue.reversed ? clue.cells.slice().reverse() : clue.cells;
+  const lastR = clue.cells[lastInd][0];
+  const lastC = clue.cells[lastInd][1];
+  const dir = clue.dir;
+
+  const key = this.puz.reversalKey(origCells);
+  if (clue.reversed) {
+    delete this.puz.usedReversals[key];
+  } else {
+    this.puz.usedReversals[key] =
+        this.cellCode(origCells[0][0], origCells[0][1]) + '-' +
+        this.cellCode(origCells[lastInd][0], origCells[lastInd][1]);
+  }
+  this.killInvalidatedClues();
+  this.updatePuzzle(exetRevManager.REV_LIGHT_REVERSAL);
+  const newIndex = dir + this.puz.grid[lastR][lastC].startsClueLabel;
+  this.puz.setClueSolution(newIndex);
+  return newIndex;
+}
+
 Exet.prototype.reverseLight = function() {
   if (!this.puz) return
   const ci = this.puz.currClueIndex;
@@ -6711,33 +6795,18 @@ Exet.prototype.reverseLight = function() {
     return;
   }
   const lastInd = clue.cells.length - 1;
-  if (lastInd <= 0) {
+  if (clue.cells.length <= 1) {
     console.log('Cannot reverse light at ' + ci + ' with ' +
                 clue.cells.length + ' cells');
     return;
   }
-  const checks = [];
-  if (clue.solution && clue.solution.indexOf('?') < 0) {
-    checks.push('The current light has already been filled.');
-  }
-  if ((clue.childrenClueIndices && clue.childrenClueIndices.length > 0) ||
-      clue.parentClueIndex) {
-    checks.push('Reversal will break a linked group.');
-  }
-  if (checks.length > 0 && !confirm(checks.join(' ') + ' Still reverse light?')) {
+  const parent = clue.parentClueIndex ? this.puz.clues[clue.parentClueIndex] :
+      clue;
+  if (parent.solution && parent.solution.indexOf('?') < 0 &&
+      !confirm('Sure you want to reverse an already-filled light?')) {
     return;
   }
-  const origCells = clue.reversed ? clue.cells.slice().reverse() : clue.cells;
-  const key = this.puz.reversalKey(origCells);
-  if (clue.reversed) {
-    delete this.puz.usedReversals[key];
-  } else {
-    this.puz.usedReversals[key] =
-        this.cellCode(origCells[0][0], origCells[0][1]) + '-' +
-        this.cellCode(origCells[lastInd][0], origCells[lastInd][1]);
-  }
-  this.killInvalidatedClues();
-  this.updatePuzzle(exetRevManager.REV_LIGHT_REVERSAL);
+  this.reverseLightInner(clue);
 }
 
 Exet.prototype.killQuestion = function(idx, e) {
@@ -7359,12 +7428,16 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   if (!this.puz) {
     return ''
   }
-  let clues = ''
+  const cluePtrs = [];
   for (let ci in this.puz.clues) {
     let clue = this.puz.clues[ci]
-    if (clue.dir != dir) {
-      continue
+    if (clue.dir == dir) {
+      cluePtrs.push(clue);
     }
+  }
+  cluePtrs.sort((c1, c2) => parseInt(c1.label) - parseInt(c2.label));
+  let clues = ''
+  for (let clue of cluePtrs) {
     const thisClue = this.showClue(clue.clue, true, showEnums);
     const label = clue.displayLabel || clue.label;
     clues = clues + '\n  ' + label + ' ' + thisClue;
@@ -7562,10 +7635,11 @@ Exet.prototype.isProperNoun = function(s) {
   return first.toUpperCase() == first
 }
 
-Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}) {
+Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}, tryRev=false) {
   let choices = []
-  let key = this.makeLexKey(partialSol);
+  const key = this.makeLexKey(partialSol);
   if (!key) return choices
+  const rkey = tryRev ? this.reverse(key) : '';
   // First look at preferred choices (these may have idx >= this.indexMinPop)
   let seen = {}
   if (this.preflexByLen[key.length]) {
@@ -7576,26 +7650,36 @@ Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}) {
         choices.push(idx)
         seen[idx] = true
       }
+      if (tryRev && this.keyMatchesPhrase(rkey, phrase)) {
+        const ridx = 0 - idx;
+        choices.push(ridx)
+        seen[ridx] = true
+      }
     }
   }
-  let gkey = key;
-  while (!exetLexicon.index[gkey]) {
-    let ngkey = this.generalizeKey(gkey)
-    if (ngkey == gkey) return choices
-    gkey = ngkey;
-  }
-  let indices = exetLexicon.index[gkey];
-  for (let idx of indices) {
-    if (idx >= this.indexMinPop) break
-    if (dontReuse[idx]) continue
-    if (this.unpreflex[idx]) continue
-    let phrase = exetLexicon.lexicon[idx]
-    if (this.noProperNouns && this.isProperNoun(phrase)) {
-      continue
+  const loops = tryRev ? 2 : 1;
+  for (let i = 0; (i < loops) && (limit <= 0 || choices.length < limit); i++) {
+    const loopKey = (i == 0) ? key : rkey;
+    let gkey = loopKey;
+    while (!exetLexicon.index[gkey]) {
+      const ngkey = this.generalizeKey(gkey)
+      if (ngkey == gkey) return choices
+      gkey = ngkey;
     }
-    if (this.keyMatchesPhrase(key, phrase) && !seen[idx]) {
-      choices.push(idx)
-      if (limit > 0 && choices.length >= limit) break
+    let indices = exetLexicon.index[gkey];
+    for (let idx of indices) {
+      if (idx >= this.indexMinPop) break
+      if (dontReuse[idx]) continue
+      if (this.unpreflex[idx]) continue
+      let phrase = exetLexicon.lexicon[idx]
+      if (this.noProperNouns && this.isProperNoun(phrase)) {
+        continue
+      }
+      const loopIdx = (i == 0) ? idx : 0 - idx;
+      if (this.keyMatchesPhrase(loopKey, phrase) && !seen[loopIdx]) {
+        choices.push(loopIdx)
+        if (limit > 0 && choices.length >= limit) break
+      }
     }
   }
   return choices;
@@ -7732,7 +7816,8 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
         changes++;
         continue
       }
-      let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+      let key = this.makeLexKey(this.getLex(lchoice))
+      if (lchoice < 0) key = this.reverse(key);
       let viable = true
       for (let i = 0; i < key.length; i++) {
         let cell = cells[i]
@@ -7863,19 +7948,6 @@ Exet.prototype.acceptAll = function() {
     return;
   }
   let changed = false;
-  // First do it by clue, to get hyphens/word-breaks.
-  for (let ci in this.fillState.clues) {
-    let theClue = this.fillState.clues[ci]
-    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
-      continue
-    }
-    let choices = theClue.lChoices
-    if (choices.length != 1) {
-      continue
-    }
-    this.fillLight(choices[0], ci, exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE)
-    changed = true
-  }
   for (let i = 0; i < this.fillState.gridHeight; i++) {
     for (let j = 0; j < this.fillState.gridWidth; j++) {
       let gridCell = this.fillState.grid[i][j]
@@ -7888,6 +7960,29 @@ Exet.prototype.acceptAll = function() {
         changed = true
       }
     }
+  }
+  // Now do it by clue, to get hyphens/word-breaks/reversals.
+  const toFill = [];
+  for (let ci in this.fillState.clues) {
+    let theClue = this.fillState.clues[ci]
+    console.assert(theClue, ci, this.fillState);
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      continue
+    }
+    if (theClue.parentClueIndex) {
+      continue;
+    }
+    let choices = theClue.lChoices
+    if (choices.length != 1) {
+      continue
+    }
+    toFill.push([theClue, choices[0]]);
+    changed = true
+  }
+  for (let fill of toFill) {
+    const clue = fill[0];
+    const choice = fill[1];
+    this.fillLight(choice, clue, exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE);
   }
   if (changed) {
     this.handleGridInput(exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE)
@@ -8205,7 +8300,7 @@ Exet.prototype.resetViability = function() {
     if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue
     }
-    theClue.lChoices = this.getLexChoices(key, 0, dontReuse);
+    theClue.lChoices = this.getLexChoices(key, 0, dontReuse, this.tryReversals);
     theClue.lRejects = [];
   }
   this.updateFillChoices()
@@ -8213,16 +8308,79 @@ Exet.prototype.resetViability = function() {
   this.startDeadendSweep()
 }
 
+Exet.prototype.getLex = function(idx) {
+  return exetLexicon.lexicon[Math.abs(idx)];
+}
+
+Exet.prototype.reverse = function(s) {
+  return s.split("").reverse().join("");
+}
+
+// Helper for fillLight when it needs to do a reversal of a linked
+// group. This *only* reverses the order of the lights, not the
+// lights themselves.
+Exet.prototype.reverseLinkedOrder = function(theClue) {
+  const clueAndChildren = [theClue];
+  if (!theClue.childrenClueIndices || !theClue.childrenClueIndices.length) {
+    return clueAndChildren;
+  }
+  let newParent = null;
+  for (let cci of theClue.childrenClueIndices) {
+    newParent = this.puz.clues[cci];
+    clueAndChildren.push(newParent);
+  }
+  console.assert(newParent, theClue);
+
+  newParent.clue = theClue.clue;
+  newParent.anno = theClue.anno;
+  newParent.parentClueIndex = null;
+  const newCh = theClue.childrenClueIndices;
+  newCh.pop();
+  newCh.reverse();
+  newCh.push(theClue.index);
+  newParent.childrenClueIndices = newCh;
+  newParent.enumLen = theClue.enumLen;
+  newParent.fullDisplayLabel = this.puz.clueLabelDisp(newParent);
+  newParent.displayLabel = !newParent.reversed ? newParent.label :
+                           newParent.fullDisplayLabel;
+  for (let i = clueAndChildren.length - 2; i >= 0; i--) {
+    const child = clueAndChildren[i];
+    child.enumLen = 0;
+    child.childrenClueIndices = [];
+    child.parentClueIndex = newParent.index;
+    child.clue = this.draftClue(child.index);
+    child.fullDisplayLabel = this.puz.clueLabelDisp(child);
+    child.displayLabel = !child.reversed ? child.label :
+                         child.fullDisplayLabel;
+    newParent.displayLabel = newParent.displayLabel + ', ' +
+        ((child.dir == newParent.dir) && !child.reversed ?
+         child.label : child.fullDisplayLabel);
+    newParent.fullDisplayLabel = newParent.fullDisplayLabel + ', ' +
+                                 child.fullDisplayLabel;
+  }
+  return clueAndChildren;
+}
+
+// ci is normally a light index or empty, but can also be a clue object
+// (for the case when clue number may have changed).
 Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   let updateIfChanged = false
   if (!ci && this.puz) {
     ci = this.currClueIndex()
     updateIfChanged = true
   }
+  if (ci instanceof Object) {
+    const dir = ci.dir;
+    const cells = ci.cells;
+    if (!dir || !cells || cells.length < 2) {
+      return;
+    }
+    ci = dir + this.puz.grid[cells[0][0]][cells[0][1]].startsClueLabel;
+  }
   if (!ci) {
     return
   }
-  let solution = exetLexicon.lexicon[idx]
+  let solution = this.getLex(idx);
   let theClue = this.puz.clues[ci]
   let cells = this.puz.getAllCells(ci);
   if (!theClue || !solution ||
@@ -8230,8 +8388,21 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
       this.makeLexKey(solution).length != cells.length) {
     return
   }
-  solution = solution.toUpperCase()
+  // All checks passed!
   let changed = false;
+  if (idx < 0) {
+    // Need to reverse
+    changed = true;
+    const clueAndChildren = this.reverseLinkedOrder(theClue);
+    for (let c of clueAndChildren) {
+      ci = this.reverseLightInner(c);
+    }
+    // ci is the last one, the new parent.
+    theClue = this.puz.clues[ci];
+    console.assert(theClue, ci);
+    cells = this.puz.getAllCells(ci);
+  }
+  solution = solution.toUpperCase()
   if (theClue.solution != solution) {
     theClue.solution = solution
     changed = true
@@ -8418,8 +8589,8 @@ Exet.prototype.numEnumPunctMatches = function(p, e) {
 }
 
 Exet.prototype.enumMatchSorter = function(p, k1, k2) {
-  const entry1 = exetLexicon.lexicon[k1];
-  const entry2 = exetLexicon.lexicon[k2];
+  const entry1 = this.getLex(k1);
+  const entry2 = this.getLex(k2);
   return this.numEnumPunctMatches(p, entry2) -
          this.numEnumPunctMatches(p, entry1);
 }
@@ -8455,8 +8626,7 @@ Exet.prototype.updateFillChoices = function() {
   let numShown = 0
   for (let choice of lChoices) {
     html = html + `
-      <tr><td>${exetLexicon.lexicon[choice]}</td></tr>
-    `
+      <tr><td>${choice < 0 ? '&lArr; ' : ''}${this.getLex(choice)}</td></tr>`;
     numShown++
     if (numShown >= this.shownLightChoices) break;
   }
@@ -8465,9 +8635,7 @@ Exet.prototype.updateFillChoices = function() {
   let numRejects = 0
   for (let choice of lRejects) {
     htmlRej = htmlRej + `
-      <tr>
-        <td>${exetLexicon.lexicon[choice]}</td>
-      </tr>`;
+      <tr><td>${choice < 0 ? '&lArr; ' : ''}${this.getLex(choice)}</td></tr>`;
     numRejects++
     if (numRejects >= this.shownLightChoices) break;
   }
@@ -8553,6 +8721,7 @@ function exetFromHistory(exetRev) {
   exet.unpreflex = exetRev.unpreflex || {}
   exet.setMinPop(exetRev.minpop || 0)
   exet.noProperNouns = exetRev.noProperNouns || false
+  exet.tryReversals = exetRev.tryReversals || false
   exet.makeExolve(exetRev.exolve);
   if (exetRev.navState) {
     exet.startNav(exetRev.navState[0],
@@ -8653,6 +8822,7 @@ function exetBlank(w=15, h=15, layers3d=1, id='', automagic=false,
   exet.unpreflex = {}
   exet.setMinPop(exet.DEFAULT_MINPOP)
   exet.noProperNouns = false
+  exet.tryReversals = layers3d > 1 ? true : false
   exet.makeExolve(specs)
   exet.startNav()
   if (!exet.puz || !exet.puz.id) {
@@ -8695,6 +8865,7 @@ function exetLoadFile() {
     exet.unpreflex = {}
     exet.setMinPop(exet.DEFAULT_MINPOP)
     exet.noProperNouns = false
+    exet.tryReversals = false
     exet.makeExolve(specs)
     exet.startNav()
     if (exet.puz && exet.puz.id) {
@@ -8712,6 +8883,11 @@ function exetLoadFile() {
           }
           exet.setMinPop(lastRev.minpop || 0)
           exet.noProperNouns = lastRev.noProperNouns || false
+          exet.tryReversals = lastRev.tryReversals || false
+        }
+      } else {
+        if (exet.puz.layers3d > 1) {
+          exet.tryReversals = true;
         }
       }
       exetRevManager.throttledSaveRev(
