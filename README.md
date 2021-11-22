@@ -159,7 +159,7 @@ two formats is the state of the grid at that time. "Add automagic blocks"
 can be used repeatedly. More details on what "Add automagic blocks" does
 are [provided in the appendix](#automagic-blocks).
 
-You can also open any existing HTML file that contains an puzzle in the Exolve
+You can also open any existing HTML file that contains a puzzle in the Exolve
 format (when you save such a crossword after editing it, the saved Exolve file
 will replicate whatever is there before and after the Exolve part in the
 original HTML file that you opened).
