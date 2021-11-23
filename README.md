@@ -33,13 +33,13 @@ phones, though. I would recommend using Chrome or Firefox on a desktop or laptop
 computer, with Page zoom set to fill up your screen (125% for my setup).
 
 Exet saves all revisions of all crosswords that you work on, in the browser's
-local storage (you can back up the entire local storage into a file). Exet never
-sends your crosswords to wherever it is getting served from.
+local storage (you can back up all of Exet's local storage into a file). Exet
+never sends your crosswords to wherever it might be getting served from.
 
 You can download the crosswords that you create with Exet in the
-[Exolve](https://github.com/viresh-ratnakar/exolve) format or in the .puz
-format. You can also grab embeddable HTML code for adding your crossword to any
-web site or blog, using Exolve (but see the
+[Exolve](https://github.com/viresh-ratnakar/exolve) format, in the .puz
+format, and as PDFs. You can also grab embeddable HTML code for adding your
+crossword to any web site or blog, using Exolve (but see the
 [known caveats in the Exolve
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-widget)).
 
@@ -49,6 +49,9 @@ languages eventually).
 I welcome [bug reports and feature
 requests](https://github.com/viresh-ratnakar/exet/issues/new).
 You may contact me via email too, at viresh at gmail dot com.
+
+If you use Exet and like it, please consider posting links to it and/or writing
+reviews, to help spread the word.
 
 ## Lexicon
 
