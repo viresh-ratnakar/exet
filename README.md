@@ -723,7 +723,7 @@ annotations. Here is an illustrative example of the kinds of analyses shown:
 - All histograms are shown with adjoining bar graphs.
 - You can hover the mouse over the bars to see details (lists of relevant
   clues/lights).
-- The analysis of annotations is a somwehat experimental feature that
+- The analysis of annotations is a somewhat experimental feature that
   tries to provide a breakdown of clue types by assuming a specific
   annotation style in which clue type names and cryptic wordplay operations
   are interspersed with indicators, fodders shown within parantheses or curly
