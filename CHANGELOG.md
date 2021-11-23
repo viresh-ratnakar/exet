@@ -1,5 +1,17 @@
 # Changelog
 
+### Version: Exet v0.64 November 22 2021
+
+- Add support for trying to get constrained pangrams (pangrams over
+  a subset of cells).
+- Tweak Autofill/Pangram algorithm/scoring.
+- Add option to "Loop till pangram"
+- Bug-fix: saving as Exolve without solutions was not clearing out
+  definition markers.
+- Tweak "proper-noun" hack to exclude words like X-ray that begin with
+  a capital letter but have a hyphen right after it.
+- Do not carry over autofill-pangram settings across puzzles.
+
 ### Version: Exet v0.63 November 9 2021
 
 - Add an option to "try reversals" for grid-fills and autofill.

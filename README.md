@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.63 November 9 2021
+#### Version: Exet v0.64 November 22 2021
 
 #### Author: Viresh Ratnakar
 
@@ -291,24 +291,14 @@ click on "Pause"  to pause the Autofill (clicking on "Start" will resume it).
 You can accept or clear the Autofill suggestions by clicking on the "Accept"
 / "Clear" buttons, respectively, when Autofill is paused or has finished.
 
-When Autofill is running, it won't stop if you move away from its control panel
-(by moving the mouse out): you can return to monitor its status again by
-clicking again on "Autofill" in the "Edit" menu.
+When Autofill is running, it won't stop just because of you moving away from
+its control panel and hiding it (by moving the mouse out): you can return to
+monitoring its status again by clicking again on "Autofill" in the "Edit" menu.
 
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
 Autofill also respects the "fill exclusions" settings (min-popularity,
 exclusion of proper nouns, as well as any entries in the explicitly forbidden
-list).
-
-Autofill randomizes its choices to an extent. You can run it repeatedly
-to get slightly different results every time, until you are satisfied with
-the fills.
-
-A good way to make use of Autofill is stop it as soon as it picks a
-word that you do not like. You can then accept the suggestions and clear
-the word(s) that you do not like (you may also consider adding them to the
-"Set fill exclusions" list). Then, you can resume Autofill and repeat the
-process.
+list) and the setting for allowing reversals.
 
 If Autofill fails, you can try to rerun it a few times. It may succeed
 on a subsequent run, because of the slight randomness in the choices that it
@@ -325,10 +315,51 @@ or more of:
 
 You can ask Autofill to "Try to get a pangram" via an option on the Autofill
 panel. This will try to fill the grid in a way such that every letter is
-used at least once. The algorithm usually succeeds in doing this (but may take
-slightly longer to finish), but if it fails then you can retry, and if that
-too fails to find a pangram repeatedly, then you can try to reduce constraints
-as listed above.
+used at least once. The algorithm usually succeeds in doing this, especially
+for British-style grids that have unchecked cells (but may take longer to
+finish). If it fails then you can retry, and if that too fails to find a pangram
+repeatedly, then you can try to reduce constraints as listed above. When
+Autofill succeeds in finding a pangram, the Autofill panel displays "Pangram!"
+near its bottom.
+
+You can also try to restrict the pangram to a subset of cells by opening the
+panel that says "Try to constrain the pangram to these cells:" and then
+choosing some of these options:
+
+- Checked
+- Unchecked
+- Circled
+- Starts
+- Ends
+
+Do note that the more cells you allow as pangram cells, the more likely
+you are to succeed in creating a pangram. When Autofill succeeds in
+finding a pangram within any specified cell constraints, the Autofill
+panel displays this at the bottom: "Pangram *with* constraints!".
+
+Normally, if you've asked to try to get a pangram, and Autofill is able to
+fill the grid completely but without getting a pangram, it will just stop. But
+there's an option to "Loop until pangram", which will make Autofill keep trying
+to get a pangram (with any cell constraints that you specified) until it
+finds one, or until there is failure.
+
+#### Autofill and pangram tips
+
+- Autofill randomizes its choices to an extent. You can run it repeatedly
+  to get different results every time, until you are satisfied with the fills.
+- A good way to make use of Autofill is to stop it as soon as it picks a
+  word that you do not like. You can then accept the suggestions and clear
+  the word(s) that you do not like (you may also consider adding them to the
+  "Set fill exclusions" list). Then, you can resume Autofill and repeat the
+  process.
+- U.S.-style crosswords (with doubly-checked cells) are harder to fill and are
+  harder for the pangram algorithm. Working with fewer constraints for such
+  grids (smaller popularity threshold, etc. as listed in the previous
+  section) is better.
+- If you monitor Autofill's progress and you can see that it is repeatedly
+  cycling through some specific choices for some lights but failing, you may
+  want to pause, clear, and re-try (a smaller beam size would have made it
+  fail faster in situations like this).
 
 ### Providing the clues
 

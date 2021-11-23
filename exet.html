@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.63 November 9 2021
+Current version: v0.64 November 22 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1254,7 +1254,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.63 November 9 2021'
+  this.version = 'v0.64 November 22 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1332,7 +1332,7 @@ function Exet() {
     let x = 1.0 - ((this.letterFrequencies[c] - minFreq) /
                    (maxFreq - minFreq));
     if (x < 0.7) x = 0.7;
-    this.letterRarities[c] = 1.5 * (x - 0.7) / 0.3;
+    this.letterRarities[c] = 1.0 + (1.5 * (x - 0.7) / 0.3);
   }
   this.vowelPhonemes = {
     'AA': true, 'AE': true, 'AH': true, 'AO': true, 'AW': true, 'AY': true,
@@ -2030,11 +2030,77 @@ Exet.prototype.makeExetTab = function() {
                 </input>
               </div>
               <div style="padding:4px">
-                Try to get a pangram:
+                Try to find a pangram:
                 <input id="xet-autofill-boost-pangram"
                     name="xet-autofill-boost-pangram" value="pangram"
                     type="checkbox">
                 </input>
+                &nbsp;
+                <span title="Keep looping until the desired pangram is found (or until failure)">
+                  <span class="xet-small">Loop until pangram?</span>
+                  <input id="xet-autofill-pangram-loop"
+                      name="xet-autofill-pangram-loop" value="pangram-loop"
+                      type="checkbox">
+                  </input>
+                </span>
+              </div>
+              <div style="padding:4px">
+                <details id="xet-autofill-pangram-details">
+                  <summary>Try to constrain the pangram to these cells:</summary>
+                  <table>
+                    <tr>
+                      <td>
+                        <input id="xet-autofill-pangram-all"
+                            name="xet-autofill-pangram-all"
+                            value="pangram-all" type="checkbox">
+                        </input>
+                        All
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-circled"
+                            name="xet-autofill-pangram-circled"
+                            value="pangram-circled" type="checkbox">
+                        </input>
+                        Circled
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <input id="xet-autofill-pangram-checked"
+                            name="xet-autofill-pangram-checked"
+                            value="pangram-checked" type="checkbox">
+                        </input>
+                        Checked
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-unchecked"
+                            name="xet-autofill-pangram-unchecked"
+                            value="pangram-unchecked" type="checkbox">
+                        </input>
+                        Unchecked
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <input id="xet-autofill-pangram-firsts"
+                            name="xet-autofill-pangram-firsts"
+                            value="pangram-firsts" type="checkbox">
+                        </input>
+                        Starts
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-lasts"
+                            name="xet-autofill-pangram-lasts"
+                            value="pangram-lasts" type="checkbox">
+                        </input>
+                        Ends
+                      </td>
+                    </tr>
+                  </table>
+                </details>
               </div>
               <hr>
               <div style="padding:4px" title="You can edit the list of ` +
@@ -2075,10 +2141,9 @@ Exet.prototype.makeExetTab = function() {
                 </div>
               </div>
               <div style="padding:4px">
-                Letters used: <span id="xet-autofill-pangram">0</span> of
-                ${exetLexicon.letters.length}
-                <span class="xet-blue" id="xet-is-pangram"
-                                 style="display:none">Pangram!</span>
+                Letters used: <span id="xet-autofill-letters">0</span>
+                <span id="xet-autofill-pangram-cletters">(0 in pangram cells)</span>
+                of ${exetLexicon.letters.length}
               </div>
               <hr>
               <div style="padding:4px">
@@ -2099,6 +2164,11 @@ Exet.prototype.makeExetTab = function() {
               </div>
               <div style="padding:4px">
                 Last status: <span id="xet-autofill-status"></span>
+              </div>
+              <hr>
+              <div style="padding:4px" class="xet-blue" id="xet-is-pangram"
+                  style="display:none">
+                Pangram!
               </div>
             </div>
           </div>
@@ -4262,7 +4332,7 @@ Exet.prototype.getDotPuz = function() {
       clueOffsets.push(startOffset);
       let puzClue = this.showClue(
           theClue.clueSpan.innerText.replace(/\s+/g,' '),
-          false, exetState.showEnums);
+          false, exetState.showEnums, false);
       if (theClue.children.length > 0) {
         let chI = theClue.displayLabel.indexOf(',');
         if (chI >= 0) {
@@ -4806,6 +4876,19 @@ Exet.prototype.isInTag = function(prefix, suffix, open, close) {
   return [px, sx]
 }
 
+// Removes def markers ~{...}~ from s
+Exet.prototype.deDefMarkers = function(s) {
+  const reDef = new RegExp('(~\\{(.*)\\}~)')
+  while ((match = s.match(reDef)) && match.length > 2) {
+    const idx = s.indexOf(match[0])
+    console.assert(idx >= 0, s, match)
+    const cStart = idx + 2
+    const end = s.indexOf('}~', cStart)
+    s = s.substr(0, idx) + s.substring(cStart, end) + s.substr(end + 2);
+  }
+  return s
+}
+
 // Remove HTML tags (only that have matching closes) from s. Also
 // remove any matching ~{...}~ if inClue.
 Exet.prototype.deTag = function(s, inClue) {
@@ -4823,15 +4906,7 @@ Exet.prototype.deTag = function(s, inClue) {
   if (!inClue) {
     return s
   }
-  const reDef = new RegExp('(~\\{(.*)\\}~)')
-  while ((match = s.match(reDef)) && match.length > 2) {
-    const idx = s.indexOf(match[0])
-    console.assert(idx >= 0, s, match)
-    const cStart = idx + 2
-    const end = s.indexOf('}~', cStart)
-    s = s.substr(0, idx) + s.substring(cStart, end) + s.substr(end + 2);
-  }
-  return s
+  return this.deDefMarkers(s);
 }
 
 Exet.prototype.renderDefTags = function(s) {
@@ -5913,6 +5988,79 @@ ExetDher.prototype.peep = function(inMax, idx=0) {
   return elts[idx]
 }
 
+/**
+ * Is [r,c] a cell to be counted for a constrained pangram?
+ */
+Exet.prototype.pangramCell = function(r, c, fillState) {
+  const gridCell = exet.puz.grid[r][c];
+  if (!gridCell.isLight) {
+    return false;
+  }
+
+  if (this.autofill.pangramAll) {
+    return true;
+  }
+  if (this.autofill.pangramCircled && gridCell.hasCircle) {
+    return true;
+  }
+  let numLights = 0;
+  if (gridCell.acrossClueLabel) numLights++;
+  if (gridCell.downClueLabel) numLights++;
+  if (gridCell.z3dClueLabel) numLights++;
+  if (this.autofill.pangramChecked && numLights > 1) {
+    return true;
+  }
+  if (this.autofill.pangramUnchecked && numLights == 1) {
+    return true;
+  }
+  if (!this.autofill.pangramFirsts && !this.autofill.pangramLasts) {
+    return false;
+  }
+
+  let firsts = [];
+  if (gridCell.startsAcrossClue) firsts.push('A' + gridCell.startsClueLabel);
+  if (gridCell.startsDownClue) firsts.push('D' + gridCell.startsClueLabel);
+  if (gridCell.startsZ3dClue) firsts.push('Z' + gridCell.startsClueLabel);
+  let lasts = [];
+  if (this.autofill.pangramLasts || this.tryReversals) {
+    if (gridCell.endsAcrossClue) lasts.push('A' + gridCell.endsAcrossClue);
+    if (gridCell.endsDownClue) lasts.push('D' + gridCell.endsDownClue);
+    if (gridCell.endsZ3dClue) lasts.push('Z' + gridCell.endsZ3dClue);
+  }
+  if (this.tryReversals &&
+      (!this.autofill.pangramFirsts || !this.autofill.pangramLasts)) {
+    const realFirsts = [];
+    const revFirsts = [];
+    for (let ci of firsts) {
+      const clue = fillState.clues[ci];
+      if (clue && clue.lChoices.length == 1 && clue.lChoices[0] < 0) {
+        revFirsts.push(ci);
+      } else {
+        realFirsts.push(ci);
+      }
+    }
+    const realLasts = [];
+    const revLasts = [];
+    for (let ci of lasts) {
+      const clue = fillState.clues[ci];
+      if (clue && clue.lChoices.length == 1 && clue.lChoices[0] < 0) {
+        revLasts.push(ci);
+      } else {
+        realLasts.push(ci);
+      }
+    }
+    firsts = realFirsts.concat(revLasts);
+    lasts = realLasts.concat(revFirsts);
+  }
+  if (this.autofill.pangramFirsts && firsts.length > 0) {
+    return true;
+  }
+  if (this.autofill.pangramLasts && lasts.length > 0) {
+    return true;
+  }
+  return false;
+}
+
 Exet.prototype.setScore = function(fillState) {
   fillState.scoreF = 0
   fillState.scoreV = 0
@@ -5920,6 +6068,7 @@ Exet.prototype.setScore = function(fillState) {
 
   fillState.unfilled = []
   fillState.lettersUsed = {}
+  fillState.constrLetters = {}
   fillState.reversals = 0
   for (let ci in fillState.clues) {
     let theClue = fillState.clues[ci]
@@ -5940,6 +6089,9 @@ Exet.prototype.setScore = function(fillState) {
         if (c == '?') c = fillCell.currLetter
         console.assert(c, i, j, fillCell)
         fillState.lettersUsed[c] = true
+        if (this.pangramCell(i, j, fillState)) {
+          fillState.constrLetters[c] = true;
+        }
         continue
       }
       if (fillCell.viability <= 0) {
@@ -5953,33 +6105,42 @@ Exet.prototype.setScore = function(fillState) {
       fillState.unfilled.push([i, j, fillCell.viability]);
     }
   }
-  const used = Object.keys(fillState.lettersUsed);
-  fillState.numLettersUsed = used.length;
+  fillState.numLettersUsed = Object.keys(fillState.lettersUsed).length;
+  const constrUsed = Object.keys(fillState.constrLetters);
+  fillState.numConstrLetters = constrUsed.length;
   if (numLightCells == 0) {
     return
   }
   let boost = 0
   if (this.autofill.boostPangram) {
-    for (let c of used) {
+    for (let c of constrUsed) {
       boost += this.letterRarity(c);
     }
   }
-  if (this.autofill.boostPangram) {
+  // For doubly-checked grids, progress is hard if we prioritize the pangram,
+  // So, do that only on every tenth step.
+  if (this.autofill.boostPangram &&
+      constrUsed.length < exetLexicon.letters.length &&
+      (!this.autofill.doublyChecked || this.autofill.step % 10 == 1)) {
     // Sort fillState.unfilled by ascending frequency of unused letter choices,
-    // then by ascending viability.
+    // then by ascending viability. But add a little random salt to the rarity,
+    // to avoid favouring low-numbered cells.
     for (let x of fillState.unfilled) {
+      if (!this.pangramCell(x[0], x[1], fillState)){
+        x.push(0);
+        continue;
+      }
       let cell = fillState.grid[x[0]][x[1]]
       let choices = Object.keys(cell.cChoices)
       let maxRarity = 0
       for (let c of choices) {
-        if (fillState.lettersUsed[c]) {
-          rarity = 0
-        } else {
-          rarity = this.letterRarity(c)
-          if (rarity > maxRarity) maxRarity = rarity
+        if (fillState.constrLetters[c]) {
+          continue;
         }
+        const rarity = this.letterRarity(c)
+        if (rarity > maxRarity) maxRarity = rarity
       }
-      x.push(rarity)
+      x.push(maxRarity > 0 ? (maxRarity + 0.1 * Math.random()) : 0);
     }
     fillState.unfilled.sort((a, b) => a[3] == b[3] ? a[2] - b[2] : b[3] - a[3]);
   } else {
@@ -5989,7 +6150,8 @@ Exet.prototype.setScore = function(fillState) {
   fillState.score += fillState.scoreV
 
   const f = numLightCells - fillState.unfilled.length;
-  fillState.scoreF = 30 * (f + boost) / 100
+  const progressWeight = this.autofill.doublyChecked ? 5 : 30;
+  fillState.scoreF = progressWeight * (f + boost) / 100;
   fillState.score += fillState.scoreF
 }
 
@@ -6026,22 +6188,24 @@ Exet.prototype.beamSearchStep = function() {
   this.autofill.speedSpan.innerText = (this.autofill.msUsed /
       this.autofill.step).toFixed(0)
 
-  if (this.autofill.beam.size() > 0) {
-    let best = this.autofill.beam.peep(true)
-    this.autofill.preflexUsedSpan.innerText = best.numPreflexUsed
-    this.autofill.pangramSpan.innerText = best.numLettersUsed
-    this.autofill.isPangram.style.display = (best.numLettersUsed ==
-        exetLexicon.letters.length) ? '' : 'none';
-    this.autofill.scoreSpan.innerText = best.score.toFixed(2)
-    this.autofill.scoreVSpan.innerText = best.scoreV.toFixed(2)
-    this.autofill.scoreFSpan.innerText = best.scoreF.toFixed(2)
-    this.autofill.reversalsSpan.innerText = best.reversals
+  const best = this.refreshAutofill();
+  if (best) {
     this.updateAutofill(best)
 
     if (this.isFull(best)) {
-      this.autofill.accept.disabled = false
-      this.autofill.clear.disabled = false
-      this.resetAutofill('Succeeded!')
+      if (this.autofill.boostPangram &&
+          best.numConstrLetters != exetLexicon.letters.length &&
+          this.autofill.loopForPangram) {
+        this.autofill.accept.disabled = true
+        this.autofill.clear.disabled = true
+        this.resetAutofill('Looping for pangram')
+        this.resetViability()
+        this.startstopAutofill();
+      } else {
+        this.autofill.accept.disabled = false
+        this.autofill.clear.disabled = false
+        this.resetAutofill('Succeeded!')
+      }
     } else {
       this.autofill.throttledTimer = setTimeout(() => {
         exet.beamSearchStep();
@@ -6051,8 +6215,9 @@ Exet.prototype.beamSearchStep = function() {
     this.autofill.accept.disabled = false
     this.autofill.clear.disabled = false
     this.resetAutofill('<span class="xet-red">Failed.</span> ' +
-                       '<span class="xet-small-action">Try lowering ' +
-                       'min popularity score or increasing beam width</span>')
+                       '<span class="xet-small-action">Do try again; if failure ' +
+                       'persists, try lowering min popularity score or ' +
+                       'increasing beam width</span>')
   }
 }
 
@@ -6133,9 +6298,15 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     return
   }
 
-  // Pick a random offset from 0,1,2
+  // Pick a random offset from 0-5 unless looking to finish
+  // a pangram and near the end.
   let cellIndex = Math.floor(Math.random() *
-                             Math.min(candidate.unfilled.length, 3))
+                             Math.min(candidate.unfilled.length, 6))
+  if (this.autofill.boostPangram &&
+      candidate.numConstrLetters < exetLexicon.letters.length &&
+      candidate.unfilled.length < (this.puz.numCellsToFill / 2)) {
+    cellIndex = 0;
+  }
   let row = candidate.unfilled[cellIndex][0]
   let col = candidate.unfilled[cellIndex][1]
   let cell = candidate.grid[row][col]
@@ -6190,15 +6361,44 @@ Exet.prototype.updateAutofillPreflex = function() {
       "allowed" : "disallowed"
 }
 
+Exet.prototype.markClueEnds = function() {
+  for (let r = 0; r < this.puz.gridHeight; r++) {
+    for (let c = 0; c < this.puz.gridWidth; c++) {
+      const gridCell = this.puz.grid[r][c];
+      if (!gridCell.isLight) {
+        continue;
+      }
+      if (gridCell.startsAcrossClue) {
+        const last =
+            gridCell.startsAcrossClue[gridCell.startsAcrossClue.length - 1];
+        const lastCell = this.puz.grid[last[0]][last[1]];
+        lastCell.endsAcrossClue = gridCell.startsClueLabel;
+      }
+      if (gridCell.startsDownClue) {
+        const last =
+            gridCell.startsDownClue[gridCell.startsDownClue.length - 1];
+        const lastCell = this.puz.grid[last[0]][last[1]];
+        lastCell.endsDownClue = gridCell.startsClueLabel;
+      }
+      if (gridCell.startsZ3dClue) {
+        const last =
+            gridCell.startsZ3dClue[gridCell.startsZ3dClue.length - 1];
+        const lastCell = this.puz.grid[last[0]][last[1]];
+        lastCell.endsZ3dClue = gridCell.startsClueLabel;
+      }
+    }
+  }
+}
+
 Exet.prototype.startstopAutofill = function() {
   if (!this.autofill.running) {
     if (this.puz.numCellsToFill == this.puz.numCellsFilled) {
       alert('The grid is already full')
       return
     }
-    let beamWidth = parseInt(this.autofill.beamWidthInput.value)
+    let beamWidth = parseInt(this.autofill.beamWidthInp.value)
     if (isNaN(beamWidth) || beamWidth <= 0) {
-      this.autofill.beamWidthInput.value = this.autofill.beamWidth
+      this.autofill.beamWidthInp.value = this.autofill.beamWidth
     } else {
       this.autofill.beamWidth = beamWidth
       this.autofill.beam.relimit(beamWidth)
@@ -6227,11 +6427,23 @@ Exet.prototype.startstopAutofill = function() {
     this.autofill.status = 'Running'
     this.autofill.accept.disabled = true
     this.autofill.clear.disabled = true
-    this.autofill.statusSpan.innerText = this.autofill.status
+    this.autofill.statusSpan.innerHTML = this.autofill.status
     this.sweepIndicator.className = 'xet-sweeping-animated'
     this.autofill.startstop.innerText = 'Pause'
     this.autofill.startstop.className = 'xlv-button xet-pink-button'
-    this.autofill.boostPangram = this.autofill.pangramInput.checked
+    this.autofill.boostPangram = this.autofill.pangramInp.checked
+    this.autofill.loopForPangram = this.autofill.pangramLoopInp.checked
+    this.autofill.pangramAll = this.autofill.pangramAllInp.checked
+    this.autofill.pangramCircled = this.autofill.pangramCircledInp.checked
+    this.autofill.pangramChecked = this.autofill.pangramCheckedInp.checked
+    this.autofill.pangramUnchecked = this.autofill.pangramUncheckedInp.checked
+    this.autofill.pangramFirsts = this.autofill.pangramFirstsInp.checked
+    this.autofill.pangramLasts = this.autofill.pangramLastsInp.checked
+
+    if ((this.autofill.pangramFirsts && this.tryReversals) ||
+        this.autofill.pangramLasts) {
+      this.markClueEnds();
+    }
     if (this.autofill.throttledTimer) {
       clearTimeout(this.autofill.throttledTimer)
     }
@@ -6246,7 +6458,7 @@ Exet.prototype.startstopAutofill = function() {
     this.autofill.status = 'Stopped'
     this.autofill.accept.disabled = false
     this.autofill.clear.disabled = false
-    this.autofill.statusSpan.innerText = this.autofill.status
+    this.autofill.statusSpan.innerHTML = this.autofill.status
     clearTimeout(this.autofill.throttledTimer)
     this.autofill.throttledTimer = null
   }
@@ -6303,8 +6515,9 @@ Exet.prototype.updateAutofill = function(candidate) {
 }
 
 Exet.prototype.initAutofill = function() {
-  if (!this.autofill) {
+  if (!this.autofill || this.autofill.id != this.puz.id) {
     this.autofill = {
+      id: this.puz.id,
       candidates: [],
       beamWidth: 64,
       beam: new ExetDher(64),
@@ -6314,8 +6527,17 @@ Exet.prototype.initAutofill = function() {
       lag: 200,
       status: 'None',
       boostPangram: false,
+      loopForPangram: false,
+      pangramAll: true,
+      pangramCircled: false,
+      pangramChecked: false,
+      pangramUnchecked: false,
+      pangramFirsts: false,
+      pangramLasts: false,
     }
   }
+  this.autofill.doublyChecked = this.gridUnchequeredOK(
+      this.puz.grid, this.puz.gridWidth, this.puz.gridHeight, false);
   this.autofill.clear = document.getElementById("xet-autofill-clear")
   this.autofill.clear.disabled = true
   this.autofill.clear.addEventListener('click', e => {
@@ -6339,19 +6561,78 @@ Exet.prototype.initAutofill = function() {
   this.autofill.startstop.addEventListener(
       'click', this.startstopAutofill.bind(this))
 
-  this.autofill.beamWidthInput = document.getElementById(
+  this.autofill.beamWidthInp = document.getElementById(
       'xet-autofill-max-beam')
-  this.autofill.beamWidthInput.value = this.autofill.beamWidth
+  this.autofill.beamWidthInp.value = this.autofill.beamWidth
 
-  this.autofill.pangramInput = document.getElementById(
+  this.autofill.pangramInp = document.getElementById(
       'xet-autofill-boost-pangram')
-  this.autofill.pangramInput.checked = this.autofill.boostPangram
+  this.autofill.pangramInp.checked = this.autofill.boostPangram
+  this.autofill.pangramLoopInp = document.getElementById(
+      'xet-autofill-pangram-loop')
+  this.autofill.pangramLoopInp.checked = this.autofill.loopForPangram
+
+  this.autofill.pangramDetails = document.getElementById(
+      'xet-autofill-pangram-details');
+  this.autofill.pangramAllInp = document.getElementById(
+      'xet-autofill-pangram-all');
+  this.autofill.pangramAllInp.checked = this.autofill.pangramAll;
+  this.autofill.pangramCircledInp = document.getElementById(
+      'xet-autofill-pangram-circled');
+  this.autofill.pangramCircledInp.checked = this.autofill.pangramCircled;
+  this.autofill.pangramCheckedInp = document.getElementById(
+      'xet-autofill-pangram-checked');
+  this.autofill.pangramCheckedInp.checked = this.autofill.pangramChecked;
+  this.autofill.pangramUncheckedInp = document.getElementById(
+      'xet-autofill-pangram-unchecked');
+  this.autofill.pangramUncheckedInp.checked = this.autofill.pangramUnchecked;
+  this.autofill.pangramFirstsInp = document.getElementById(
+      'xet-autofill-pangram-firsts');
+  this.autofill.pangramFirstsInp.checked = this.autofill.pangramFirsts;
+  this.autofill.pangramLastsInp = document.getElementById(
+      'xet-autofill-pangram-lasts');
+  this.autofill.pangramLastsInp.checked = this.autofill.pangramLasts;
+  const pangramOptionsSanitizer = (e) => {
+    this.autofill.pangramAllInp.checked = 
+        (!this.autofill.pangramCircledInp.checked &&
+         !this.autofill.pangramCheckedInp.checked &&
+         !this.autofill.pangramUncheckedInp.checked &&
+         !this.autofill.pangramFirstsInp.checked &&
+         !this.autofill.pangramLastsInp.checked) ||
+        (this.autofill.pangramCheckedInp.checked &&
+         this.autofill.pangramUncheckedInp.checked);
+  };
+  for (let elt of [this.autofill.pangramCircledInp,
+                   this.autofill.pangramCheckedInp,
+                   this.autofill.pangramUncheckedInp,
+                   this.autofill.pangramFirstsInp,
+                   this.autofill.pangramLastsInp]) {
+    elt.addEventListener('change', pangramOptionsSanitizer);
+  }
+  this.autofill.pangramAllInp.addEventListener('change', (e) => {
+    if (this.autofill.pangramAllInp.checked) {
+      this.autofill.pangramCircledInp.checked = false;
+      this.autofill.pangramCheckedInp.checked = false;
+      this.autofill.pangramUncheckedInp.checked = false;
+      this.autofill.pangramFirstsInp.checked = false;
+      this.autofill.pangramLastsInp.checked = false;
+    } else {
+      this.autofill.pangramAllInp.checked = 
+          (!this.autofill.pangramCircledInp.checked &&
+           !this.autofill.pangramCheckedInp.checked &&
+           !this.autofill.pangramUncheckedInp.checked &&
+           !this.autofill.pangramFirstsInp.checked &&
+           !this.autofill.pangramLastsInp.checked) ||
+          (this.autofill.pangramCheckedInp.checked &&
+           this.autofill.pangramUncheckedInp.checked);
+    }
+  });
 
   this.autofill.stepSpan = document.getElementById('xet-autofill-step')
   this.autofill.stepSpan.innerText = this.autofill.step
 
   this.autofill.statusSpan = document.getElementById('xet-autofill-status')
-  this.autofill.statusSpan.innerText = this.autofill.status
+  this.autofill.statusSpan.innerHTML = this.autofill.status
 
   this.autofill.timeSpan = document.getElementById('xet-autofill-time')
   this.autofill.speedSpan = document.getElementById('xet-autofill-speed')
@@ -6378,20 +6659,46 @@ Exet.prototype.initAutofill = function() {
       'xet-autofill-proper-nouns')
   this.autofill.tryReversalsSpan = document.getElementById(
       'xet-autofill-try-reversals')
-  this.autofill.pangramSpan = document.getElementById('xet-autofill-pangram')
+  this.autofill.pangramSpan = document.getElementById('xet-autofill-letters')
+  this.autofill.pangramConstrSpan = document.getElementById(
+      'xet-autofill-pangram-cletters')
+  this.autofill.pangramConstrSpan.style.display = 'none'
   this.autofill.isPangram = document.getElementById('xet-is-pangram')
-  this.autofill.isPangram.style.display = 'none'
-  if (this.autofill.beam.size() > 0) {
-    let candidate = this.autofill.beam.peep(true)
-    this.autofill.preflexUsedSpan.innerText = candidate.numPreflexUsed
-    this.autofill.pangramSpan.innerText = candidate.numLettersUsed
-    this.autofill.isPangram.style.display = (candidate.numLettersUsed ==
-        exetLexicon.letters.length) ? '' : 'none';
-    this.autofill.scoreSpan.innerText = candidate.score.toFixed(2)
-    this.autofill.scoreVSpan.innerText = candidate.scoreV.toFixed(2)
-    this.autofill.scoreFSpan.innerText = candidate.scoreF.toFixed(2)
-    this.autofill.reversalsSpan.innerText = candidate.reversals
+
+  this.refreshAutofill();
+}
+
+Exet.prototype.refreshAutofill = function() {
+  this.autofill.pangramConstrSpan.style.display =
+      this.autofill.pangramAll ? 'none' : '';
+  this.autofill.isPangram.style.display = 'none';
+
+  const candidate = this.autofill.beam.peep(true);
+  if (!candidate) {
+    return null;
   }
+
+  this.autofill.pangramDetails.open = this.autofill.boostPangram &&
+      !this.autofill.pangramAll;
+  this.autofill.preflexUsedSpan.innerText = candidate.numPreflexUsed
+  this.autofill.pangramSpan.innerText = candidate.numLettersUsed
+  this.autofill.pangramConstrSpan.innerText =
+      `(${candidate.numConstrLetters} in pangram cells)`
+  if (candidate.numLettersUsed == exetLexicon.letters.length) {
+    let isPangram = 'Pangram!'
+    if (!this.autofill.pangramAll &&
+        candidate.numConstrLetters == exetLexicon.letters.length) {
+      isPangram = 'Pangram <i>with</i> constraints!';
+    }
+    this.autofill.isPangram.innerHTML = isPangram;
+    this.autofill.isPangram.style.display = '';
+  }
+  this.autofill.scoreSpan.innerText = candidate.score.toFixed(2)
+  this.autofill.scoreVSpan.innerText = candidate.scoreV.toFixed(2)
+  this.autofill.scoreFSpan.innerText = candidate.scoreF.toFixed(2)
+  this.autofill.reversalsSpan.innerText = candidate.reversals
+
+  return candidate;
 }
 
 // ------- End of autofill-related code ---------------------------------------
@@ -7412,8 +7719,12 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid
 }
 
-Exet.prototype.showClue = function(clue, forExolve=true, showEnums=true) {
-  clue = clue.trim()
+Exet.prototype.showClue = function(clue, forExolve=true,
+                                   showEnums=true, solved=false) {
+  clue = clue.trim();
+  if (!solved) {
+    clue = this.deDefMarkers(clue);
+  }
   if (showEnums) {
     return clue;
   }
@@ -7438,7 +7749,7 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   cluePtrs.sort((c1, c2) => parseInt(c1.label) - parseInt(c2.label));
   let clues = ''
   for (let clue of cluePtrs) {
-    const thisClue = this.showClue(clue.clue, true, showEnums);
+    const thisClue = this.showClue(clue.clue, true, showEnums, solved);
     const label = clue.displayLabel || clue.label;
     clues = clues + '\n  ' + label + ' ' + thisClue;
     if (!solved || clue.parentClueIndex) {
@@ -7631,8 +7942,8 @@ Exet.prototype.keyMatchesPhrase = function(key, phrase) {
 }
 
 Exet.prototype.isProperNoun = function(s) {
-  let first = s.charAt(0)
-  return first.toUpperCase() == first
+  const first = s.charAt(0);
+  return first.toUpperCase() == first && s.charAt(1) != '-';
 }
 
 Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}, tryRev=false) {
