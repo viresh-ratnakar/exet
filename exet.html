@@ -7815,7 +7815,7 @@ Exet.prototype.getExolveQuestions = function(solved) {
     let tq = q;
     if (!solved) {
       let enumParse = this.puz.parseEnum(q)
-      tq = q.substr(0, enumParse.afterClue)
+      tq = q.substr(0, enumParse.afterEnum)
       if (q.substr(enumParse.afterClue).indexOf('[lowercase-ok]') >= 0) {
         tq = tq + ' [lowercase-ok]';
       }

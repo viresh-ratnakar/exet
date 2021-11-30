@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Unnumbered minor bug-fix November 30, 2021
+
+- Each exolve-question needs to include any specified enum (bug-fix).
+
 ### Version: Exet v0.64 November 22 2021
 
 - Add support for trying to get constrained pangrams (pangrams over
