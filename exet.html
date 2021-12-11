@@ -1299,6 +1299,7 @@ function Exet() {
   this.throttledCharadeTimer = null;
   this.viabilityUpdateTimer = null;
   this.inputLagMS = 400
+  this.longInputLagMS = 2000
   this.sweepMS = 500
 
   // Params for light choices shown.
@@ -5329,7 +5330,7 @@ Exet.prototype.throttledClueChange = function() {
   this.throttledClueTimer = setTimeout(() => {
     this.handleClueChange()
     this.throttledClueTimer = null;
-  }, this.inputLagMS);
+  }, this.longInputLagMS);
 }
 
 Exet.prototype.handleClueChange = function() {
@@ -8796,7 +8797,7 @@ Exet.prototype.throttledUpdatePreflex = function() {
   this.throttledPreflexTimer = setTimeout(() => {
     this.updatePreflex()
     this.throttledPreflexTimer = null;
-  }, this.inputLagMS);
+  }, this.longInputLagMS);
 }
 
 Exet.prototype.updatePreflex = function() {
@@ -8839,7 +8840,7 @@ Exet.prototype.throttledUpdateUnpreflex = function() {
   this.throttledUnpreflexTimer = setTimeout(() => {
     this.updateUnpreflex()
     this.throttledUnpreflexTimer = null;
-  }, this.inputLagMS);
+  }, this.longInputLagMS);
 }
 
 Exet.prototype.renderUnpreflex = function() {

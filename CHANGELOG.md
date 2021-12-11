@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Unnumbered minor bug-fix December 10, 2021
+
+- Increase the lag tolerance for input when looking at clues. Especially
+  enum changes need more time than 400 ms!
+
 ### Version: Unnumbered minor bug-fix November 30, 2021
 
 - Each exolve-question needs to include any specified enum (bug-fix).
