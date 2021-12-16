@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.64 November 22 2021
+Current version: v0.65 December 15 2021
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -691,6 +691,7 @@ function ExetRevManager() {
   this.REV_CLUE_CHANGE = 50
   this.REV_METADATA_CHANGE = 60
   this.REV_PREFLEX_CHANGE = 70
+  this.REV_OPTIONS_CHANGE = 80
 
   this.revMsgs = {}
   this.revMsgs[this.REV_LOADED_FROM_FILE] = "Loaded from a file"
@@ -708,6 +709,7 @@ function ExetRevManager() {
   this.revMsgs[this.REV_METADATA_CHANGE] = "Metadata change"
   this.revMsgs[this.REV_PREFLEX_CHANGE] = "Change in the list of or options " +
       "for preferred words"
+  this.revMsgs[this.REV_OPTIONS_CHANGE] = "Crossword options change"
 
   // State for throttled revision-saving
   this.throttleRevTimer = null;
@@ -1069,7 +1071,8 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
         JSON.stringify(lastRev.unpreflex) == JSON.stringify(exet.unpreflex) &&
         lastRev.noProperNouns == exet.noProperNouns &&
         lastRev.tryReversals == exet.tryReversals &&
-        lastRev.minpop == exet.minpop) {
+        lastRev.minpop == exet.minpop &&
+        lastRev.asymOK == exet.asymOK) {
       return
     }
   }
@@ -1085,6 +1088,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.preflex = exet.preflex
   exetRev.unpreflex = exet.unpreflex
   exetRev.noProperNouns = exet.noProperNouns
+  exetRev.asymOK = exet.asymOK
   exetRev.tryReversals = exet.tryReversals
   exetRev.minpop = exet.minpop
   stored.revs.push(exetRev)
@@ -1254,7 +1258,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.64 November 22 2021'
+  this.version = 'v0.65 December 15 2021'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1262,6 +1266,7 @@ function Exet() {
   this.preflex = []
   this.unpreflex = {}
   this.noProperNouns = false
+  this.asymOK = false
   this.tryReversals = false
   this.DEFAULT_MINPOP = 80
   this.setMinPop(this.DEFAULT_MINPOP)
@@ -2188,7 +2193,7 @@ Exet.prototype.makeExetTab = function() {
                 <input id="xet-asymmetry-ok" name="xet-asymmetry-ok"
                   value="asymmetric" type="checkbox" style="margin:6px 0">
                 </input>
-                <i>Do not force symmetry on next "Toggle block/bar"</i>
+                <i>Do not force symmetry with "Toggle block/bar"</i>
               </div>
               <div class="xet-dropdown-subitem"
                   title="Toggle making this cell a block"
@@ -2520,7 +2525,7 @@ Exet.prototype.makeExetTab = function() {
   this.tryReversalsInput.addEventListener('change', e => {
     this.tryReversals = this.tryReversalsInput.checked
     this.resetViability()
-    exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE)
   })
 
   this.revChooser = document.getElementById("xet-rev-chooser")
@@ -2574,7 +2579,12 @@ Exet.prototype.makeExetTab = function() {
   });
 
   // Editing options
-  this.asymOK = document.getElementById("xet-asymmetry-ok")
+  const asymOKButton = document.getElementById("xet-asymmetry-ok")
+  asymOKButton.checked = this.asymOK;
+  asymOKButton.addEventListener('change', e => {
+    exet.asymOK = asymOKButton.checked ? true : false;
+    exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE)
+  });
 
   const preamble = document.getElementById("xet-preamble")
   const preambleText = document.getElementById("xet-preamble-text")
@@ -6737,7 +6747,7 @@ Exet.prototype.handleKeyDown = function(e) {
     gridCell.hasCircle = !gridCell.hasCircle
   } else if (key == '.') {
     gridCell.isLight = !gridCell.isLight
-    if (!this.asymOK.checked) {
+    if (!this.asymOK) {
       let symRow = this.puz.gridHeight - 1 - row
       let symCol = this.puz.gridWidth - 1 - col
       let symCell = this.puz.grid[symRow][symCol]
@@ -6749,7 +6759,7 @@ Exet.prototype.handleKeyDown = function(e) {
       return
     }
     gridCell.hasBarAfter = !gridCell.hasBarAfter
-    if (!this.asymOK.checked) {
+    if (!this.asymOK) {
       let symRow = this.puz.gridHeight - 1 - row
       let symCol = this.puz.gridWidth - 2 - col
       let symCell = this.puz.grid[symRow][symCol]
@@ -6761,7 +6771,7 @@ Exet.prototype.handleKeyDown = function(e) {
       return
     }
     gridCell.hasBarUnder = !gridCell.hasBarUnder
-    if (!this.asymOK.checked) {
+    if (!this.asymOK) {
       let symRow = this.puz.gridHeight - 2 - row
       let symCol = this.puz.gridWidth - 1 - col
       let symCell = this.puz.grid[symRow][symCol]
@@ -9033,6 +9043,7 @@ function exetFromHistory(exetRev) {
   exet.unpreflex = exetRev.unpreflex || {}
   exet.setMinPop(exetRev.minpop || 0)
   exet.noProperNouns = exetRev.noProperNouns || false
+  exet.asymOK = exetRev.asymOK || false
   exet.tryReversals = exetRev.tryReversals || false
   exet.makeExolve(exetRev.exolve);
   if (exetRev.navState) {
@@ -9134,6 +9145,7 @@ function exetBlank(w=15, h=15, layers3d=1, id='', automagic=false,
   exet.unpreflex = {}
   exet.setMinPop(exet.DEFAULT_MINPOP)
   exet.noProperNouns = false
+  exet.asymOK = false
   exet.tryReversals = layers3d > 1 ? true : false
   exet.makeExolve(specs)
   exet.startNav()
@@ -9177,6 +9189,7 @@ function exetLoadFile() {
     exet.unpreflex = {}
     exet.setMinPop(exet.DEFAULT_MINPOP)
     exet.noProperNouns = false
+    exet.asymOK = false
     exet.tryReversals = false
     exet.makeExolve(specs)
     exet.startNav()
@@ -9195,6 +9208,7 @@ function exetLoadFile() {
           }
           exet.setMinPop(lastRev.minpop || 0)
           exet.noProperNouns = lastRev.noProperNouns || false
+          exet.asymOK = lastRev.asymOK || false
           exet.tryReversals = lastRev.tryReversals || false
         }
       } else {

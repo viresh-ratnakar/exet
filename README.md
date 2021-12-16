@@ -151,9 +151,10 @@ active grid cell):
 
 For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
 changes are automatically applied to the other end of the grid. This can be
-turned off for an individual "Toggle bar/block" action by checking the
-"Do not force symmetry on the next 'Toggle block/bar'" checkbox in the
-"Edit &rarr; Edit grid cell:" submenu.
+turned off by checking the "Do not force symmetry with 'Toggle block/bar'"
+checkbox in the "Edit &rarr; Edit grid cell:" submenu. The chosen setting for
+this toggle will persist for that particular crossword (but will reset to
+the default of enforcing symmetry for a new crossword).
 
 "Add automagic blocks" essentially adds some blocks to the grid, while
 maintaining the British chequered format (that has no consecutive unchecked

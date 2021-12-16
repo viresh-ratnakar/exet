@@ -1,5 +1,15 @@
 # Changelog
 
+### Version: Exet v0.65 December 15, 2021
+
+- Make the "Do not force symmetry" option sticky. Previously, it applied
+  to just the next bar/block change. If someone's likely to break symmetry,
+  they are likely to do that across a puzzle rather than just at a few cells,
+  so for them the old way was painful. Make this option stick with the specific
+  crossword (so that for a new crossword we default to enforcing symmetry).
+- Use a new revision type (for the above option, for example) called
+  REV_OPTIONS_CHANGE.
+
 ### Version: Unnumbered minor bug-fix December 10, 2021
 
 - Increase the lag tolerance for input when looking at clues. Especially
