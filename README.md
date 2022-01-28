@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.64 November 22 2021
+#### Version: Exet v0.66 January 28 2022
 
 #### Author: Viresh Ratnakar
 
@@ -203,7 +203,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of November 2021) has 250,192 entries. Providing a popularity threshold
+  as of January 2022) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -526,12 +526,14 @@ top in each tab. These tabs are:
   substitution being the max of the plus and minus term lengths). Also shows
   homophones and Spoonerisms (derived using the Carnegie Mellon Pronouncing
   Dictionary—see their copyright notice at the end of this document).
-- **Anagrams**: Uses [nutrimatic.org](https://nutrimatic.org) to show
-  meaningful anagrams of the entry in the current light. The Nutrimatic anagrams
-  may cover more possibilities than the anagrams shown in the Charades tab, as
-  the anagrams shown in the Charades tab are restricted to words and phrases in
-  the lexicon. This tab also shows a panel with possibilities for composite
-  anagrams (which can also be used for creating anagrams with deletions).
+- **Anagrams**: Shows anagrams of the current entry ("fodder"). There is an
+  interactive slot for drafting an anagram too—you can use that to also craft
+  composite/extended anagrams, as it automatically updates anagrams of any
+  letters from the fodder that have not yet been used in the draft, as well
+  as anagrams of any extra letters in the draft that are not present in the
+  fodder. The suggested anagrams include multi-word anagrams. Additionally,
+  shows anagrams that are Wikipedia phrases, using
+  [nutrimatic.org](https://nutrimatic.org).
 - **Hidden**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay possibilities for the
   entry in the current light. Setters can tweak the wordplay as they choose.

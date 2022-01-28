@@ -1,5 +1,21 @@
 # Changelog
 
+### Version: Exet v0.66 January 28, 2022
+
+- Add support for multi-word anagrams. This required some fun algorithms as
+  the anagram index cannot be extended (within memory constraints) to include
+  multiple words. The details are described in a comment in exet.html (look
+  for "Multi-word anagrams". A limit on the #anagrams is used to limit
+  computation.
+- Now that our anagram implementation doesn't have the old "single-word-only"
+  limitation, make it the first column in the Anagrams tab, relegating
+  Nutrimatic (slower and requires Internet connectivity) to the second column.
+- In the Charades tab too, include multi-word anagrams. But use a small limit
+  for #anagrams, and disallow substrings (only enforced for 2-word anagrams)
+  as they are convered by other charade possibilities.
+- When reading an Exolve file, set minpop to 0 (as there may already be
+  entries below the default popularity threshold).
+
 ### Version: Exet v0.65 December 15, 2021
 
 - Make the "Do not force symmetry" option sticky. Previously, it applied

@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.65 December 15 2021
+Current version: v0.66 January 28 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -508,6 +508,7 @@ Current version: v0.65 December 15 2021
   width: 100%;
 }
 .xet-wordplay-choices td {
+  vertical-align: top;
   padding: 3px 0;
 }
 .xet-sweeping-box {
@@ -1258,7 +1259,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.65 December 15 2021'
+  this.version = 'v0.66 January 28 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1345,6 +1346,7 @@ function Exet() {
     'EH': true, 'ER': true, 'EY': true, 'IH': true, 'IY': true, 'OW': true,
     'OY': true, 'UH': true, 'UW': true,
   };
+  this.initAnagrammer();
 };
 
 Exet.prototype.setMinPop = function(m) {
@@ -1557,10 +1559,10 @@ Exet.prototype.setPuzzle = function(puz) {
       display: "Anagrams",
       hover: "Nutrimatic anagrams, composite anagrams",
       sections: [
-        {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam,
-         title: "Anagrams"},
         {id: "xet-companag", maker: this.makeCAParam,
-         title: "Composite and extended anagrams"},
+         title: "Anagrams and composite/extended anagrams"},
+        {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam,
+         title: "Anagrams including phrases, from Nutrimatic"},
       ],
     },
     "wordplay4": {
@@ -3581,7 +3583,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
       for (let part of split) {
         let possible = ''
         let score = 0
-        let choices = this.getAnagrams(part)
+        let choices = this.getAnagrams(part, 6, false)
         if (choices.length > 0) {
           score = part.length
           let rpart = ''
@@ -3624,7 +3626,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
             continue
           }
           let container = split[c1] + split[c2]
-          let choices = this.getAnagrams(container)
+          let choices = this.getAnagrams(container, 5, true)
           if (choices.length > 0) {
             let rcontainer = container.split('').reverse().join('')
             let possible = ''
@@ -3670,8 +3672,10 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   let html = '<table class="xet-wordplay-choices">'
   for (let candidate of candidates) {
     html = html + `
-      <tr><td><span style="color:gray">[${
-        candidate.score.toFixed(1)}]</span> ${candidate.charade}</td></tr>`
+      <tr>
+        <td><span style="color:gray">[${candidate.score.toFixed(1)}]</span></td>
+        <td>${candidate.charade}</td>
+      </tr>`
   }
   html = html + '</table>'
   this.charades.innerHTML = html;
@@ -3889,7 +3893,8 @@ Exet.prototype.updateCA = function() {
   extraS = extra.join('')
   this.caExtra.innerText = extraS
   let html = ''
-  let extraAnags = this.getAnagrams(extraS)
+  const NUM_ANAGRAMS = 500;
+  let extraAnags = this.getAnagrams(extraS, NUM_ANAGRAMS)
   for (let choice of extraAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`
@@ -3898,7 +3903,7 @@ Exet.prototype.updateCA = function() {
   unusedS = unused.join('')
   this.caUnused.innerText = unusedS
   html = ''
-  let unusedAnags = this.getAnagrams(unusedS)
+  let unusedAnags = this.getAnagrams(unusedS, NUM_ANAGRAMS)
   for (let choice of unusedAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`
@@ -3913,7 +3918,7 @@ Exet.prototype.populateCompanag = function() {
     <table class="xet-table-midline">
       <tr>
         <td class="xet-td">Fodder:</td>
-        <td class="xet-td">Anagram:</td>
+        <td class="xet-td">Draft anagram:</td>
       </tr>
       <tr>
         <td class="xet-td"><input type="text"
@@ -3924,8 +3929,8 @@ Exet.prototype.populateCompanag = function() {
           class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input></td>
       </tr>
       <tr>
-        <td class="xet-td">Extra in anagram:</td>
-        <td class="xet-td"><div>Unused from fodder:</td>
+        <td class="xet-td">Extra in draft:</td>
+        <td class="xet-td"><div>Unused in draft:</td>
       </tr>
       <tr>
         <td class="xet-td"><div class="xet-companag-text"
@@ -3935,12 +3940,14 @@ Exet.prototype.populateCompanag = function() {
       </tr>
       <tr>
         <td class="xet-td">
-          Extra* anagrams:
+          <i>Extra* anagrams:<i>
+          <br><hr>
           <table id="xet-ca-extra-anags">
           </table>
         </td>
         <td class="xet-td">
-          Unused* anagrams:
+          <i>Unused* anagrams:</i>
+          <br><hr>
           <table id="xet-ca-unused-anags">
           </table>
         </td>
@@ -8021,20 +8028,261 @@ Exet.prototype.javaHash = function(key) {
   return hash;
 }
 
-Exet.prototype.getAnagrams = function(phrase) {
+Exet.prototype.getAnagrams1 = function(phrase, limit=0, getIndices=false) {
   const key = this.makeAnagramKey(phrase);
   const NUM_SHARDS = exetLexicon.anagrams.length
   let shard = this.javaHash(key) % NUM_SHARDS
   if (shard < 0) shard += NUM_SHARDS
-  let anagrams = []
+  const anagrams = []
   for (let idx of exetLexicon.anagrams[shard]) {
     let candidate = exetLexicon.lexicon[idx]
     if (this.makeAnagramKey(candidate) == key) {
-      anagrams.push(candidate)
+      anagrams.push(getIndices ? idx : candidate);
+      if (limit > 0 && anagrams.length >= limit) {
+        break;
+      }
     }
   }
-  return anagrams
+  return anagrams;
 }
+
+/**
+ * limit: 0 if no limit.
+ * substrOK: if false, avoid substrings (only enforced for 2-word anagrams).
+ */
+Exet.prototype.getAnagrams = function(phrase, limit, substrOK=true) {
+  const anagrams1 = this.getAnagrams1(phrase, limit);
+  const phraseLen = phrase.length;
+  if (phraseLen < 4 || (limit > 0 && anagrams1.length >= limit)) {
+    return anagrams1;
+  }
+  const multiK = (phraseLen <= 7) ? 2 : ((phraseLen <= 10) ? 3 : 4);
+  if (limit > 0) {
+    limit -= anagrams1.length;
+  }
+  const anagramsK = this.getAnagramsK(phrase, limit, multiK, substrOK);
+  return anagrams1.concat(anagramsK);
+}
+
+/**
+ * Multi-word anagrams of phrases.
+ *
+ * Simply using the letter-histogram as the key doesn't work, as we cannot
+ * index all possible k-word phrases even for k=2. We can try looking at
+ * some subset of the letters first. But for the an n-letter phrase, the
+ * number of subsets to look at is 2^n (or something like that, depending
+ * on repetitions). So, we use "salient letter key"s (slKey). From letter
+ * frequencies in words, the most common 8 letters are [eisarnto]. We
+ * build a histogram key of the phrase using only these letters. This leads
+ * to an index where the key 'ae' has the biggest mass, at around 1000
+ * lexicon words. Next, we limit the subsets to examine as follows. For
+ * each salient letter in the phrase, limit its possible counts (in the
+ * subset to examine) so that the total number of possibilities is <= 1000.
+ * For each subset, we go through all possible candidate words that have
+ * that specific slKey (< 1000), and for each candidate, we check if its
+ * full letter histogram is subsumed by the full letter histogram of the phrase.
+ */
+
+Exet.prototype.letterHist = function(phrase) {
+  const hist = [
+    0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0];
+  for (let l of phrase) {
+    const lc = l.toLowerCase().charCodeAt() - 97;
+    if (lc < 0 || lc > 25) continue;
+    hist[lc]++;
+  }
+  return hist;
+}
+
+/**
+ * Returns null if h2 is not a strict subset of h1. Otherwise returns h1-h2.
+ */
+Exet.prototype.letterHistSub = function(h1, h2) {
+  const ret = h1.slice();
+  let allZeros = true;
+  for (let i = 0; i < 26; i++) {
+    ret[i] = ret[i] - h2[i];
+    if (ret[i] < 0) return null;
+    if (ret[i] > 0) allZeros = false;
+  }
+  if (allZeros) return null;
+  return ret;
+}
+
+Exet.prototype.slKey = function(phrase) {
+  const hist = [0,0,0,0,0,0,0,0];
+  for (let l of phrase) {
+    const idx = this.SLK_CODES.indexOf(l.toLowerCase().charCodeAt());
+    if (idx < 0) continue;
+    hist[idx]++;
+  }
+  return hist;
+}
+
+Exet.prototype.initAnagrammer = function() {
+  this.SLK_LETTERS = 'eisarnto';
+  console.assert(this.SLK_LETTERS.length == 8, this.SLK_LETTERS);
+  this.SLK_CODES = [];
+  for (let l of this.SLK_LETTERS) {
+    this.SLK_CODES.push(l.charCodeAt());
+  }
+  this.slkIndex = {};
+  for (let idx = 1; idx < exetLexicon.lexicon.length; idx++) {
+    const entry = exetLexicon.lexicon[idx];
+    const k = this.slKey(entry);
+    if (!this.slkIndex[k]) this.slkIndex[k] = [];
+    this.slkIndex[k].push(idx);
+  }
+}
+
+Exet.prototype.getSubsetAnagrams = function(phrase, substrOK) {
+  const slk = this.slKey(phrase);
+  const slkLimits = slk.slice();
+  let product = 1;
+  for (let i = 0; i < 8; i++) {
+    slkLimits[i] = Math.min(1, slkLimits[i]);
+    product = product * (slkLimits[i] + 1);
+  }
+  let maxed = false;
+  while (product < 1000 && !maxed) {
+    maxed = true;
+    for (let i = 0; i < 8 && product < 1000; i++) {
+      if (slkLimits[i] < slk[i]) {
+        maxed = false;
+        slkLimits[i]++;
+        product = product * (slkLimits[i] + 1) / slkLimits[i];
+      }
+    }
+  }
+  const fullHist = this.letterHist(phrase);
+  const subkey = [0,0,0,0,0,0,0,0];
+  const anagrams = [];
+  const phraseSeq = substrOK ? '' : this.makeCharadeParam(phrase);
+
+  for (let i0 = 0; i0 <= slkLimits[0]; i0++) {
+    subkey[0] = i0;
+    for (let i1 = 0; i1 <= slkLimits[1]; i1++) {
+      subkey[1] = i1;
+      for (let i2 = 0; i2 <= slkLimits[2]; i2++) {
+        subkey[2] = i2;
+        for (let i3 = 0; i3 <= slkLimits[3]; i3++) {
+          subkey[3] = i3;
+          for (let i4 = 0; i4 <= slkLimits[4]; i4++) {
+            subkey[4] = i4;
+            for (let i5 = 0; i5 <= slkLimits[5]; i5++) {
+              subkey[5] = i5;
+              for (let i6 = 0; i6 <= slkLimits[6]; i6++) {
+                subkey[6] = i6;
+                for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
+                  subkey[7] = i7;
+                  const wordIndices = this.slkIndex[subkey];
+                  if (!wordIndices) continue;
+                  for (let wordIndex of wordIndices) {
+                    const word = exetLexicon.lexicon[wordIndex];
+                    const wordHist = this.letterHist(word);
+                    const diffHist = this.letterHistSub(fullHist, wordHist);
+                    if (!diffHist) continue;
+                    if (!substrOK &&
+                        phraseSeq.includes(this.makeCharadeParam(word))) {
+                      continue;
+                    }
+                    anagrams.push([wordIndex, diffHist]);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return anagrams;
+}
+
+Exet.prototype.lettersFromHist = function(h) {
+  let ret = '';
+  for (let i = 0; i < 26; i++) {
+    const c = String.fromCharCode(97 + i).repeat(h[i]);
+    ret = ret + c;
+  }
+  return ret;
+}
+
+Exet.prototype.lexToSortedWords = function(list) {
+  list.sort((a, b) => Math.max( ...a ) - Math.max( ...b ));
+  const wordsList = [];
+  for (let entry of list) {
+    const words = [];
+    for (let idx of entry) {
+      words.push(exetLexicon.lexicon[idx]);
+    }
+    wordsList.push(words.join(' '));
+  }
+  return wordsList;
+}
+
+Exet.prototype.getAnagramsK = function(phrase, limit, k, substrOK) {
+  return this.lexToSortedWords(
+      this.getAnagramsKIndices(phrase, limit, k, substrOK));
+}
+
+Exet.prototype.getAnagramsKIndices = function(phrase, limit, k, substrOK) {
+  console.assert(k > 1, k);
+  console.assert(limit >= 0, limit);
+  const anagrams = [];
+  const seenAnagrams = {};
+  const partials = this.getSubsetAnagrams(phrase, substrOK);
+  const phraseSeq = substrOK ? '' : this.makeCharadeParam(phrase);
+  for (let partial of partials) {
+    const delta = this.lettersFromHist(partial[1]);
+    if (!delta) continue;
+    const deltaAnagrams = this.getAnagrams1(delta, limit, true);
+    for (let deltaAnagram of deltaAnagrams) {
+      if (!substrOK &&
+          phraseSeq.includes(this.makeCharadeParam(
+              exetLexicon.lexicon[deltaAnagram]))) {
+        continue;
+      }
+      candidate = [partial[0], deltaAnagram].sort((a, b) => a - b);
+      if (!seenAnagrams[candidate]) {
+        seenAnagrams[candidate] = true;
+        anagrams.push(candidate);
+        if (limit > 0) {
+          limit--;
+          if (limit == 0) return anagrams;
+        }
+      }
+    }
+  }
+  if (k == 2) {
+    return anagrams;
+  }
+  console.assert(limit >= 0, limit);
+  for (let partial of partials) {
+    const delta = this.lettersFromHist(partial[1]);
+    if (!delta) continue;
+    // Delta has sorted order, need to set substrOK to true for recursive call.
+    const deltaAnagrams = this.getAnagramsKIndices(delta, limit, k - 1, true);
+    for (let deltaAnagram of deltaAnagrams) {
+      candidate = [partial[0]].concat(deltaAnagram).sort((a, b) => a - b);
+      if (!seenAnagrams[candidate]) {
+        seenAnagrams[candidate] = true;
+        anagrams.push(candidate);
+        if (limit > 0) {
+          limit--;
+          if (limit <= 0) return anagrams;
+        }
+      }
+    }
+  }
+  return anagrams;
+}
+
+/**
+ * End of code for multi-word anagrams.
+ */
 
 Exet.prototype.IntersectChoices = function(set1, set2) {
   let result = {}
@@ -9187,7 +9435,7 @@ function exetLoadFile() {
     let specs = fr.result.substring(start, end)
     exet.setPreflex([])
     exet.unpreflex = {}
-    exet.setMinPop(exet.DEFAULT_MINPOP)
+    exet.setMinPop(0);  // Do not presume: there may be filled entries!
     exet.noProperNouns = false
     exet.asymOK = false
     exet.tryReversals = false
