@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Unnumbered minor tweak January 29, 2022
+
+- Sort multi-word anagrams by ascending #words first.
+- In the multi-word anagram algo, vary more common letter counts in
+  inner loops, to get a better distributed mix for them in the early
+  anagrams.
+
 ### Version: Exet v0.66 January 28, 2022
 
 - Add support for multi-word anagrams. This required some fun algorithms as

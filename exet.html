@@ -8048,9 +8048,11 @@ Exet.prototype.getAnagrams1 = function(phrase, limit=0, getIndices=false) {
 
 /**
  * limit: 0 if no limit.
- * substrOK: if false, avoid substrings (only enforced for 2-word anagrams).
+ * seqOK: if false, avoid picking a string of consecutive letters for
+ *   anagramming as one of the words in a multi-word anagram (only enforced
+ *   for 2-word anagrams).
  */
-Exet.prototype.getAnagrams = function(phrase, limit, substrOK=true) {
+Exet.prototype.getAnagrams = function(phrase, limit, seqOK=true) {
   const anagrams1 = this.getAnagrams1(phrase, limit);
   const phraseLen = phrase.length;
   if (phraseLen < 4 || (limit > 0 && anagrams1.length >= limit)) {
@@ -8060,7 +8062,7 @@ Exet.prototype.getAnagrams = function(phrase, limit, substrOK=true) {
   if (limit > 0) {
     limit -= anagrams1.length;
   }
-  const anagramsK = this.getAnagramsK(phrase, limit, multiK, substrOK);
+  const anagramsK = this.getAnagramsK(phrase, limit, multiK, seqOK);
   return anagrams1.concat(anagramsK);
 }
 
@@ -8069,7 +8071,7 @@ Exet.prototype.getAnagrams = function(phrase, limit, substrOK=true) {
  *
  * Simply using the letter-histogram as the key doesn't work, as we cannot
  * index all possible k-word phrases even for k=2. We can try looking at
- * some subset of the letters first. But for the an n-letter phrase, the
+ * some subset of the letters first. But, for an n-letter phrase, the
  * number of subsets to look at is 2^n (or something like that, depending
  * on repetitions). So, we use "salient letter key"s (slKey). From letter
  * frequencies in words, the most common 8 letters are [eisarnto]. We
@@ -8137,7 +8139,7 @@ Exet.prototype.initAnagrammer = function() {
   }
 }
 
-Exet.prototype.getSubsetAnagrams = function(phrase, substrOK) {
+Exet.prototype.getSubsetAnagrams = function(phrase, seqOK) {
   const slk = this.slKey(phrase);
   const slkLimits = slk.slice();
   let product = 1;
@@ -8159,24 +8161,25 @@ Exet.prototype.getSubsetAnagrams = function(phrase, substrOK) {
   const fullHist = this.letterHist(phrase);
   const subkey = [0,0,0,0,0,0,0,0];
   const anagrams = [];
-  const phraseSeq = substrOK ? '' : this.makeCharadeParam(phrase);
+  const phraseSeq = seqOK ? '' : this.makeCharadeParam(phrase);
 
-  for (let i0 = 0; i0 <= slkLimits[0]; i0++) {
-    subkey[0] = i0;
-    for (let i1 = 0; i1 <= slkLimits[1]; i1++) {
-      subkey[1] = i1;
-      for (let i2 = 0; i2 <= slkLimits[2]; i2++) {
-        subkey[2] = i2;
-        for (let i3 = 0; i3 <= slkLimits[3]; i3++) {
-          subkey[3] = i3;
-          for (let i4 = 0; i4 <= slkLimits[4]; i4++) {
-            subkey[4] = i4;
-            for (let i5 = 0; i5 <= slkLimits[5]; i5++) {
-              subkey[5] = i5;
-              for (let i6 = 0; i6 <= slkLimits[6]; i6++) {
-                subkey[6] = i6;
-                for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
-                  subkey[7] = i7;
+  // Vary the more common letters in the inner loops.
+  for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
+    subkey[7] = i7;
+    for (let i6 = 0; i6 <= slkLimits[6]; i6++) {
+      subkey[6] = i6;
+      for (let i5 = 0; i5 <= slkLimits[5]; i5++) {
+        subkey[5] = i5;
+        for (let i4 = 0; i4 <= slkLimits[4]; i4++) {
+          subkey[4] = i4;
+          for (let i3 = 0; i3 <= slkLimits[3]; i3++) {
+            subkey[3] = i3;
+            for (let i2 = 0; i2 <= slkLimits[2]; i2++) {
+              subkey[2] = i2;
+              for (let i1 = 0; i1 <= slkLimits[1]; i1++) {
+                subkey[1] = i1;
+                for (let i0 = 0; i0 <= slkLimits[0]; i0++) {
+                  subkey[0] = i0;
                   const wordIndices = this.slkIndex[subkey];
                   if (!wordIndices) continue;
                   for (let wordIndex of wordIndices) {
@@ -8184,7 +8187,7 @@ Exet.prototype.getSubsetAnagrams = function(phrase, substrOK) {
                     const wordHist = this.letterHist(word);
                     const diffHist = this.letterHistSub(fullHist, wordHist);
                     if (!diffHist) continue;
-                    if (!substrOK &&
+                    if (!seqOK &&
                         phraseSeq.includes(this.makeCharadeParam(word))) {
                       continue;
                     }
@@ -8211,7 +8214,10 @@ Exet.prototype.lettersFromHist = function(h) {
 }
 
 Exet.prototype.lexToSortedWords = function(list) {
-  list.sort((a, b) => Math.max( ...a ) - Math.max( ...b ));
+  list.sort((a, b) => {
+    const spaceDiff = a.length - b.length;
+    return (spaceDiff == 0) ? Math.max( ...a ) - Math.max( ...b ) : spaceDiff;
+  });
   const wordsList = [];
   for (let entry of list) {
     const words = [];
@@ -8223,24 +8229,24 @@ Exet.prototype.lexToSortedWords = function(list) {
   return wordsList;
 }
 
-Exet.prototype.getAnagramsK = function(phrase, limit, k, substrOK) {
+Exet.prototype.getAnagramsK = function(phrase, limit, k, seqOK) {
   return this.lexToSortedWords(
-      this.getAnagramsKIndices(phrase, limit, k, substrOK));
+      this.getAnagramsKIndices(phrase, limit, k, seqOK));
 }
 
-Exet.prototype.getAnagramsKIndices = function(phrase, limit, k, substrOK) {
+Exet.prototype.getAnagramsKIndices = function(phrase, limit, k, seqOK) {
   console.assert(k > 1, k);
   console.assert(limit >= 0, limit);
   const anagrams = [];
   const seenAnagrams = {};
-  const partials = this.getSubsetAnagrams(phrase, substrOK);
-  const phraseSeq = substrOK ? '' : this.makeCharadeParam(phrase);
+  const partials = this.getSubsetAnagrams(phrase, seqOK);
+  const phraseSeq = seqOK ? '' : this.makeCharadeParam(phrase);
   for (let partial of partials) {
     const delta = this.lettersFromHist(partial[1]);
     if (!delta) continue;
     const deltaAnagrams = this.getAnagrams1(delta, limit, true);
     for (let deltaAnagram of deltaAnagrams) {
-      if (!substrOK &&
+      if (!seqOK &&
           phraseSeq.includes(this.makeCharadeParam(
               exetLexicon.lexicon[deltaAnagram]))) {
         continue;
@@ -8263,7 +8269,7 @@ Exet.prototype.getAnagramsKIndices = function(phrase, limit, k, substrOK) {
   for (let partial of partials) {
     const delta = this.lettersFromHist(partial[1]);
     if (!delta) continue;
-    // Delta has sorted order, need to set substrOK to true for recursive call.
+    // Delta has sorted order, need to set seqOK to true for recursive call.
     const deltaAnagrams = this.getAnagramsKIndices(delta, limit, k - 1, true);
     for (let deltaAnagram of deltaAnagrams) {
       candidate = [partial[0]].concat(deltaAnagram).sort((a, b) => a - b);
