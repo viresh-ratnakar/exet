@@ -3893,7 +3893,7 @@ Exet.prototype.updateCA = function() {
   extraS = extra.join('')
   this.caExtra.innerText = extraS
   let html = ''
-  const NUM_ANAGRAMS = 500;
+  const NUM_ANAGRAMS = 100;
   let extraAnags = this.getAnagrams(extraS, NUM_ANAGRAMS)
   for (let choice of extraAnags) {
     html = html + `

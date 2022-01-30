@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Unnumbered minor tweak January 30, 2022
+
+- Reduce #anagrams from 500 to 100 to make the Anagrams panel faster
+
 ### Version: Unnumbered minor tweak January 29, 2022
 
 - Sort multi-word anagrams by ascending #words first.
