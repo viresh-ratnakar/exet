@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Unnumbered minor tweak January 31, 2022
+
+- Continued fine-tuning of #anagrams: make it length-dependent.
+
 ### Version: Unnumbered minor tweak January 30, 2022
 
 - Reduce #anagrams from 500 to 100 to make the Anagrams panel faster

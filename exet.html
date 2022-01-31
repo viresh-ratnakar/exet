@@ -3891,19 +3891,22 @@ Exet.prototype.updateCA = function() {
     extra.push(anagram[a++])
   }
   extraS = extra.join('')
+
   this.caExtra.innerText = extraS
   let html = ''
-  const NUM_ANAGRAMS = 100;
-  let extraAnags = this.getAnagrams(extraS, NUM_ANAGRAMS)
+  let maxAnags = extraS.length < 8 ? 400 : (extraS.length < 10 ? 200 : 100);
+  let extraAnags = this.getAnagrams(extraS, maxAnags)
   for (let choice of extraAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`
   }
   this.caExtraAnags.innerHTML = html
+
   unusedS = unused.join('')
   this.caUnused.innerText = unusedS
   html = ''
-  let unusedAnags = this.getAnagrams(unusedS, NUM_ANAGRAMS)
+  maxAnags = unusedS.length < 8 ? 400 : (unusedS.length < 10 ? 200 : 100);
+  let unusedAnags = this.getAnagrams(unusedS, maxAnags)
   for (let choice of unusedAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`
