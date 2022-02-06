@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.66 January 28 2022
+#### Version: Exet v0.67 February 6, 2022
 
 #### Author: Viresh Ratnakar
 
@@ -203,7 +203,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of January 2022) has 250,192 entries. Providing a popularity threshold
+  as of February 2022) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -500,7 +500,7 @@ word/phrase in the current light:
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
 In addition, the "Research" tab lets you search
-[cryptics.eigenfoo.xyz/](https://cryptics.eigenfoo.xyz/), which is an excellent
+[cryptics.georgeho.org/](https://cryptics.georgeho.org/), which is an excellent
 database of published cryptic clues, for:
 
 - Definitions that others might have used for an entry, in cryptic clues.
@@ -546,7 +546,7 @@ top in each tab. These tabs are:
   [Crossword Unclued](https://www.crosswordunclued.com), Wikipedia,
   [Highlight press](https://www.highlightpress.com.au/),
   [Mythic beasts](http://sphinx.mythic-beasts.com/), and
-  [cryptics.eigenfoo.xyz](https://cryptics.eigenfoo.xyz/).
+  [cryptics.georgeho.org](https://cryptics.georgeho.org/).
 
 ### Final touches
 

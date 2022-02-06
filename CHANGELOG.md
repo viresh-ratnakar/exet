@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.67 February 6, 2022
+
+- s/cryptics.eigenfoo.xyz/cryptics.georgeho.org/g
+
 ### Version: Unnumbered minor tweak January 31, 2022
 
 - Continued fine-tuning of #anagrams: make it length-dependent.

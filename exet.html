@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.66 January 28 2022
+Current version: v0.67 February 6, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1259,7 +1259,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.66 January 28 2022'
+  this.version = 'v0.67 February 6, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1532,7 +1532,7 @@ Exet.prototype.setPuzzle = function(puz) {
       id: "research",
       display: "Research",
       hover: "Dictionaries (Chambers, The Free Dictionary, Onelook, ...) and " +
-             "usage in published cryptic crosswords (cryptics.eigenfoo.zyz)",
+             "usage in published cryptic crosswords (cryptics.georgeho.org)",
       sections: [],
     },
     "wordplay1": {
@@ -1591,7 +1591,7 @@ Exet.prototype.setPuzzle = function(puz) {
       id: "inds",
       display: "Lists",
       hover: "Crossword Unclued, Wikipedia, Highlight Press, Mythic beasts, " +
-             "cryptics.eigenfoo.xyz: cryptic indicators and abbreviations lists",
+             "cryptics.georgeho.org: cryptic indicators and abbreviations lists",
       sections: [],
     },
   }
@@ -3183,20 +3183,20 @@ Exet.prototype.makeIndsTab = function(panelH) {
     {name: "Mythic beasts list of abbreviations",
      url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
     {name: "separator"},
-    {name: "Anagram indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=anagram"},
-    {name: "Hidden word indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=hidden"},
-    {name: "Reversal indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=reversal"},
-    {name: "Homophone indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=homophone"},
-    {name: "Container indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=container"},
-    {name: "Insertion indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=insertion"},
-    {name: "Deletion indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)",
-     url: "https://cryptics.eigenfoo.xyz/data/indicators?wordplay=deletion"},
+    {name: "Anagram indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=anagram"},
+    {name: "Hidden word indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=hidden"},
+    {name: "Reversal indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=reversal"},
+    {name: "Homophone indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=homophone"},
+    {name: "Container indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=container"},
+    {name: "Insertion indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=insertion"},
+    {name: "Deletion indicators in published cryptic crosswords (cryptics.georgeho.org)",
+     url: "https://cryptics.georgeho.org/data/indicators?wordplay=deletion"},
   ]
   let indsTab = this.tabs["inds"]
   let html = `
@@ -3227,7 +3227,7 @@ Exet.prototype.makeIndsTab = function(panelH) {
 
 Exet.prototype.researchingClue = function() {
   return this.researchSelect.value.startsWith(
-      "https://cryptics.eigenfoo.xyz/data/indicators");
+      "https://cryptics.georgeho.org/data/indicators");
 }
 
 Exet.prototype.researchTabNav = function() {
@@ -3256,8 +3256,8 @@ Exet.prototype.makeResearchTab = function(panelH) {
     {name: "separator"},
     // The next link only shows definitions in published cryptic crosswords,
     // not the clues themselves, by choice.
-    {url: "https://cryptics.eigenfoo.xyz/data?sql=select+lower%28definition%29+as+def%2C+count%28%2A%29+as+popularity+from+clues+where+%22answer%22+%3D+upper%28%3Ap0%29+and+def+not+in+%28%22nan%22%2C+%22%22%29+group+by+def+order+by+popularity+desc&_hide_sql=1&p0=", name: "Definitions in published cryptic crosswords (cryptics.eigenfoo.xyz)"},
-    {url: "https://cryptics.eigenfoo.xyz/data/indicators?indicator__in=", name: "Clue phrases as indicators in published cryptic crosswords (cryptics.eigenfoo.xyz)"},
+    {url: "https://cryptics.georgeho.org/data?sql=select+lower%28definition%29+as+def%2C+count%28%2A%29+as+popularity+from+clues+where+%22answer%22+%3D+upper%28%3Ap0%29+and+def+not+in+%28%22nan%22%2C+%22%22%29+group+by+def+order+by+popularity+desc&_hide_sql=1&p0=", name: "Definitions in published cryptic crosswords (cryptics.georgeho.org)"},
+    {url: "https://cryptics.georgeho.org/data/indicators?indicator__in=", name: "Clue phrases as indicators in published cryptic crosswords (cryptics.georgeho.org)"},
     {name: "separator"},
   ]
   let researchTab = this.tabs["research"]
