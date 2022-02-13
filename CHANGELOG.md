@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.68 February 12, 2022
+
+- When creating or breaking a linked clue, preserve any
+  clue text that's already there, only adjust the enum.
+
 ### Version: Exet v0.67 February 6, 2022
 
 - s/cryptics.eigenfoo.xyz/cryptics.georgeho.org/g
