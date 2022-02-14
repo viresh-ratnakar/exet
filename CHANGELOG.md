@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.69 February 14, 2022
+
+- Before moving away from the current clue, finish processing any buffered
+  pending edits to the clue.
+
 ### Version: Exet v0.68 February 12, 2022
 
 - When creating or breaking a linked clue, preserve any
