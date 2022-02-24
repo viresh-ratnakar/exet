@@ -29,19 +29,20 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.69 February 14, 2022
+Current version: v0.70 February 24, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
 <script src="exolve-m.js"></script>
-<script src="lufz-en-lexicon.js"></script>
+<script defer src="lufz-en-lexicon.js"></script>
+<script src="exet-lexicon.js"></script>
 
 <style>
 [contenteditable="true"]:active,
 [contenteditable="true"]:focus{
   border:none;
   outline:none;
-}
+} 
 .xet-frame {
   width: 940px;
   margin: 0 8px;
@@ -93,6 +94,11 @@ Current version: v0.69 February 14, 2022
   padding: 6px 12px;
   border: 1px solid #ccc;
   border-top: none;
+}
+.xet-iframe-loading {
+  float: right;
+  color: red;
+  cursor: wait;
 }
 .xet-td {
   vertical-align: top;
@@ -637,6 +643,12 @@ Current version: v0.69 February 14, 2022
 </head>
 <body>
 
+<div id="xet-loading"
+    style="text-align:center;font-family:monospace;padding-top:100px">
+  <h3><span class="xet-blue">Exet: A web app for crossword construction</span></h3>
+  <h4>Loading the lexicon. This may take a few seconds, please wait...</h4>
+</div>
+
 <div id="xet-xlv-frame">
 </div>
 
@@ -1180,7 +1192,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
         continue
       }
       for (rev of storedRevs['revs']) {
-        const revHash = exet.javaHash(JSON.stringify(rev))
+        const revHash = exetLexicon.javaHash(JSON.stringify(rev))
         existingRevs[revHash] = true
       }
     }
@@ -1203,7 +1215,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
       for (let i = start; i < savedRevs.length; i++) {
         numRevs++
         const rev = savedRevs[i]
-        const revHash = exet.javaHash(JSON.stringify(rev))
+        const revHash = exetLexicon.javaHash(JSON.stringify(rev))
         if (existingRevs[revHash]) {
           numDupRevs++
           continue
@@ -1259,7 +1271,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.69 February 14, 2022'
+  this.version = 'v0.70 February 24, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1312,41 +1324,6 @@ function Exet() {
   this.sweepMaxChoices = 5000
   this.sweepMaxChoicesSmall = 4
   this.shownLightChoices = 200
-
-  // Set of all letters in the lexicon and their frequencies.
-  this.allLetters = {}
-  this.letterFrequencies = {}
-  for (let c of exetLexicon.letters) {
-    const cu = c.toUpperCase();
-    this.allLetters[cu] = true
-    this.letterFrequencies[cu] = 0
-  }
-  for (let w of exetLexicon.lexicon) {
-    for (let c of w) {
-      const cu = c.toUpperCase();
-      if (!this.allLetters[cu]) continue;
-      this.letterFrequencies[cu] += 1;
-    }
-  }
-  let maxFreq = 0;
-  let minFreq = Number.MAX_VALUE;
-  for (let c in this.letterFrequencies) {
-    if (this.letterFrequencies[c] > maxFreq) maxFreq = this.letterFrequencies[c]
-    if (this.letterFrequencies[c] < minFreq) minFreq = this.letterFrequencies[c]
-  }
-  this.letterRarities = {}
-  for (let c in this.letterFrequencies) {
-    let x = 1.0 - ((this.letterFrequencies[c] - minFreq) /
-                   (maxFreq - minFreq));
-    if (x < 0.7) x = 0.7;
-    this.letterRarities[c] = 1.0 + (1.5 * (x - 0.7) / 0.3);
-  }
-  this.vowelPhonemes = {
-    'AA': true, 'AE': true, 'AH': true, 'AO': true, 'AW': true, 'AY': true,
-    'EH': true, 'ER': true, 'EY': true, 'IH': true, 'IY': true, 'OW': true,
-    'OY': true, 'UH': true, 'UW': true,
-  };
-  this.initAnagrammer();
 };
 
 Exet.prototype.setMinPop = function(m) {
@@ -2713,18 +2690,6 @@ Exet.prototype.addStat = function(dict, stat, details) {
   }
 }
 
-Exet.prototype.depunct = function(s) {
-  let out = ''
-  for (let c of s) {
-    if (c == ' ' || c == '-' || c == "'" || this.allLetters[c.toUpperCase()]) {
-      out += c
-    } else if (c == '—') {
-      out += ' '
-    }
-  }
-  return out.replace(/ [ ]*/g, ' ').toLowerCase().trim()
-}
-
 Exet.prototype.essenceOfAnno = function(s) {
   let out = ''
   for (let c of s) {
@@ -2827,7 +2792,7 @@ Exet.prototype.getLightInfos = function() {
     }
     this.addStat(allInfo.lengths, theClue.enumLen, label)
     this.addStat(dirInfo.lengths, theClue.enumLen, label)
-    let depunctClue = this.depunct(theClue.clue)
+    let depunctClue = exetLexicon.depunct(theClue.clue)
     if (depunctClue && !this.isDraftClue(theClue.clue)) {
       allInfo.set += 1
       dirInfo.set += 1
@@ -3139,13 +3104,24 @@ Exet.prototype.trimUrl = function(url) {
   return url.substr(0, 97) + '...';
 }
 
+Exet.prototype.loadIframe = function(iframe, url, urlElt) {
+  const trimmedUrl = this.trimUrl(url);
+  urlElt.innerText = trimmedUrl;
+  urlElt.insertAdjacentHTML(
+      'beforeend',
+      ' <span class="xet-iframe-loading">Loading...</span>');
+  urlElt.href = url;
+  iframe.src = url;
+  iframe.onload = () => {
+    urlElt.innerText = trimmedUrl;
+  };
+}
+
 Exet.prototype.indsTabNav = function() {
   if (this.indsIframe.src == this.indsSelect.value) {
     return
   }
-  this.indsIframe.src = this.indsSelect.value;
-  this.indsUrl.innerText = this.trimUrl(this.indsSelect.value);
-  this.indsUrl.href = this.indsSelect.value;
+  this.loadIframe(this.indsIframe, this.indsSelect.value, this.indsUrl);
 }
 
 Exet.prototype.makeIndsTab = function(panelH) {
@@ -3237,9 +3213,7 @@ Exet.prototype.researchTabNav = function() {
   if (this.researchIframe.src == url) {
     return
   }
-  this.researchIframe.src = url;
-  this.researchUrl.innerText = this.trimUrl(url);
-  this.researchUrl.href = url;
+  this.loadIframe(this.researchIframe, url, this.researchUrl);
 }
 
 Exet.prototype.makeResearchTab = function(panelH) {
@@ -3250,8 +3224,8 @@ Exet.prototype.makeResearchTab = function(panelH) {
      name: "Chambers Thesaurus"},
     {url: "https://thefreedictionary.com/", name: "The Free Dictionary"},
     {url: "https://onelook.com/?w=", name: "Onelook"},
-    {url: "https://api.dictionaryapi.dev/api/v1/entries/en/",
-     name: "Google Dictionary"},
+    {url: "https://api.dictionaryapi.dev/api/v2/entries/en/",
+     name: "DictionaryAPI"},
     {url: "https://www.etymonline.com/search?q=", name: "Etymonline"},
     {name: "separator"},
     // The next link only shows definitions in published cryptic crosswords,
@@ -3284,203 +3258,6 @@ Exet.prototype.makeResearchTab = function(panelH) {
   this.researchIframe = document.getElementById('xet-research-iframe')
   this.researchSelect = document.getElementById('xet-research-select')
   this.researchUrl = document.getElementById('xet-research-choice-url')
-}
-
-Exet.prototype.dedupe = function(a) {
-  const ret = [];
-  const haves = {};
-  for (let e of a) {
-    if (haves[e]) continue;
-    haves[e] = true;
-    ret.push(e);
-  }
-  return ret;
-}
-
-Exet.prototype.getPhones = function(phrase) {
-  const phones = [];
-  const savedMinPop = this.indexMinPop;
-  const savedNoProper = this.noProperNouns;
-  this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
-  this.noProperNouns = false;
-  let inLexicon = this.getLexChoices(phrase, 5);
-  for (let p of inLexicon) {
-    if (!exetLexicon.phones[p]) continue;
-    for (let phone of exetLexicon.phones[p]) {
-      phones.push(phone);
-    }
-  }
-  this.indexMinPop = savedMinPop;
-  this.noProperNouns = savedNoProper;
-
-  // Try breaking into parts.
-  let space = phrase.indexOf(' ');
-  if (space < 0) {
-    space = phrase.indexOf('-');
-  }
-  if (space > 0) {
-    const part1 = phrase.substr(0, space);
-    const part1_phones = this.getPhones(part1);
-    if (part1_phones.length > 0) {
-      const part2 = phrase.substr(space + 1);
-      const part2_phones = this.getPhones(part2);
-      for (let p2 of part2_phones) {
-        for (let p1 of part1_phones) {
-          phones.push(p1 + ' ' + p2);
-        }
-      }
-    }
-  }
-  return this.dedupe(phones);
-}
-
-Exet.prototype.getSpoonerismsInner = function(phrase, phones) {
-  const spoons = [];
-  const nphrase = this.makeCharadeParam(phrase);
-  const NUM_SHARDS = exetLexicon.phindex.length;
-
-  for (let phone of phones) {
-    const pparts = phone.split(' ');
-    const nonVowelSpans = [];
-    let currSpan = [-1, -1];
-    for (let i = 0; i < pparts.length; i++) {
-      if (!this.vowelPhonemes[pparts[i]]) {
-        if (currSpan[0] < 0) {
-          currSpan[0] = i;
-        }
-      } else {
-        if (currSpan[0] >= 0) {
-          currSpan[1] = i;
-          nonVowelSpans.push(currSpan);
-          currSpan = [-1, -1];
-        }
-      }
-    }
-    if (currSpan[0] >= 0 && currSpan[1] < 0) {
-      currSpan[1] = pparts.length;
-      nonVowelSpans.push(currSpan);
-    }
-    if (nonVowelSpans.length < 2) {
-      continue;
-    }
-    if (nonVowelSpans[0][0] > 0) {
-      // We do not deal with phrases that start with vowels.
-      continue;
-    }
-    for (let last1 = nonVowelSpans[0][0]; last1 < nonVowelSpans[0][1]; last1++) {
-      for (let second_span = 1; second_span < nonVowelSpans.length;
-           second_span++) {
-        for (let last2 = nonVowelSpans[second_span][0];
-             last2 < nonVowelSpans[second_span][1]; last2++) {
-          for (let start2 = nonVowelSpans[second_span][0];
-               start2 <= last2; start2++) {
-            const phone1_arr = pparts.slice(start2, last2 + 1).concat(
-                pparts.slice(last1 + 1, start2));
-            if (phone1_arr.length == 0) continue;
-            const phone2_arr = pparts.slice(0, last1 + 1).concat(
-                pparts.slice(last2 + 1));
-            if (phone2_arr.length == 0) continue;
-
-            const phone1 = phone1_arr.join(' ');
-            let shard = this.javaHash(phone1) % NUM_SHARDS;
-            if (shard < 0) shard += NUM_SHARDS;
-            const q1list = [];
-            for (let q1 of exetLexicon.phindex[shard]) {
-              if (!exetLexicon.phones[q1] ||
-                  !exetLexicon.phones[q1].includes(phone1)) continue;
-              q1list.push(exetLexicon.lexicon[q1]);
-            }
-
-            if (q1list.length == 0) continue;
-
-            const phone2 = phone2_arr.join(' ');
-            shard = this.javaHash(phone2) % NUM_SHARDS;
-            if (shard < 0) shard += NUM_SHARDS;
-            const q2list = [];
-            for (let q2 of exetLexicon.phindex[shard]) {
-              if (!exetLexicon.phones[q2] ||
-                  !exetLexicon.phones[q2].includes(phone2)) continue;
-              q2list.push(exetLexicon.lexicon[q2]);
-            }
-
-            if (q2list.length == 0) continue;
-
-            for (let q1 of q1list) {
-              for (let q2 of q2list) {
-                spoons.push([q1, q2]);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  return this.dedupe(spoons);
-}
-
-Exet.prototype.getSpoonerisms = function(phrase) {
-  return this.getSpoonerismsInner(phrase, this.getPhones(phrase));
-}
-
-Exet.prototype.getHomophonesInner = function(phrase, phones) {
-  const hp = [];
-  const nphrase = this.makeCharadeParam(phrase);
-  const NUM_SHARDS = exetLexicon.phindex.length;
-
-  for (let phone of phones) {
-    let shard = this.javaHash(phone) % NUM_SHARDS;
-    if (shard < 0) shard += NUM_SHARDS;
-    for (let q of exetLexicon.phindex[shard]) {
-      if (!exetLexicon.phones[q] ||
-          !exetLexicon.phones[q].includes(phone)) continue;
-      const qphrase = exetLexicon.lexicon[q];
-      if (nphrase == this.makeCharadeParam(qphrase)) {
-        continue;
-      }
-      hp.push(qphrase);
-    }
-
-    // Now try splitting phone into two parts.
-    const pparts = phone.split(' ');
-    for (let i = 1; i <= pparts.length - 1; i++) {
-      const phone1 = pparts.slice(0, i).join(' ');
-      shard = this.javaHash(phone1) % NUM_SHARDS;
-      if (shard < 0) shard += NUM_SHARDS;
-      const q1list = [];
-      for (let q1 of exetLexicon.phindex[shard]) {
-        if (!exetLexicon.phones[q1] ||
-            !exetLexicon.phones[q1].includes(phone1)) continue;
-        q1list.push(exetLexicon.lexicon[q1]);
-      }
-
-      if (q1list.length == 0) continue;
-
-      const phone2 = pparts.slice(i).join(' ');
-      shard = this.javaHash(phone2) % NUM_SHARDS;
-      if (shard < 0) shard += NUM_SHARDS;
-      const q2list = [];
-      for (let q2 of exetLexicon.phindex[shard]) {
-        if (!exetLexicon.phones[q2] ||
-            !exetLexicon.phones[q2].includes(phone2)) continue;
-        q2list.push(exetLexicon.lexicon[q2]);
-      }
-
-      if (q2list.length == 0) continue;
-
-      for (let q1 of q1list) {
-        for (let q2 of q2list) {
-          const candidate = q1 + ' ' + q2;
-          if (nphrase == this.makeCharadeParam(candidate)) continue;
-          hp.push(candidate);
-        }
-      }
-    }
-  }
-  return this.dedupe(hp);
-}
-
-Exet.prototype.getHomophones = function(phrase) {
-  return this.getHomophonesInner(phrase, this.getPhones(phrase));
 }
 
 Exet.prototype.getAllSplits = function(fodder, k) {
@@ -3583,7 +3360,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
       for (let part of split) {
         let possible = ''
         let score = 0
-        let choices = this.getAnagrams(part, 6, false)
+        let choices = exetLexicon.getAnagrams(part, 6, false)
         if (choices.length > 0) {
           score = part.length
           let rpart = ''
@@ -3626,7 +3403,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
             continue
           }
           let container = split[c1] + split[c2]
-          let choices = this.getAnagrams(container, 5, true)
+          let choices = exetLexicon.getAnagrams(container, 5, true)
           if (choices.length > 0) {
             let rcontainer = container.split('').reverse().join('')
             let possible = ''
@@ -3840,8 +3617,8 @@ Exet.prototype.updateEdits = function(fodder) {
 
 Exet.prototype.updateSounds = function(fodder) {
   let html = '<table id="xet-sounds-choices">';
-  const phones = this.getPhones(fodder);
-  const homophones = this.getHomophonesInner(fodder, phones); 
+  const phones = exetLexicon.getPhones(fodder);
+  const homophones = exetLexicon.getHomophonesInner(fodder, phones); 
   const hpSet = {};
   for (let hp of homophones) {
     hpSet[this.makeCharadeParam(hp)] = true;
@@ -3849,7 +3626,7 @@ Exet.prototype.updateSounds = function(fodder) {
       <tr title="Homophone of ${hp}"><td>&#x1F56A;
         <span class="xet-blue">~</span> ${hp}</td></tr>`
   }
-  const spoonerisms = this.getSpoonerismsInner(fodder, phones);
+  const spoonerisms = exetLexicon.getSpoonerismsInner(fodder, phones);
   hpSet[this.makeCharadeParam(fodder)] = true;
   for (let sp of spoonerisms) {
     if (hpSet[this.makeCharadeParam(sp[0] + sp[1])]) {
@@ -3895,7 +3672,7 @@ Exet.prototype.updateCA = function() {
   this.caExtra.innerText = extraS
   let html = ''
   let maxAnags = extraS.length < 8 ? 400 : (extraS.length < 10 ? 200 : 100);
-  let extraAnags = this.getAnagrams(extraS, maxAnags)
+  let extraAnags = exetLexicon.getAnagrams(extraS, maxAnags)
   for (let choice of extraAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`
@@ -3906,7 +3683,7 @@ Exet.prototype.updateCA = function() {
   this.caUnused.innerText = unusedS
   html = ''
   maxAnags = unusedS.length < 8 ? 400 : (unusedS.length < 10 ? 200 : 100);
-  let unusedAnags = this.getAnagrams(unusedS, maxAnags)
+  let unusedAnags = exetLexicon.getAnagrams(unusedS, maxAnags)
   for (let choice of unusedAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`
@@ -4511,7 +4288,7 @@ Exet.prototype.makeSoundsParam = function(s) {
 }
 
 Exet.prototype.makeCharadeParam = function(s) {
-  return s.toLowerCase().replace(/\?/g, '').replace(/[^a-z]/g, '');
+  return exetLexicon.lcLettersOf(s);
 }
 
 Exet.prototype.makeAnagramParam = function(s) {
@@ -4623,9 +4400,7 @@ Exet.prototype.handleTabClick = function(id) {
       if (!section.param || section.param != wordParam) {
         section.param = wordParam;
         const url = section.url + wordParam;
-        section.content.src = url
-        section.urldisp.innerText = this.trimUrl(url);
-        section.urldisp.href = url;
+        this.loadIframe(section.content, url, section.urldisp);
       }
       continue;
     }
@@ -6146,7 +5921,7 @@ Exet.prototype.setScore = function(fillState) {
   let boost = 0
   if (this.autofill.boostPangram) {
     for (let c of constrUsed) {
-      boost += this.letterRarity(c);
+      boost += exetLexicon.letterRarity(c);
     }
   }
   // For doubly-checked grids, progress is hard if we prioritize the pangram,
@@ -6169,7 +5944,7 @@ Exet.prototype.setScore = function(fillState) {
         if (fillState.constrLetters[c]) {
           continue;
         }
-        const rarity = this.letterRarity(c)
+        const rarity = exetLexicon.letterRarity(c)
         if (rarity > maxRarity) maxRarity = rarity
       }
       x.push(maxRarity > 0 ? (maxRarity + 0.1 * Math.random()) : 0);
@@ -6261,11 +6036,6 @@ Exet.prototype.shuffle = function(arr) {
   }
 }
 
-Exet.prototype.letterRarity = function(c) {
-  const cu = c.toUpperCase()
-  return this.letterRarities[cu] || 0;
-}
-
 Exet.prototype.addAutofillChildren = function(candidate) {
   if (!candidate || !candidate.unfilled || candidate.unfilled.length == 0) {
     return
@@ -6305,8 +6075,8 @@ Exet.prototype.addAutofillChildren = function(candidate) {
     }
     let cells = this.puz.getAllCells(ci);
     for (let lchoice of toTryAndViable) {
-      let key = this.makeLexKey(this.getLex(lchoice))
-      if (lchoice < 0) key = this.reverse(key);
+      let key = exetLexicon.makeLexKey(exetLexicon.getLex(lchoice))
+      if (lchoice < 0) key = exetLexicon.reverse(key);
       let child = new ExetFillState(candidate)
       child.clues[ci].lChoices = [lchoice]
       child.clues[ci].lRejects = []
@@ -7957,373 +7727,6 @@ Exet.prototype.getHTML = function(solved=true, showEnums=true) {
          '\n' + this.suffix
 }
 
-Exet.prototype.makeLexKey = function(partialSol) {
-  let key = ''
-  if (!partialSol) return key;
-  let lowerSol = partialSol.toLowerCase()
-  for (let i = 0; i < partialSol.length; ++i) {
-    let c = lowerSol.charAt(i);
-    if ((c >= 'a' && c <= 'z') || c == '?') {
-      key = key + c;
-    }
-  }
-  return key;
-}
-
-Exet.prototype.generalizeKey = function(key) {
-  for (let i = key.length - 1; i >= 0; --i) {
-    if (key.charAt(i) != '?') {
-      return key.substr(0, i) + '?' + key.substr(i + 1);
-    }
-  }
-  return key;
-}
-
-Exet.prototype.keyMatchesPhrase = function(key, phrase) {
-  let phraseKey = this.makeLexKey(phrase)
-  if (phraseKey.length != key.length) {
-    return false;
-  }
-  for (let i = 0; i < key.length; i++) {
-    if (key.charAt(i) != '?' &&
-        key.charAt(i) != phraseKey.charAt(i)) {
-      return false;
-    }
-  }
-  return true
-}
-
-Exet.prototype.isProperNoun = function(s) {
-  const first = s.charAt(0);
-  return first.toUpperCase() == first && s.charAt(1) != '-';
-}
-
-Exet.prototype.getLexChoices = function(partialSol, limit=0, dontReuse={}, tryRev=false) {
-  let choices = []
-  const key = this.makeLexKey(partialSol);
-  if (!key) return choices
-  const rkey = tryRev ? this.reverse(key) : '';
-  // First look at preferred choices (these may have idx >= this.indexMinPop)
-  let seen = {}
-  if (this.preflexByLen[key.length]) {
-    for (idx of this.preflexByLen[key.length]) {
-      if (dontReuse[idx]) continue
-      let phrase = exetLexicon.lexicon[idx]
-      if (this.keyMatchesPhrase(key, phrase)) {
-        choices.push(idx)
-        seen[idx] = true
-      }
-      if (tryRev && this.keyMatchesPhrase(rkey, phrase)) {
-        const ridx = 0 - idx;
-        choices.push(ridx)
-        seen[ridx] = true
-      }
-    }
-  }
-  const loops = tryRev ? 2 : 1;
-  for (let i = 0; (i < loops) && (limit <= 0 || choices.length < limit); i++) {
-    const loopKey = (i == 0) ? key : rkey;
-    let gkey = loopKey;
-    while (!exetLexicon.index[gkey]) {
-      const ngkey = this.generalizeKey(gkey)
-      if (ngkey == gkey) return choices
-      gkey = ngkey;
-    }
-    let indices = exetLexicon.index[gkey];
-    for (let idx of indices) {
-      if (idx >= this.indexMinPop) break
-      if (dontReuse[idx]) continue
-      if (this.unpreflex[idx]) continue
-      let phrase = exetLexicon.lexicon[idx]
-      if (this.noProperNouns && this.isProperNoun(phrase)) {
-        continue
-      }
-      const loopIdx = (i == 0) ? idx : 0 - idx;
-      if (this.keyMatchesPhrase(loopKey, phrase) && !seen[loopIdx]) {
-        choices.push(loopIdx)
-        if (limit > 0 && choices.length >= limit) break
-      }
-    }
-  }
-  return choices;
-}
-
-Exet.prototype.makeAnagramKey = function(phrase) {
-  return phrase.toLowerCase().replace(/ /g, '').split('').sort().join('')
-}
-
-Exet.prototype.javaHash = function(key) {
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    let c = key.charCodeAt(i);
-    hash = ((hash << 5) - hash) + c;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash;
-}
-
-Exet.prototype.getAnagrams1 = function(phrase, limit=0, getIndices=false) {
-  const key = this.makeAnagramKey(phrase);
-  const NUM_SHARDS = exetLexicon.anagrams.length
-  let shard = this.javaHash(key) % NUM_SHARDS
-  if (shard < 0) shard += NUM_SHARDS
-  const anagrams = []
-  for (let idx of exetLexicon.anagrams[shard]) {
-    let candidate = exetLexicon.lexicon[idx]
-    if (this.makeAnagramKey(candidate) == key) {
-      anagrams.push(getIndices ? idx : candidate);
-      if (limit > 0 && anagrams.length >= limit) {
-        break;
-      }
-    }
-  }
-  return anagrams;
-}
-
-/**
- * limit: 0 if no limit.
- * seqOK: if false, avoid picking a string of consecutive letters for
- *   anagramming as one of the words in a multi-word anagram (only enforced
- *   for 2-word anagrams).
- */
-Exet.prototype.getAnagrams = function(phrase, limit, seqOK=true) {
-  const anagrams1 = this.getAnagrams1(phrase, limit);
-  const phraseLen = phrase.length;
-  if (phraseLen < 4 || (limit > 0 && anagrams1.length >= limit)) {
-    return anagrams1;
-  }
-  const multiK = (phraseLen <= 7) ? 2 : ((phraseLen <= 10) ? 3 : 4);
-  if (limit > 0) {
-    limit -= anagrams1.length;
-  }
-  const anagramsK = this.getAnagramsK(phrase, limit, multiK, seqOK);
-  return anagrams1.concat(anagramsK);
-}
-
-/**
- * Multi-word anagrams of phrases.
- *
- * Simply using the letter-histogram as the key doesn't work, as we cannot
- * index all possible k-word phrases even for k=2. We can try looking at
- * some subset of the letters first. But, for an n-letter phrase, the
- * number of subsets to look at is 2^n (or something like that, depending
- * on repetitions). So, we use "salient letter key"s (slKey). From letter
- * frequencies in words, the most common 8 letters are [eisarnto]. We
- * build a histogram key of the phrase using only these letters. This leads
- * to an index where the key 'ae' has the biggest mass, at around 1000
- * lexicon words. Next, we limit the subsets to examine as follows. For
- * each salient letter in the phrase, limit its possible counts (in the
- * subset to examine) so that the total number of possibilities is <= 1000.
- * For each subset, we go through all possible candidate words that have
- * that specific slKey (< 1000), and for each candidate, we check if its
- * full letter histogram is subsumed by the full letter histogram of the phrase.
- */
-
-Exet.prototype.letterHist = function(phrase) {
-  const hist = [
-    0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0];
-  for (let l of phrase) {
-    const lc = l.toLowerCase().charCodeAt() - 97;
-    if (lc < 0 || lc > 25) continue;
-    hist[lc]++;
-  }
-  return hist;
-}
-
-/**
- * Returns null if h2 is not a strict subset of h1. Otherwise returns h1-h2.
- */
-Exet.prototype.letterHistSub = function(h1, h2) {
-  const ret = h1.slice();
-  let allZeros = true;
-  for (let i = 0; i < 26; i++) {
-    ret[i] = ret[i] - h2[i];
-    if (ret[i] < 0) return null;
-    if (ret[i] > 0) allZeros = false;
-  }
-  if (allZeros) return null;
-  return ret;
-}
-
-Exet.prototype.slKey = function(phrase) {
-  const hist = [0,0,0,0,0,0,0,0];
-  for (let l of phrase) {
-    const idx = this.SLK_CODES.indexOf(l.toLowerCase().charCodeAt());
-    if (idx < 0) continue;
-    hist[idx]++;
-  }
-  return hist;
-}
-
-Exet.prototype.initAnagrammer = function() {
-  this.SLK_LETTERS = 'eisarnto';
-  console.assert(this.SLK_LETTERS.length == 8, this.SLK_LETTERS);
-  this.SLK_CODES = [];
-  for (let l of this.SLK_LETTERS) {
-    this.SLK_CODES.push(l.charCodeAt());
-  }
-  this.slkIndex = {};
-  for (let idx = 1; idx < exetLexicon.lexicon.length; idx++) {
-    const entry = exetLexicon.lexicon[idx];
-    const k = this.slKey(entry);
-    if (!this.slkIndex[k]) this.slkIndex[k] = [];
-    this.slkIndex[k].push(idx);
-  }
-}
-
-Exet.prototype.getSubsetAnagrams = function(phrase, seqOK) {
-  const slk = this.slKey(phrase);
-  const slkLimits = slk.slice();
-  let product = 1;
-  for (let i = 0; i < 8; i++) {
-    slkLimits[i] = Math.min(1, slkLimits[i]);
-    product = product * (slkLimits[i] + 1);
-  }
-  let maxed = false;
-  while (product < 1000 && !maxed) {
-    maxed = true;
-    for (let i = 0; i < 8 && product < 1000; i++) {
-      if (slkLimits[i] < slk[i]) {
-        maxed = false;
-        slkLimits[i]++;
-        product = product * (slkLimits[i] + 1) / slkLimits[i];
-      }
-    }
-  }
-  const fullHist = this.letterHist(phrase);
-  const subkey = [0,0,0,0,0,0,0,0];
-  const anagrams = [];
-  const phraseSeq = seqOK ? '' : this.makeCharadeParam(phrase);
-
-  // Vary the more common letters in the inner loops.
-  for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
-    subkey[7] = i7;
-    for (let i6 = 0; i6 <= slkLimits[6]; i6++) {
-      subkey[6] = i6;
-      for (let i5 = 0; i5 <= slkLimits[5]; i5++) {
-        subkey[5] = i5;
-        for (let i4 = 0; i4 <= slkLimits[4]; i4++) {
-          subkey[4] = i4;
-          for (let i3 = 0; i3 <= slkLimits[3]; i3++) {
-            subkey[3] = i3;
-            for (let i2 = 0; i2 <= slkLimits[2]; i2++) {
-              subkey[2] = i2;
-              for (let i1 = 0; i1 <= slkLimits[1]; i1++) {
-                subkey[1] = i1;
-                for (let i0 = 0; i0 <= slkLimits[0]; i0++) {
-                  subkey[0] = i0;
-                  const wordIndices = this.slkIndex[subkey];
-                  if (!wordIndices) continue;
-                  for (let wordIndex of wordIndices) {
-                    const word = exetLexicon.lexicon[wordIndex];
-                    const wordHist = this.letterHist(word);
-                    const diffHist = this.letterHistSub(fullHist, wordHist);
-                    if (!diffHist) continue;
-                    if (!seqOK &&
-                        phraseSeq.includes(this.makeCharadeParam(word))) {
-                      continue;
-                    }
-                    anagrams.push([wordIndex, diffHist]);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  return anagrams;
-}
-
-Exet.prototype.lettersFromHist = function(h) {
-  let ret = '';
-  for (let i = 0; i < 26; i++) {
-    const c = String.fromCharCode(97 + i).repeat(h[i]);
-    ret = ret + c;
-  }
-  return ret;
-}
-
-Exet.prototype.lexToSortedWords = function(list) {
-  list.sort((a, b) => {
-    const spaceDiff = a.length - b.length;
-    return (spaceDiff == 0) ? Math.max( ...a ) - Math.max( ...b ) : spaceDiff;
-  });
-  const wordsList = [];
-  for (let entry of list) {
-    const words = [];
-    for (let idx of entry) {
-      words.push(exetLexicon.lexicon[idx]);
-    }
-    wordsList.push(words.join(' '));
-  }
-  return wordsList;
-}
-
-Exet.prototype.getAnagramsK = function(phrase, limit, k, seqOK) {
-  return this.lexToSortedWords(
-      this.getAnagramsKIndices(phrase, limit, k, seqOK));
-}
-
-Exet.prototype.getAnagramsKIndices = function(phrase, limit, k, seqOK) {
-  console.assert(k > 1, k);
-  console.assert(limit >= 0, limit);
-  const anagrams = [];
-  const seenAnagrams = {};
-  const partials = this.getSubsetAnagrams(phrase, seqOK);
-  const phraseSeq = seqOK ? '' : this.makeCharadeParam(phrase);
-  for (let partial of partials) {
-    const delta = this.lettersFromHist(partial[1]);
-    if (!delta) continue;
-    const deltaAnagrams = this.getAnagrams1(delta, limit, true);
-    for (let deltaAnagram of deltaAnagrams) {
-      if (!seqOK &&
-          phraseSeq.includes(this.makeCharadeParam(
-              exetLexicon.lexicon[deltaAnagram]))) {
-        continue;
-      }
-      candidate = [partial[0], deltaAnagram].sort((a, b) => a - b);
-      if (!seenAnagrams[candidate]) {
-        seenAnagrams[candidate] = true;
-        anagrams.push(candidate);
-        if (limit > 0) {
-          limit--;
-          if (limit == 0) return anagrams;
-        }
-      }
-    }
-  }
-  if (k == 2) {
-    return anagrams;
-  }
-  console.assert(limit >= 0, limit);
-  for (let partial of partials) {
-    const delta = this.lettersFromHist(partial[1]);
-    if (!delta) continue;
-    // Delta has sorted order, need to set seqOK to true for recursive call.
-    const deltaAnagrams = this.getAnagramsKIndices(delta, limit, k - 1, true);
-    for (let deltaAnagram of deltaAnagrams) {
-      candidate = [partial[0]].concat(deltaAnagram).sort((a, b) => a - b);
-      if (!seenAnagrams[candidate]) {
-        seenAnagrams[candidate] = true;
-        anagrams.push(candidate);
-        if (limit > 0) {
-          limit--;
-          if (limit <= 0) return anagrams;
-        }
-      }
-    }
-  }
-  return anagrams;
-}
-
-/**
- * End of code for multi-word anagrams.
- */
-
 Exet.prototype.IntersectChoices = function(set1, set2) {
   let result = {}
   for (let x in set2) {
@@ -8396,8 +7799,11 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
     if (theClue.solution.indexOf('?') >= 0) {
       continue
     }
-    let key = this.makeLexKey(theClue.solution)
-    let choices = this.getLexChoices(key, 1, dontReuse)
+    let key = exetLexicon.makeLexKey(theClue.solution);
+    let choices = exetLexicon.getLexChoices(key, 1, dontReuse,
+        this.noProperNouns,
+        this.indexMinPop,
+        false, this.preflexByLen, this.unpreflex);
     if (choices.length > 0) {
       let p = choices[0]
       dontReuse[p] = true
@@ -8426,8 +7832,8 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
         changes++;
         continue
       }
-      let key = this.makeLexKey(this.getLex(lchoice))
-      if (lchoice < 0) key = this.reverse(key);
+      let key = exetLexicon.makeLexKey(exetLexicon.getLex(lchoice))
+      if (lchoice < 0) key = exetLexicon.reverse(key);
       let viable = true
       for (let i = 0; i < key.length; i++) {
         let cell = cells[i]
@@ -8630,7 +8036,7 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
       let limit = Math.min(this.shownLightChoices, tempClue.lChoices.length)
       for (let i = 0; i < limit; i++) {
         let lchoice = tempClue.lChoices[i]
-        let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+        let key = exetLexicon.makeLexKey(exetLexicon.lexicon[lchoice])
         console.assert(key.length = cells.length, key.length, cells.length)
         for (let k = 0; k < key.length; k++) {
           let letter = key.charAt(k).toUpperCase()
@@ -8662,7 +8068,7 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
       tempClue.lChoices = []
       for (let i = 0; i < choices.length; i++) {
         let lchoice = choices[i]
-        let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+        let key = exetLexicon.makeLexKey(exetLexicon.lexicon[lchoice])
         let viable = true
         for (let j = 0; j < key.length; j++) {
           let cell = cells[j]
@@ -8733,7 +8139,7 @@ Exet.prototype.findDeadendsByClue = function() {
       this.deadendClueLightCheck + CHOICES_TO_CHECK)
   let oldLen = theClue.lChoices.length
   for (let lchoice of choices) {
-    let key = this.makeLexKey(exetLexicon.lexicon[lchoice])
+    let key = exetLexicon.makeLexKey(exetLexicon.lexicon[lchoice])
     console.assert(key.length = cells.length, key.length, cells.length)
     let tempFillState = new ExetFillState(this.fillState)
     for (let i = 0; i < cells.length; i++) {
@@ -8873,7 +8279,7 @@ Exet.prototype.initViability = function() {
         gridCell.cChoices[gridCell.solution] = true
         gridCell.viability = 1.0;
       } else {
-        gridCell.cChoices = this.allLetters
+        gridCell.cChoices = exetLexicon.allLetters
         gridCell.viability = 5.0;
       }
     }
@@ -8891,8 +8297,11 @@ Exet.prototype.resetViability = function() {
     if (!theClue.solution || theClue.solution.indexOf('?') >= 0) {
       continue
     }
-    let key = this.makeLexKey(theClue.solution)
-    let choices = this.getLexChoices(key, 1, dontReuse)
+    let key = exetLexicon.makeLexKey(theClue.solution);
+    let choices = exetLexicon.getLexChoices(key, 1, dontReuse,
+        this.noProperNouns,
+        this.indexMinPop,
+        false, this.preflexByLen, this.unpreflex);
     this.fillState.clues[ci].lChoices = choices;
     this.fillState.clues[ci].lRejects = [];
     if (choices.length > 0) {
@@ -8906,24 +8315,19 @@ Exet.prototype.resetViability = function() {
   }
   for (let ci in this.fillState.clues) {
     let theClue = this.fillState.clues[ci]
-    let key = this.makeLexKey(theClue.solution)
+    let key = exetLexicon.makeLexKey(theClue.solution)
     if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue
     }
-    theClue.lChoices = this.getLexChoices(key, 0, dontReuse, this.tryReversals);
+    theClue.lChoices = exetLexicon.getLexChoices(key, 0, dontReuse,
+        this.noProperNouns,
+        this.indexMinPop,
+        this.tryReversals, this.preflexByLen, this.unpreflex);
     theClue.lRejects = [];
   }
   this.updateFillChoices()
   this.updateViablots()
   this.startDeadendSweep()
-}
-
-Exet.prototype.getLex = function(idx) {
-  return exetLexicon.lexicon[Math.abs(idx)];
-}
-
-Exet.prototype.reverse = function(s) {
-  return s.split("").reverse().join("");
 }
 
 // Helper for fillLight when it needs to do a reversal of a linked
@@ -8990,12 +8394,12 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   if (!ci) {
     return
   }
-  let solution = this.getLex(idx);
+  let solution = exetLexicon.getLex(idx);
   let theClue = this.puz.clues[ci]
   let cells = this.puz.getAllCells(ci);
   if (!theClue || !solution ||
       theClue.parentClueIndex ||
-      this.makeLexKey(solution).length != cells.length) {
+      exetLexicon.makeLexKey(solution).length != cells.length) {
     return
   }
   // All checks passed!
@@ -9067,13 +8471,12 @@ Exet.prototype.setPreflex = function(preflex) {
     exetLexicon.lexicon.pop()
   }
   this.preflexByLen = {}
-  const savedMinPop = this.indexMinPop;
-  const savedNoProper = this.noProperNouns;
-  this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
-  this.noProperNouns = false;
   for (let p of this.preflex) {
-    let len = this.makeLexKey(p).length
-    let inLexicon = this.getLexChoices(p, 1)
+    let len = exetLexicon.makeLexKey(p).length;
+    let inLexicon = exetLexicon.getLexChoices(p, 1, {},
+        false, // no proper nouns
+        0,  // no index limit
+        false, this.preflexByLen, this.unpreflex);
     if (inLexicon.length > 0) {
       p = inLexicon[0]
     } else  {
@@ -9084,8 +8487,6 @@ Exet.prototype.setPreflex = function(preflex) {
     this.preflexByLen[len].push(p)
     this.preflexSet[p] = true
   }
-  this.indexMinPop = savedMinPop;
-  this.noProperNouns = savedNoProper;
 }
 
 Exet.prototype.throttledUpdatePreflex = function() {
@@ -9106,7 +8507,7 @@ Exet.prototype.updatePreflex = function() {
   for (let p of preflexes) {
     p = p.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ')
     if (!p) continue
-    let hash = this.javaHash(p.toLowerCase())
+    let hash = exetLexicon.javaHash(p.toLowerCase())
     if (seen[hash]) continue
     seen[hash] = true
 
@@ -9159,16 +8560,15 @@ Exet.prototype.updateUnpreflex = function() {
   let unpreflexes = this.unpreflexInput.value.trim().split('\n')
   let saved = this.unpreflex
   this.unpreflex = {}
-  const savedMinPop = this.indexMinPop;
-  const savedNoProper = this.noProperNouns;
-  this.indexMinPop = exetLexicon.startLen;  // Look everywhere.
-  this.noProperNouns = false;
   for (let p of unpreflexes) {
     p = p.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ')
     if (!p) continue
 
-    let len = this.makeLexKey(p).length
-    let inLexicon = this.getLexChoices(p, 1)
+    let len = exetLexicon.makeLexKey(p).length;
+    let inLexicon = exetLexicon.getLexChoices(p, 1, {},
+        false,  // no proper nouns
+        0,  // no index limit
+        false, this.preflexByLen, this.unpreflex);
     if (inLexicon.length != 1) {
       continue
     }
@@ -9178,8 +8578,6 @@ Exet.prototype.updateUnpreflex = function() {
     p = inLexicon[0]
     this.unpreflex[p] = true
   }
-  this.indexMinPop = savedMinPop;
-  this.noProperNouns = savedNoProper;
   this.unpreflexSize.innerText = Object.keys(this.unpreflex).length
   if (JSON.stringify(this.unpreflex) == JSON.stringify(saved)) {
     return
@@ -9193,14 +8591,14 @@ Exet.prototype.numEnumPunctMatches = function(p, e) {
   let minl = Math.min(p.length, e.length);
   for (let i = 0; i < minl; i++) {
     if (p[i] != '?' && p[i] == e[i]) num++;
-    if (p[i] == '?' && !this.allLetters[e[i].toUpperCase()]) num--;
+    if (p[i] == '?' && !exetLexicon.allLetters[e[i].toUpperCase()]) num--;
   }
   return num;
 }
 
 Exet.prototype.enumMatchSorter = function(p, k1, k2) {
-  const entry1 = this.getLex(k1);
-  const entry2 = this.getLex(k2);
+  const entry1 = exetLexicon.getLex(k1);
+  const entry2 = exetLexicon.getLex(k2);
   return this.numEnumPunctMatches(p, entry2) -
          this.numEnumPunctMatches(p, entry1);
 }
@@ -9236,7 +8634,7 @@ Exet.prototype.updateFillChoices = function() {
   let numShown = 0
   for (let choice of lChoices) {
     html = html + `
-      <tr><td>${choice < 0 ? '&lArr; ' : ''}${this.getLex(choice)}</td></tr>`;
+      <tr><td>${choice < 0 ? '&lArr; ' : ''}${exetLexicon.getLex(choice)}</td></tr>`;
     numShown++
     if (numShown >= this.shownLightChoices) break;
   }
@@ -9245,13 +8643,13 @@ Exet.prototype.updateFillChoices = function() {
   let numRejects = 0
   for (let choice of lRejects) {
     htmlRej = htmlRej + `
-      <tr><td>${choice < 0 ? '&lArr; ' : ''}${this.getLex(choice)}</td></tr>`;
+      <tr><td>${choice < 0 ? '&lArr; ' : ''}${exetLexicon.getLex(choice)}</td></tr>`;
     numRejects++
     if (numRejects >= this.shownLightChoices) break;
   }
 
 
-  let htmlHash = this.javaHash(html + htmlRej + ci)
+  let htmlHash = exetLexicon.javaHash(html + htmlRej + ci)
   if (this.shownChoicesHash && this.shownChoicesHash == htmlHash) {
     return
   }
@@ -9514,52 +8912,63 @@ function exetLoadFile() {
   fr.readAsText(f)
 }
 
-let exetRevManager = new ExetRevManager();
-let exetModals = new ExetModals();
-if (!window.localStorage) {
-  throw "localStorage is not available!"
-}
-if (!exetLexicon) {
-  throw "No lexicon has been loaded!"
-}
-exetLexicon.startLen = exetLexicon.lexicon.length
+let exetRevManager;
+let exetModals;
+let exetState;
+let exet;
 
-let exet = new Exet;
+document.addEventListener('DOMContentLoaded', () => {
+  const xetLoading = document.getElementById('xet-loading');
+  if (!exetLexicon) {
+    xetLoading.innerHTML = '<div class="xet-red"><h3>Failed to load the lexicon :-(</h3></div>';
+    throw "No lexicon has been loaded!"
+  }
+  xetLoading.remove();
 
-let exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
-if (exetState) {
-  exetState = JSON.parse(exetState)
-} else {
-  exetState = {};
-}
-if (!exetState.hasOwnProperty('showEnums')) {
-  exetState.showEnums = true;
-}
-if (!exetState.hasOwnProperty('exolveUrl')) {
-  exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
-}
-if (!exetState.hasOwnProperty('spellcheck')) {
-  exetState.spellcheck = false;
-}
-if (exetState.lastId) {
-  let saved = window.localStorage.getItem(exetState.lastId)
-  if (saved) {
-    saved = JSON.parse(saved)
-    if (saved.revs.length > 0) {
-      exetFromHistory(saved.revs[saved.revs.length - 1])
+  exetLexiconInit();
+
+  exetRevManager = new ExetRevManager();
+  exetModals = new ExetModals();
+  if (!window.localStorage) {
+    throw "localStorage is not available!"
+  }
+
+  exet = new Exet;
+  exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
+  if (exetState) {
+    exetState = JSON.parse(exetState)
+  } else {
+    exetState = {};
+  }
+  if (!exetState.hasOwnProperty('showEnums')) {
+    exetState.showEnums = true;
+  }
+  if (!exetState.hasOwnProperty('exolveUrl')) {
+    exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
+  }
+  if (!exetState.hasOwnProperty('spellcheck')) {
+    exetState.spellcheck = false;
+  }
+  if (exetState.lastId) {
+    let saved = window.localStorage.getItem(exetState.lastId)
+    if (saved) {
+      saved = JSON.parse(saved)
+      if (saved.revs.length > 0) {
+        exetFromHistory(saved.revs[saved.revs.length - 1])
+      }
     }
   }
-}
-if (!exet.puz) {
-  let url = new URL(location.href)
-  let newgrid = url.searchParams.get('newgrid')
-  if (newgrid == 'blank') {
-    exetBlank(15, 15, 1, '', false, false)
-  } else {
-    exetBlank(15, 15, 1, '', true, true)
+  if (!exet.puz) {
+    let url = new URL(location.href)
+    let newgrid = url.searchParams.get('newgrid')
+    if (newgrid == 'blank') {
+      exetBlank(15, 15, 1, '', false, false)
+    } else {
+      exetBlank(15, 15, 1, '', true, true)
+    }
   }
-}
-exet.finishSetup()
+  exet.finishSetup()
+});
 
 </script>
 

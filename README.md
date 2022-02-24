@@ -2,27 +2,35 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.69 February 14, 2022
+#### Version: Exet v0.70 February 24, 2022
 
 #### Author: Viresh Ratnakar
 
 Exet is free, open source software for setting crosswords.
-You can use Exet from my site, [exet.app](https://exet.app)
-or you can download and use your own copy of the software from this
-repository and a couple of files from
-[Exolve](https://github.com/viresh-ratnakar/exolve).
-These are all the files needed:
+You can use Exet from my serving site: [exet.app](https://exet.app).
+
+You can also download and use/serve your own copy of the software. For that,
+you need files from this repository as well as a couple of files from
+[Exolve](https://github.com/viresh-ratnakar/exolve), the companion software
+that enables interactive crossword solving in a browser.
+
+These are all the files needed from this repository:
+
 - [`exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.html),
+- [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js),
 - [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
 - [`exet-version.txt`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-version.txt),
-- [`lufz-en-lexicon.js.`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
-- [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
-- [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
+- [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
 - [`no-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-unches.png),
   [`t-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/t-unches.png),
   [`l-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/l-unches.png),
   [`tl-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/tl-unches.png),
   [`no-blocks.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-blocks.png).
+
+And here are the files needed from Exolve:
+
+- [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
+- [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
 
 Exet comes with a permissive MIT license. The full license notice is provided in
 the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
@@ -62,11 +70,21 @@ following modifications to the UKACD words list:
 
 - Removed a few swear words.
 - Replaced all accented characters with non-accented ones.
-- Deleted all punctuation characters other than spaces, hyphens, and apostrophes.
-- Attached a popularity score to each word/phrase using a dump of all of Wikipedia's English-language articles.
+- Deleted all punctuation characters other than spaces, hyphens, and
+  apostrophes.  - Attached a popularity score to each word/phrase using a
+  dump of all of Wikipedia's English-language articles.
 - Created an index of the lexicon suitable for use by my JavaScript
   code. Source code for the last two steps is available in my
   [Lufz GitHub repository](https://github.com/viresh-ratnakar/lufz).
+
+The `exetLexicon` JavaScript object can be set up in other apps too,
+by loading these two script files.
+
+- [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js)
+- [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js)
+
+This provides functionality such as getting anagrams, homophones, spoonerisms,
+and words/phrases matching a pattern.
 
 ## Crossword construction walk-through
 
@@ -74,7 +92,7 @@ To use Exet, you simply open a link to `exet.html`, such as [this one on
 my site](https://viresh-ratnakar.github.io/exet.html), in a browser.
 
 The first time you open Exet, it might take a few seconds to load, as it fetches
-a large (19 MB) lexicon file. I'll try to improve this in the future.
+a large (19 MB) lexicon file.
 
 After it loads, your browser screen should look something like this:
 
@@ -496,7 +514,7 @@ word/phrase in the current light:
 - **Chambers Dictionary & Thesaurus**: [https://chambers.co.uk](https://chambers.co.uk)
 - **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Onelook**: [onelook.com](https://onelook.com)
-- **Google Dictionary**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
+- **DictionaryAPI**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
 In addition, the "Research" tab lets you search
@@ -871,7 +889,7 @@ to add any of the following features.
 - Jigsaw puzzles
 - Submission link
 
-I plan to add direct support for other languages and lexicons to Exet,
+I hope to add direct support for other languages and lexicons to Exet,
 at some point.
 
 ## Notes and acknowledgements

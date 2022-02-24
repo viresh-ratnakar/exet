@@ -1,5 +1,15 @@
 # Changelog
 
+### Version: Exet v0.70 February 24, 2022
+
+- Add "Loading..." messages for all iframe loads of external URLs.
+- Update dictionaryapi.dev URL to v2, and correct its name from Google
+  Dictionary to DictionaryAPI.
+- Refactor lexicon related code into exet-lexicon.js (for reuse by other
+  apps).
+- Load the bulky exetLexicon object using "defer". Show a 'loading lexicon'
+  message until it loads.
+
 ### Version: Exet v0.69 February 14, 2022
 
 - Before moving away from the current clue, finish processing any buffered
