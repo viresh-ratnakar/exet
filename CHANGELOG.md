@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Unnumbered minor tweak May 8, 2022
+
+- Add Merriam-Webster dictionary and thesaurus to the Research tab
+
 ### Version: Exet v0.70 February 24, 2022
 
 - Add "Loading..." messages for all iframe loads of external URLs.
