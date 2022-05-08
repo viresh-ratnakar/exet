@@ -512,6 +512,7 @@ by using reputed online resources, conveniently linking directly to the
 word/phrase in the current light:
 
 - **Chambers Dictionary & Thesaurus**: [https://chambers.co.uk](https://chambers.co.uk)
+- **Merriam-Webster Dictionary & Thesaurus**: [https://www.merriam-webster.com/](https://www.merriam-webster.com/)
 - **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Onelook**: [onelook.com](https://onelook.com)
 - **DictionaryAPI**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
