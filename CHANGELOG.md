@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Minor tweak and typo fixes, May 8, 2022
+
+- Link to Onelook with a more sueful URL.
+- Minor doc typo-fixes.
+
 ### Version: Unnumbered minor tweak May 8, 2022
 
 - Add Merriam-Webster dictionary and thesaurus to the Research tab

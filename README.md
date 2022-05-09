@@ -511,24 +511,24 @@ usage, pronunciation, and etymology. The "Research" tab lets you do that
 by using reputed online resources, conveniently linking directly to the
 word/phrase in the current light:
 
-- **Chambers Dictionary & Thesaurus**: [https://chambers.co.uk](https://chambers.co.uk)
-- **Merriam-Webster Dictionary & Thesaurus**: [https://www.merriam-webster.com/](https://www.merriam-webster.com/)
+- **Chambers Dictionary & Thesaurus**: [chambers.co.uk](https://chambers.co.uk)
+- **Merriam-Webster Dictionary & Thesaurus**: [www.merriam-webster.com](https://www.merriam-webster.com)
 - **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Onelook**: [onelook.com](https://onelook.com)
 - **DictionaryAPI**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
 
 In addition, the "Research" tab lets you search
-[cryptics.georgeho.org/](https://cryptics.georgeho.org/), which is an excellent
+[cryptics.georgeho.org](https://cryptics.georgeho.org/), which is an excellent
 database of published cryptic clues, for:
 
 - Definitions that others might have used for an entry, in cryptic clues.
 - Phrases from the clue that others might have used as cryptic indicators. In
   particular, if you have used a cryptic indicator that you're not sure about,
-  this is an excellent research to check wheter setters in published newspapers
-  have used it in the same way. Only 1-word and 2-word phrases from the clue
-  are searched for by default, but you can easily edit the SQL query to add
-  any longer phrase that you may have used as an indicator.
+  this is an excellent research tool for checking whether any setters in
+  published newspapers have used it in the same way. Only 1-word and 2-word
+  phrases from the clue are searched for by default, but you can easily edit
+  the SQL query to add any longer phrase that you may have used as an indicator.
 
 For cryptic crosswords, there are some additional tabs that setters may find
 useful. In all of these (other than "Lists"), the wordplay candidates are shown
