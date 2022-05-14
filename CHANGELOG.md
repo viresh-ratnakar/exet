@@ -1,8 +1,13 @@
 # Changelog
 
+### Version: Minor tweak and typo fixes, May 13, 2022
+
+- Link to a consolidated table of indicators from `cryptics.georgeho.org` in
+  the "Lists" tab.
+
 ### Version: Minor tweak and typo fixes, May 8, 2022
 
-- Link to Onelook with a more sueful URL.
+- Link to Onelook with a more useful URL.
 - Minor doc typo-fixes.
 
 ### Version: Unnumbered minor tweak May 8, 2022
