@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.70 February 24, 2022
+Current version: v0.71 June 12, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -157,6 +157,10 @@ Current version: v0.70 February 24, 2022
   font-weight: normal;
   font-size: 14px;
   padding: 2px 2px 4px 2px;
+  overflow: visible;
+}
+.xet-curr-clue {
+  overflow-y: auto;
 }
 #xet-unlink {
   padding: 4px;
@@ -164,6 +168,8 @@ Current version: v0.70 February 24, 2022
 .xet-linking {
   position: absolute;
   z-index: 1;
+  top: -28px;
+  left: 0;
   background-color: white;
   border: 1px solid dodgerblue;
   padding: 2px 4px 0 4px;
@@ -177,6 +183,8 @@ Current version: v0.70 February 24, 2022
 }
 .xet-format {
   position: absolute;
+  top: -28px;
+  right: 0;
   z-index: 2;
   background-color: white;
 }
@@ -838,16 +846,16 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
           <span>Space used: ${storageUsedMB} MB</span>
           <span>Space available: <span
             class="xet-red">${storageFreeMB}</span> MB</span>
-          <button id="xset-puz-rev-deleter"
+          <button id="xet-puz-rev-deleter"
             style="float:right;margin: 0 16px; display: none"
             class="xlv-button">Delete rev</button>
-          <button id="xset-puz-prior-deleter"
+          <button id="xet-puz-prior-deleter"
             style="float:right;margin: 0 16px; display: none"
             class="xlv-button">Delete older revs!</button>
-          <button id="xset-puz-deleter"
+          <button id="xet-puz-deleter"
             style="float:right;margin: 0 16px; display: none"
             class="xlv-button">Delete!</button>
-          <button id="xset-puz-rev-selector"
+          <button id="xet-puz-rev-selector"
             style="float:right;margin: 0 16px; display: none"
             class="xlv-button">Open</button>
         </div>
@@ -869,10 +877,10 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
   this.preview = document.getElementById('xet-preview')
   this.idChoice = ''
   this.revChoice = -1
-  this.puzDeleter = document.getElementById('xset-puz-deleter')
-  this.puzPriorDeleter = document.getElementById('xset-puz-prior-deleter')
-  this.puzRevDeleter = document.getElementById('xset-puz-rev-deleter')
-  this.puzRevSelector = document.getElementById('xset-puz-rev-selector')
+  this.puzDeleter = document.getElementById('xet-puz-deleter')
+  this.puzPriorDeleter = document.getElementById('xet-puz-prior-deleter')
+  this.puzRevDeleter = document.getElementById('xet-puz-rev-deleter')
+  this.puzRevSelector = document.getElementById('xet-puz-rev-selector')
   this.manageStorage = manageStorage
   if (manageStorage) {
     this.puzDeleter.style.display = ''
@@ -981,12 +989,16 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
 };
 
 Exet.prototype.renderPreview = function(spec, eltId) {
-  let newPuz = new Exolve(spec, eltId, null, false, 0, 400, false)
-  document.getElementById(
-      `${newPuz.prefix}-controls-etc`).style.display = 'none';
-  document.getElementById(
-      `${newPuz.prefix}-curr-clue-parent`).style.display = 'none'
-  newPuz.revealAll(false)
+  try {
+    let newPuz = new Exolve(spec, eltId, null, false, 0, 400, false)
+    document.getElementById(
+        `${newPuz.prefix}-controls-etc`).style.display = 'none';
+    document.getElementById(
+        `${newPuz.prefix}-clear-area`).style.display = 'none'
+    newPuz.revealAll(false)
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 ExetRevManager.prototype.chooseRev = function() {
@@ -1271,7 +1283,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.70 February 24, 2022'
+  this.version = 'v0.71 June 12, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1393,6 +1405,7 @@ Exet.prototype.setPuzzle = function(puz) {
     }
   }
   this.puz = puz
+  puz.useWebifi = false;
   puz.revealAll(false)
 
   if (!this.prefix && !this.suffix) {
@@ -1581,6 +1594,8 @@ Exet.prototype.setPuzzle = function(puz) {
   document.getElementById(
       `${this.puz.prefix}-print`).style.display = 'none'
   document.getElementById(
+      `${this.puz.prefix}-webifi`).style.display = 'none'
+  document.getElementById(
       `${this.puz.prefix}-report-bug`).style.display = 'none'
   document.getElementById(
       `${this.puz.prefix}-exolve-link`).style.display = 'none'
@@ -1621,26 +1636,6 @@ Exet.prototype.setPuzzle = function(puz) {
 
   this.preamble = document.getElementById(`${this.puz.prefix}-preamble`)
   this.explanations = document.getElementById(`${this.puz.prefix}-explanations`)
-
-  this.puz.currClueParent.insertAdjacentHTML('afterbegin', `
-    <div id="xet-linking" class="xet-linking">
-      <button id="xet-add-linked" class="xlv-small-button">Add</button>
-      <input id="xet-add-linked-num" name="xet-add-linked-num"
-        title="Enter a clue number followed by a direction suffix"
-            class="xlv-answer" size="4" type="text"></input>
-      as a linked clue.
-      &nbsp;
-      <button class="xlv-small-button" id="xet-unlink" style="color:red">
-      Break linked clues
-    </div>
-    `);
-  document.getElementById("xet-add-linked").addEventListener(
-      'click', this.addLinkedClue.bind(this));
-  this.linking = document.getElementById('xet-linking');
-  this.linking.style.display = 'none';
-  this.unlink = document.getElementById("xet-unlink");
-  this.unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
-  this.unlink.style.display = 'none';
 
   // Make clues-box divs wider
   const cbs = document.getElementsByClassName('xlv-clues-box')
@@ -4764,27 +4759,22 @@ Exet.prototype.reposition = function() {
       }
     }
   }
-
-  const clueParentBox = this.puz.currClueParent.getBoundingClientRect()
-
-  if (this.puz.currClueIndex && clueBox.top > 0) {
-    this.linking.style.left = (clueBox.left - clueParentBox.left) + 'px';
-    this.linking.style.top = (clueBox.top - clueParentBox.top - 34) + 'px';
+  if (this.xetCurrClue) {
+    this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
   }
 
-  const colourNinaWidth = Math.min(300, (clueParentBox.width - clueBox.width) / 2);
+  const clearAreaBox = this.puz.clearArea.getBoundingClientRect()
+
+  const colourNinaWidth = Math.min(300, (clearAreaBox.width - clueBox.width) / 2);
   this.tweakColourNina.style.width = colourNinaWidth + 'px';
 
   const xetFormat = document.getElementById('xet-format')
   if (xetFormat) {
-    const previewWidth = Math.min(480, (clueParentBox.width - clueBox.width) / 2);
+    const previewWidth = Math.min(480, (clearAreaBox.width - clueBox.width) / 2);
     for (let tag of Object.keys(this.formatTags)) {
       const preview = document.getElementById('xet-format-' + tag + '-preview')
       preview.style.width = previewWidth + 'px';
     }
-    xetFormat.style.top = (-32 + clueBox.top - clueParentBox.top) + 'px';
-    xetFormat.style.right = (clueParentBox.width -
-        clueBox.width - clueBox.left) + 'px';
   }
 }
 
@@ -4948,6 +4938,23 @@ Exet.prototype.makeClueEditable = function() {
   if (!theClue) {
     return
   }
+  /**
+   * Wrap xlv-curr-clue's children in a new div of class xet-curr-clue.
+   * xet-curr-clue will copy max-height from Exolve's settings
+   * of xlv-curr-clue, and it will have overflow-y=auto. But xlv-curr-clue
+   * itself will have overflow=visible, so that the "linking" and "format"
+   * floating elements will get shown.
+   */
+  this.xetCurrClue = document.createElement('div');
+  this.xetCurrClue.className = 'xet-curr-clue';
+  this.xetCurrClue.id = 'xet-curr-clue';
+  this.xetCurrClue.style.width = this.puz.currClue.style.width;
+  this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
+  while (this.puz.currClue.children.length > 0) {
+    this.xetCurrClue.appendChild(this.puz.currClue.children[0]);
+  }
+  this.puz.currClue.appendChild(this.xetCurrClue);
+
   const currClueText = document.getElementById(
       `${exet.puz.prefix}-curr-clue-text`)
   currClueText.innerHTML = `<span class="xet-action">Edit clue: </span><span
@@ -4973,7 +4980,7 @@ Exet.prototype.makeClueEditable = function() {
   const spacer = document.createElement('span')
   spacer.innerHTML = `<br><span class="xet-action">Edit
       optional anno: </span>`
-  this.puz.currClue.appendChild(spacer)
+  this.xetCurrClue.appendChild(spacer)
 
   let xetAnno = document.createElement('span')
   xetAnno.className = 'xet-anno xet-editable'
@@ -4981,9 +4988,28 @@ Exet.prototype.makeClueEditable = function() {
   xetAnno.contentEditable = true
   xetAnno.spellcheck = exetState.spellcheck
   xetAnno.innerText = theClue.anno
-  this.puz.currClue.appendChild(xetAnno)
+  this.xetCurrClue.appendChild(xetAnno)
   xetAnno.addEventListener('input', handler)
 
+  this.linking = document.createElement('div');
+  this.linking.id = 'xet-linking';
+  this.linking.className = 'xet-linking';
+  this.linking.title = 'Press the "Add" button after entering the clue to link to';
+  this.linking.innerHTML = `
+    <button id="xet-add-linked" class="xlv-small-button">Add</button>
+    <input id="xet-add-linked-num" name="xet-add-linked-num"
+      title="Enter a clue number followed by a direction suffix"
+          class="xlv-answer" size="8" placeholder="[N][a/d]" type="text"></input>
+      as a linked clue.  &nbsp;
+    <button class="xlv-small-button" id="xet-unlink" style="color:red">
+    Break linked clues
+    `;
+  this.linking.style.display = 'none';
+  this.puz.currClue.appendChild(this.linking)
+  document.getElementById("xet-add-linked").addEventListener(
+      'click', this.addLinkedClue.bind(this));
+  this.unlink = document.getElementById("xet-unlink");
+  this.unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
   if (theClue.childrenClueIndices && theClue.childrenClueIndices.length > 0) {
     this.unlink.style.display = '';
   } else {
@@ -5104,7 +5130,7 @@ Exet.prototype.makeClueEditable = function() {
         </button>
       </span>
     </div>`
-  this.puz.currClueParent.appendChild(format)
+  this.puz.currClue.appendChild(format)
 
   const formatShortcut = (e) => {
     if (!e.ctrlKey) return true;
@@ -5127,7 +5153,7 @@ Exet.prototype.makeClueEditable = function() {
   xetClue.addEventListener('keydown', formatShortcut)
   xetAnno.addEventListener('keydown', formatShortcut)
 
-  this.puz.makeCurrClueVisible()
+  this.puz.resizeCurrClue()
   this.reposition()
 
   const formatRevealer = this.maybeShowFormat.bind(this)
@@ -5220,7 +5246,7 @@ Exet.prototype.handleClueChange = function() {
   theClue.annoSpan.lastElementChild.innerHTML = theClue.anno
   this.renderClue(theClue)
 
-  this.puz.makeCurrClueVisible()
+  this.puz.resizeCurrClue()
   this.reposition()
 
   this.restoreCursor();

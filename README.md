@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.70 February 24, 2022
+#### Version: Exet v0.71 June 12, 2022
 
 #### Author: Viresh Ratnakar
 
@@ -221,7 +221,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of February 2022) has 250,192 entries. Providing a popularity threshold
+  as of June 2022) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**

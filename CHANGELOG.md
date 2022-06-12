@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.71 June 12, 2022
+
+- Exolve v1.38 removes xlv-curr-clue-parent (as it now make xlv-curr-clue have
+  CSS "position: sticky"). Deal with that, esp for xet-linking and xet-format.
+
 ### Version: Minor tweak and typo fixes, May 13, 2022
 
 - Link to a consolidated table of indicators from `cryptics.georgeho.org` in
