@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.71 June 12, 2022
+Current version: v0.72 June 21, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -400,7 +400,7 @@ Current version: v0.71 June 12, 2022
 .xet-dropdown-div,
 .xet-dropdown-subitem {
   margin: 0;
-  padding: 15px;
+  padding: 12px;
   display: block;
   text-align: left;
   position: relative;
@@ -444,6 +444,24 @@ Current version: v0.71 June 12, 2022
   background: dodgerblue;
   height: 16px;
   margin: 2px;
+}
+#xet-tips .xlv-small-button {
+  margin: 4px;
+  padding: 4px;
+}
+#xet-tips.xet-tips .xlv-small-button:hover {
+  background-color: lightyellow;
+}
+.xet-tip {
+  background-color: lightyellow;
+  margin: 0 4px 4px;
+  padding: 12px 6px;
+  text-align: left;
+  width: 420px;
+  border: 1px solid gray;
+}
+.xet-tips {
+  text-align: right;
 }
 .xet-frame .xlv-clues {
   font-size: 16px;
@@ -1283,7 +1301,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.71 June 12, 2022'
+  this.version = 'v0.72 June 21, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1336,6 +1354,43 @@ function Exet() {
   this.sweepMaxChoices = 5000
   this.sweepMaxChoicesSmall = 4
   this.shownLightChoices = 200
+
+  this.tipsList = [
+    `If you want to allow enum mismatches, then add the line
+     <blockquote>exolve-option: ignore-enum-mismatch</blockquote>
+     using
+     <i>Edit &gt; Add/Edit special sections: &gt; Other Exolve sections</i>.`,
+    `You can specify up to a 100 desired words to fill, using the
+     <span style="color:green">"Set preferred fills"</span> button near
+     the bottom. These words will be prioritized in autofill as well
+     as in the suggested fills list.`,
+    `In a cryptic clue, you can specify a part of the clue to be the definition
+     part using Ctrl-D after selecting it. This part gets underlined when
+     the solution is revealed.`,
+    `The "Analysis" button shows useful information about the grid and
+     the grid-fill, including warnings about potential problems, such
+     as grids that are not fully connected, or consecutive unchecked cells.`,
+    `When setting a crossword with ninas, enter the nina letters first
+     and mark them using <i>Edit &gt; Mark grid cell: &gt; Toggle nina ($)</i>.
+     While you fill the rest of the grid, clearing lights will not
+     erase any nina cells.`,
+    `You can add a preamble to the crossword (e.g., some special instructions)
+     using
+     <i>Edit &gt; Add/Edit special sections: &gt; Preamble</i>.`,
+    `Wordplay tabs such as "Charades" and "Anagrams" show candidate wordplays
+     for the currently selected entry. However, you can edit the fodder text
+     directly in the tab to experiment with alternatives.`,
+    `You can use autofill to create pangrams, and even <i>constrained</i>
+     pangrams, where all the letters in the alphabet get used over some
+     specified cells, such as circled cells and unchecked cells.`,
+    `You can create a <i>3-D</i> crossword using
+     <i>Open &gt; New 3-D grid:</i>. You can also reverse some lights with
+     <i>Edit &gt; Reverse current light</i>. You can let autofill suggest
+     reversals using the "Try reversals: [ ]" option on the main Exet tab.
+     Reversed lights are often seen in 3-D crosswords.`,
+  ];
+  this.tipIdx = -1;
+  this.TIP_ENUM_MISMATCH = 0;
 };
 
 Exet.prototype.setMinPop = function(m) {
@@ -2267,6 +2322,23 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropdown-content xet-analysis" id="xet-analysis">
         </div>
       </li>
+      <li class="xet-dropdown">
+        <div class="xet-dropbtn"
+            title="Review usage tips">Tips</div>
+        <div class="xet-dropdown-content xet-tips" id="xet-tips">
+          <button id="xet-prev-tip" title="See previous tip"
+              onclick="exet.navTip(-1)"
+              class="xlv-small-button">Prev</button>
+          <button id="xet-random-tip" title="See another tip"
+              onclick="exet.setRandomTip()"
+              class="xlv-small-button">Random</button>
+          <button id="xet-next-tip" title="See next tip"
+              onclick="exet.navTip(1)"
+              class="xlv-small-button">Next</button>
+          <div class="xet-tip" id="xet-tip">
+          </div>
+        </div>
+      </li>
       <li class="xet-dropdown" style="float:right;">
         <div class="xet-dropbtn" id="xet-about" title="Click to see notes, ` +
             `notices, and pointers about Exet...">About <span
@@ -2448,6 +2520,9 @@ Exet.prototype.makeExetTab = function() {
       exetModals.hide()
     })
   }
+  this.tips = document.getElementById("xet-tips")
+  this.tip = document.getElementById("xet-tip")
+  this.setRandomTip();
 
   this.lChoices = document.getElementById("xet-light-choices")
   this.lRejects = document.getElementById("xet-light-rejects")
@@ -3921,6 +3996,31 @@ Exet.prototype.updateSavePanel = function() {
   w.style.display = warnings ? '' : 'none'
 }
 
+/**
+ * Use this to surface a relevant tip when the user takes some action for
+ * which the tip may have been useful advice.
+ */
+Exet.prototype.showTip = function(tipIdx) {
+  this.tipIdx = tipIdx % this.tipsList.length;
+  this.tip.innerHTML = this.tipsList[this.tipIdx];
+  exetModals.showModal(this.tips);
+}
+
+Exet.prototype.setRandomTip = function() {
+  let idx = Math.floor(Math.random() * this.tipsList.length);
+  if (idx == this.tipIdx) {
+    idx = (idx + 1) % this.tipsList.length;
+  }
+  this.tipIdx = idx;
+  this.tip.innerHTML = this.tipsList[idx];
+}
+
+Exet.prototype.navTip = function(delta) {
+  this.tipIdx = (this.tipIdx + delta +
+                 this.tipsList.length) % this.tipsList.length;
+  this.tip.innerHTML = this.tipsList[this.tipIdx];
+}            
+
 Exet.prototype.download = function(solved=true) {
   let html = this.getHTML(solved, exetState.showEnums)
   const a = document.createElement("a");
@@ -5220,9 +5320,19 @@ Exet.prototype.handleClueChange = function() {
     newEnum = clue.substr(enumPos).trim()
     clueSansEnum = clue.substr(0, enumPos).trim()
   }
-  const enumParse = this.puz.parseEnum(newEnum)
-  newEnum = newEnum.substr(0, enumParse.afterEnum).trim()
-  if (enumParse.enumLen != expEnumLen) {
+  const enumParse = this.puz.parseEnum(newEnum);
+  newEnum = enumParse.enumStr.trim();
+  /**
+   * Revert to the old enum if the new one isn't an
+   * enum or if the new one says a length that is different
+   * from what the light says.
+   */
+  if (newEnum.length <= 2 ||
+      (enumParse.enumLen > 0 && enumParse.enumLen != expEnumLen &&
+       !this.puz.ignoreEnumMismatch)) {
+    if (newEnum.length > 2) {
+      this.showTip(this.TIP_ENUM_MISMATCH);
+    }
     if (expEnumLen > 0) {
       newEnum = oldEnum || ('(' + expEnumLen + ')')
     } else {

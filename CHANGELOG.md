@@ -1,5 +1,15 @@
 # Changelog
 
+### Version: Exet v0.72 June 21, 2022
+
+- When an edited enum does not specify a length, do not revert to previous enum.
+- Add a set of "Tips" and a menu button to show them, with Next/Prev/Random
+  buttons. Allow relevant tips to be surfaces through showTip().
+- When exolve-option: ignore-enum-mismatch is used, allow enum mismatches when
+  editing enums.
+- Use showTip() to show a Tip about ignore-enum-mismatch when an enum is
+  reverted.
+
 ### Version: Exet v0.71 June 12, 2022
 
 - Exolve v1.38 removes xlv-curr-clue-parent (as it now make xlv-curr-clue have

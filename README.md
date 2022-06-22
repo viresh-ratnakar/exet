@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.71 June 12, 2022
+#### Version: Exet v0.72 June 21, 2022
 
 #### Author: Viresh Ratnakar
 
@@ -401,9 +401,26 @@ draft mode get shown with a `[DRAFT]` marker and their clue numbers get shown
 coloured gray.
 
 You can also edit the enum part of the clue, but the software will reset it
-if it does not add up to the needed number. For example, if a light spans 10
-cells, and you edit the enum part to be "(5-4)," the software will reset it to
-"(10)."
+to the previous value if it does not add up to the needed number. For example,
+if a light spans 10 cells, and you edit the enum part to be "(5-4)," the
+software will reset it to "(10)," (or "(5,5)" or whatever was the last value).
+When it does this, Exet will also surface a relevant tip under the "Tips"
+area, showing how you can use `exolve-option: ignore-enum-mismatch` to avoid
+this strict checking, if desired.
+Note that when you save the crossword to Exolve or PUZ or PDF formats,
+you can always chose to not list the enums (using a checkbox in the Save menu).
+
+You can also leave an enum incompletely specified, as in these examples:
+"(one word)", "(2 wds)". You can specify the total length and omit the
+word break locations too, like this: "(9, two words)" or "(10, 3 wrds)".
+
+When the enum does specify a length and it does not match the light length but
+you *want* it like that (for example, in a variety cryptic where you're asking
+solvers to delete or add some letters before entry, for some of the entries),
+then you should use
+*Edit -> Add/Edit special sections: -> Other Exolve sections* and add this line:
+```exolve-option: ignore-enum-mismatch```
+This will relax the requirement that enums have to match light lengths.
 
 You can optionally provide annotations for clues. These annotations are
 typically used in cryptic crosswords to describe the cryptic wordplay when
@@ -892,6 +909,13 @@ to add any of the following features.
 
 I hope to add direct support for other languages and lexicons to Exet,
 at some point.
+
+### Tips
+
+Clicking on the "Tips" button in the Exet tab shows you one useful tip at a
+time, and lets you cycle through the available tips or jump to a random one.
+Occasionally, a tip may get proactively surfaced, if the software deems it
+to be very relevant to some recent action that you took.
 
 ## Notes and acknowledgements
 
