@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Exet v0.73 July 26, 2022
+
+- Add stats on word-lengths of non-draft clues to Analysis.
+- Roorganize Analysis tabs, using two columns to save some vertical space.
+- Automatically showTip() about Analysis if a long clue is entered.
+- Suppress a showTip() identical to the last one, if within 5 mins of it.
+
 ### Version: Exet v0.72 June 21, 2022
 
 - When an edited enum does not specify a length, do not revert to previous enum.

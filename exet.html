@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.72 June 21, 2022
+Current version: v0.73 July 26, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -428,7 +428,7 @@ Current version: v0.72 June 21, 2022
   display: block;
 }
 .xet-analysis {
-  width: 640px;
+  width: 700px;
   height: 440px;
   overflow: auto;
   padding: 6px 6px 6px 16px;
@@ -661,6 +661,9 @@ Current version: v0.72 June 21, 2022
 }
 .xet-long-button {
   margin: 2px 0;
+}
+.xet-indent {
+  margin-left: 2em;
 }
 </style>
 
@@ -1301,7 +1304,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.72 June 21, 2022'
+  this.version = 'v0.73 July 26, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1367,9 +1370,10 @@ function Exet() {
     `In a cryptic clue, you can specify a part of the clue to be the definition
      part using Ctrl-D after selecting it. This part gets underlined when
      the solution is revealed.`,
-    `The "Analysis" button shows useful information about the grid and
-     the grid-fill, including warnings about potential problems, such
-     as grids that are not fully connected, or consecutive unchecked cells.`,
+    `The "Analysis" button shows useful information about the grid, the
+     grid-fill, and the clues. You can use it to check for issues such
+     as: grids that are not fully connected, consecutive unchecked cells,
+     too many long clues, too many uncommon entries, etc.`,
     `When setting a crossword with ninas, enter the nina letters first
      and mark them using <i>Edit &gt; Mark grid cell: &gt; Toggle nina ($)</i>.
      While you fill the rest of the grid, clearing lights will not
@@ -1391,6 +1395,8 @@ function Exet() {
   ];
   this.tipIdx = -1;
   this.TIP_ENUM_MISMATCH = 0;
+  this.TIP_ANALYSIS = 3;
+  this.lastTipShownTime = 0;
 };
 
 Exet.prototype.setMinPop = function(m) {
@@ -2809,6 +2815,7 @@ function ExetLightInfo() {
   this.lights = 0
   this.filled = 0
   this.lengths = {}
+  this.clueLengths = {}
   this.popularities = {}
   this.letters = {}
   for (let c of exetLexicon.letters) {
@@ -2871,6 +2878,8 @@ Exet.prototype.getLightInfos = function() {
         this.addStat(allInfo.words, word, label)
         this.addStat(dirInfo.words, word, label)
       }
+      this.addStat(allInfo.clueLengths, words.length, label)
+      this.addStat(dirInfo.clueLengths, words.length, label)
     }
     if (theClue.anno) {
       allInfo.annos += 1
@@ -2965,38 +2974,45 @@ Exet.prototype.updateAnalysis = function(elt) {
     html = html + `
       <option value="${key}">${key}</option>`
   }
-  html += '</select> <b>Grid-fills and Clues</b></p>'
-  html += '<p><i>Hover on the blue bars to see details</i></p>'
+  html += '</select> <b>Grid-fill and Clues</b></p>'
   for (let key in lightInfos) {
     html += `<div id="xet-analysis-${key}" class="xet-analysis-choices"
-            style="display:none"><ul>`
-    let info = lightInfos[key]
-    html += `<li><b>Number of lights</b>: ${info.lights}</li>`
-    let unparented = info.lights - info.ischild
-    html += `<li><b>Number of words/phrases</b>: ${unparented}</li>`
-    html += `<li><b>Word/phrase lengths</b>: ${this.plotStats(
-        info.lengths)}</li>`
-    html += `<li><b>Filled words/phrases</b>: ${info.filled} (${(
-          info.lights > 0 ? 100*info.filled/info.lights : 0).toFixed(2)}%)</li>`
-    html += `<li><b>Clues set (i.e., not ${this.DRAFT})</b>: ${info.set} (${(
-          unparented > 0 ? 100*info.set/unparented : 0).toFixed(2)}%)</li>`
-    html += `<li><b>Words repeated in clues</b>: ${this.plotStats(
-        info.words)}</li>`
-    html += `<li><b>Annotations provided</b>: ${info.annos} (${(
-          unparented > 0 ? 100*info.annos/unparented : 0).toFixed(2)}%)
-    ${this.plotStats(info.annotations)}</li>`
-    html += `<li><b>Letters used</b>: ${this.plotStats(info.letters)}</li>`
-    html += `<li title="Popularity, when available in the lexicon, is ` +
+            style="display:none"><table>`
+    let info = lightInfos[key];
+    html += `<tr><td colspan="2"><b>Number of lights</b>:
+              ${info.lights}</td></tr>`;
+    let unparented = info.lights - info.ischild;
+    html += `<tr><td colspan="2"
+              title="Same as # lights if there are no linked clues">
+                <b>Number of entries</b>: ${unparented}</td></tr>`;
+    html += `<tr><td colspan="2"><b>Filled entries</b>: ${info.filled} (${(
+                    info.lights > 0 ?
+                      100*info.filled/info.lights : 0).toFixed(2)}%)</td></tr>`;
+    html += `<tr><td colspan="2"><b>Set clues (i.e., not ${this.DRAFT})</b>: ${info.set} (${(
+                    unparented > 0 ? 100*info.set/unparented : 0).toFixed(2)}%)</td></tr>`;
+    html += '<tr><td colspan="2" class="xet-small"><br><i>Hover on the blue bars to see details</i></td></tr>';
+    html += `<tr><td class="xet-td"><div><b>Entry lengths</b>:<br>${this.plotStats(
+                  info.lengths)}</div>`;
+    html += `<div><span title="Popularity, when available in the lexicon, is ` +
       `the percentile by occurrence count over a large corpus such ` +
-      `as Wikipedia"><b>Word/phrase popularity percentiles</b>: ${
-        this.plotStats(info.popularities, 5)}</li>`
-    html += '</ul></div>'
+      `as Wikipedia"><b>Entry word/phrase popularity percentiles</b></span>:<br>${
+                  this.plotStats(info.popularities, 5)}</div</td>`;
+    html += `<td class="xet-td"><b>Letters used</b>:<br>
+              ${this.plotStats(info.letters)}</td></tr>`;
+    html += `<tr><td class="xet-td"><b>Words repeated in set clues</b>:<br>${this.plotStats(
+        info.words)}</td>`;
+    html += `<td class="xet-td"><div><b>Word-lengths of set clues</b>:<br>${this.plotStats(
+        info.clueLengths)}</div>`;
+    html += `<div><b>Annotations provided in clues</b>: ${info.annos} (${(
+          unparented > 0 ? 100*info.annos/unparented : 0).toFixed(2)}%)
+              ${this.plotStats(info.annotations)}</div></td></tr>`;
+    html += '</table></div>';
   }
   elt.innerHTML = html
   this.selectAnalysis()
 }
 
-Exet.prototype.plotStats = function(stats, numericstep=1) {
+Exet.prototype.plotStats = function(stats) {
   let keys = Object.keys(stats)
   let numeric = true
   let totalCount = 0
@@ -3037,11 +3053,6 @@ Exet.prototype.plotStats = function(stats, numericstep=1) {
     }
   }
   if (numeric) {
-    let next = min + numericstep
-    while (next < max) {
-      if (!stats[next]) stats[next] = {count: 0, details: ''}
-      next += numericstep
-    }
     keys = Object.keys(stats)
     keys.sort((a, b) => a - b);
   }
@@ -3050,7 +3061,7 @@ Exet.prototype.plotStats = function(stats, numericstep=1) {
   for (let key of keys) {
     html += '<tr>'
     html += `<td style="text-align:right">${stats[key].count}</td>`
-    html += numeric ? '<td>occurrences of</td>' : '<td>&times;</td>'
+    html += numeric ? '<td>counts of</td>' : '<td>&times;</td>'
     html += `<td>${key}</td>`
     html += `<td><div class="xet-plotbar"
             style="width:${BARMAX * stats[key].count / maxv}px"`
@@ -3062,14 +3073,14 @@ Exet.prototype.plotStats = function(stats, numericstep=1) {
   }
   html += '</table>'
   html += '</p>'
-  html += `<p>Distinct values: ${distinct}</p>`
+  html += `<p class="xet-indent">Distinct values: ${distinct}`
   if (numeric && count > 0) {
-    html += `<p>
-      Range: ${min} - ${max},
-      Average: ${(sum / count).toFixed(1)},
-      Median: ${median}
-    </p>`
+    html += `
+      <br>Range: ${min} - ${max}
+      <br>Average: ${(sum / count).toFixed(1)}
+      <br>Median: ${median}`
   }
+  html += '</p>';
   return html
 }
 
@@ -4001,7 +4012,14 @@ Exet.prototype.updateSavePanel = function() {
  * which the tip may have been useful advice.
  */
 Exet.prototype.showTip = function(tipIdx) {
-  this.tipIdx = tipIdx % this.tipsList.length;
+  tipIdx = tipIdx % this.tipsList.length;
+  const ts = Date.now();
+  if (ts < this.lastTipShownTime + 300000 && tipIdx == this.tipIdx) {
+    /* less than 5 minutes have passed since this same tip was shown */
+    return;
+  }
+  this.lastTipShownTime = ts;
+  this.tipIdx = tipIdx;
   this.tip.innerHTML = this.tipsList[this.tipIdx];
   exetModals.showModal(this.tips);
 }
@@ -5072,6 +5090,7 @@ Exet.prototype.makeClueEditable = function() {
   this.setDraftToggler()
   const xetClueStat = document.getElementById("xet-clue-stat")
   xetClueStat.addEventListener('click', e => {
+    e.stopPropagation()
     exet.currClueIsDraft = !exet.currClueIsDraft;
     exet.setDraftToggler()
     exet.handleClueChange()
@@ -5363,6 +5382,10 @@ Exet.prototype.handleClueChange = function() {
 
   if (this.currTab == "research" && this.researchingClue()) {
     this.researchTabNav();
+  }
+  if (!this.currClueIsDraft &&
+      exetLexicon.depunct(clue).split(' ').length > 12) {
+    this.showTip(this.TIP_ANALYSIS);
   }
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {

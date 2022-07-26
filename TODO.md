@@ -3,7 +3,16 @@
   - Make README.md more complete
 - option for US dictionary
 - "Smart-delete" to purge excessive revisions
+- Stricter grid connectivity checks
+- Clue length analysis
 
+--------------------Done------------------------------------
+
+- clueBox/clueparentbox difference review
+- nina dialog position is weird now
+- linking block does not show up: it's attached to earlu to cur-clue which gets changed later. need to attach it to a more stable parent
+- slowness in "add block"
+- pick previous version not working
 - When the clue has an enum like (4-3), prefer fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
 - Show unches distribution [Instead, done: Show warning in analysis]
 - Reassign clue numbers, preserving clues if possible [Done]

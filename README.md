@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.72 June 21, 2022
+#### Version: Exet v0.73 July 26, 2022
 
 #### Author: Viresh Ratnakar
 
@@ -221,7 +221,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of June 2022) has 250,192 entries. Providing a popularity threshold
+  as of July 2022) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -680,7 +680,22 @@ the sense that if a revision already exists then it is not duplicated.
 
 The Exet tab also has an "Analysis" link. When you click on that, a panel opens
 up, showing various analyses of the grid, the grid-fill, the clues, and the
-annotations. Here is an illustrative example of the kinds of analyses shown:
+annotations.
+
+These analyses are useful to setters to control the following desirable
+properties of crosswords:
+
+- Grids should be connected, symmetric, and free from consecutive unches.
+- Solution entry length distributions should not be too skewed towards
+  very short or very long.
+- Words (other than very common ones) should not be repeated in clues,
+  especially if they are used as cryptic wordplay indicators.
+- The number of long and very long clues should ideally be limited.
+- Wordplay types in cryptic clues should have a good mix of variety.
+- Use of uncommon solution entries should be limited. Clues for
+  uncommon entries should be a bit easier.
+
+Here is an illustrative example of the kinds of analyses shown:
 
 > **Grid**
 > 
@@ -691,69 +706,62 @@ annotations. Here is an illustrative example of the kinds of analyses shown:
 > - No bars
 > - No consecutive unches
 > 
-> **All/Across/Down Grid-fills and Clues**
+> **All/Across/Down Grid-fill and Clues**
 > 
 > - Number of lights: 29
-> - Number of words/phrases: 29
+> - Number of entries: 29
+> - Filled entries: 29 (100.00%)
+> - Set clues (i.e., not \[DRAFT\]): 29 (100.00%)
 > 
-> - Word/phrase lengths:
+> - Entry lengths:
 >   - 2	occurrences of	4	
 >   - 4	occurrences of	5	
 >   - 6	occurrences of	6	
 >     ...
->   Distinct values: 8
->   Range: 4 - 15, Average: 7.3, Median: 7
-> 
-> - Filled words/phrases: 29 (100.00%)
-> - Clues set (i.e., not \[DRAFT\]): 29 (100.00%)
-> 
-> - Words repeated in clues:
-> 
+>       Distinct values: 8
+>       Range: 4 - 15
+>       Average: 7.3
+>       Median: 7
+> - Word/phrase popularities:
+>   - 3	occurrences of	65	
+>     ...
+>   - 2	occurrences of	90	
+>   - 7	occurrences of	95	
+>   - 3	occurrences of	100	
+>       Distinct values: 13
+>       Range: 0 - 100
+>       Average: 75.3
+>       Median: 85
+> - Letters used:
+>   - 20	×	E	
+>   - 15	×	A	
+>   - 13	×	I	
+>     ...
+>       Distinct values: 21
+> - Words repeated in set clues:
 >   - 6	×	of	
 >   - 4	×	to	
 >   - 3	×	perhaps	
 >   - 2	×	wild	
-> 
 >     ...
-> 
->   Distinct values: 23
-> 
-> - Annotations provided: 29 (100.00%)
-> 
+>     Distinct values: 23
+> - Word-lengths of set clues:
+>   - 2	occurrences of	4	
+>   - 6	occurrences of	5	
+>   - 5	occurrences of	8	
+>     ...
+>       Distinct values: 10
+>       Range: 4 - 12
+>       Average: 8.3
+>       Median: 8
+> - Annotations provided in clues: 29 (100.00%)
 >   - 6	×	charade or other	
 >   - 3	×	anagram around	
 >   - 3	×	anagram	
 >   - 2	×	in	
 >   - 2	×	in anagram	
-> 
 >     ...
-> 
->   Distinct values: 17
-> 
-> - Letters used:
-> 
->   - 20	×	E	
->   - 15	×	A	
->   - 13	×	I	
-> 
->     ...
-> 
->   Distinct values: 21
-> 
-> - Word/phrase popularities:
-> 
-> 
->   - 3	occurrences of	65	
-> 
->     ...
-> 
->   - 2	occurrences of	90	
->   - 7	occurrences of	95	
->   - 3	occurrences of	100	
-> 
->   Distinct values: 13
-> 
->   Range: 0 - 100, Average: 75.3, Median: 85
+>       Distinct values: 17
 
 ### A few notes about these analyses:
 
