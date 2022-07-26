@@ -3060,9 +3060,10 @@ Exet.prototype.plotStats = function(stats) {
   const BARMAX = 150
   for (let key of keys) {
     html += '<tr>'
-    html += `<td style="text-align:right">${stats[key].count}</td>`
-    html += numeric ? '<td>counts of</td>' : '<td>&times;</td>'
-    html += `<td>${key}</td>`
+    const ct = stats[key].count;
+    html += `<td style="text-align:right">${ct}</td><td>`
+    html += numeric ? ((ct == 1) ? 'count of' : 'counts of') : '&times;';
+    html += `</td><td>${key}</td>`;
     html += `<td><div class="xet-plotbar"
             style="width:${BARMAX * stats[key].count / maxv}px"`
     if (stats[key].details) {
