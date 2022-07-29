@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Unnumbered minor tweak July 29, 2022
+
+- Allow fiddling with the highlighting menu even when highlighting keyword is
+  not set.
+
 ### Version: Exet v0.74 July 28, 2022
 
 - On the Lists tab, add a feature that lets you highlight words related

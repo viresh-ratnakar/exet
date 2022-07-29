@@ -3201,14 +3201,10 @@ Exet.prototype.indsTabNav = function() {
   let url = this.indsSelect.value;
 
   this.indsKeyword.value = this.indsKeyword.value.trim();
-  if (!this.indsKeyword.value) {
-    this.indsHighlight.value = 'none';
-  } else {
-    if (this.indsHighlight.value == 'none') {
-      this.indsHighlight.value = 'ml=';
-    }
+  if (this.indsKeyword.value && this.indsHighlight.value == 'none') {
+    this.indsHighlight.value = 'ml=';
   }
-  if (this.indsKeyword.value && this.indsHighlight.value != 'none') {
+  if (this.indsKeyword.value) {
     let datamuseParam = this.indsKeyword.value;
     if (this.indsHighlight.value) {
       datamuseParam = this.indsHighlight.value +
@@ -3218,7 +3214,7 @@ Exet.prototype.indsTabNav = function() {
           encodeURIComponent(url) + '&max=1000&' + datamuseParam;
   }
   if (this.indsIframe.src == url) {
-    return
+    return;
   }
   this.loadIframe(this.indsIframe, url, this.indsUrl);
 }
