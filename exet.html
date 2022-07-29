@@ -3199,7 +3199,9 @@ Exet.prototype.loadIframe = function(iframe, url, urlElt) {
 
 Exet.prototype.indsTabNav = function() {
   let url = this.indsSelect.value;
-
+  if (!url) {
+    return;
+  }
   this.indsKeyword.value = this.indsKeyword.value.trim();
   if (this.indsKeyword.value && this.indsHighlight.value == 'none') {
     this.indsHighlight.value = 'ml=';

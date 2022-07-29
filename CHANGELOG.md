@@ -2,6 +2,11 @@
 
 ### Version: Unnumbered minor tweak July 29, 2022
 
+- When the Lists url is empty, just return without trying to highlight,
+  even if a highlighting keyword is present.
+
+### Version: Unnumbered minor tweak July 29, 2022
+
 - Allow fiddling with the highlighting menu even when highlighting keyword is
   not set.
 
