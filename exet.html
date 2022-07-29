@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.73 July 26, 2022
+Current version: v0.74 July 28, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1304,7 +1304,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.73 July 26, 2022'
+  this.version = 'v0.74 July 28, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1319,8 +1319,6 @@ function Exet() {
   this.DRAFT = '[DRAFT]';
   this.CLUE_NOT_SET = 'Set clue and clear draft marker...';
   this.MENU_SEPARATOR = '<option disabled>' +
-    '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
-    '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
     '&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;' +
@@ -3200,15 +3198,34 @@ Exet.prototype.loadIframe = function(iframe, url, urlElt) {
 }
 
 Exet.prototype.indsTabNav = function() {
-  if (this.indsIframe.src == this.indsSelect.value) {
+  let url = this.indsSelect.value;
+
+  this.indsKeyword.value = this.indsKeyword.value.trim();
+  if (!this.indsKeyword.value) {
+    this.indsHighlight.value = 'none';
+  } else {
+    if (this.indsHighlight.value == 'none') {
+      this.indsHighlight.value = 'ml=';
+    }
+  }
+  if (this.indsKeyword.value && this.indsHighlight.value != 'none') {
+    let datamuseParam = this.indsKeyword.value;
+    if (this.indsHighlight.value) {
+      datamuseParam = this.indsHighlight.value +
+                      encodeURIComponent(this.indsKeyword.value);
+    }
+    url = 'https://xlufz.ratnakar.org/xlufz.php?srcurl=' +
+          encodeURIComponent(url) + '&max=1000&' + datamuseParam;
+  }
+  if (this.indsIframe.src == url) {
     return
   }
-  this.loadIframe(this.indsIframe, this.indsSelect.value, this.indsUrl);
+  this.loadIframe(this.indsIframe, url, this.indsUrl);
 }
 
 Exet.prototype.makeIndsTab = function(panelH) {
-  let inds = [
-    {name: "Please select", url: ""},
+  const inds = [
+    {name: "Please select:", url: ""},
     {name: "separator"},
     {name: "Crossword Unclued's anagram indicators",
      url: "https://www.crosswordunclued.com/2008/09/anagram-indicators.html"},
@@ -3241,24 +3258,31 @@ Exet.prototype.makeIndsTab = function(panelH) {
     {name: "Mythic beasts list of abbreviations",
      url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
     {name: "separator"},
-    {name: "All indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "All indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data?sql=select+%2A+from+indicators_consolidated&_hide_sql=1"},
-    {name: "Anagram indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Anagram indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=anagram"},
-    {name: "Hidden word indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Hidden word indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=hidden"},
-    {name: "Reversal indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Reversal indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=reversal"},
-    {name: "Homophone indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Homophone indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=homophone"},
-    {name: "Container indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Container indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=container"},
-    {name: "Insertion indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Insertion indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=insertion"},
-    {name: "Deletion indicators in published cryptic crosswords (cryptics.georgeho.org)",
+    {name: "Deletion indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data/indicators?wordplay=deletion"},
-  ]
-  let indsTab = this.tabs["inds"]
+  ];
+  const highlighters = [
+    {name: "Optional: Using a keyword, choose a type of words to highlight:", key: "none"},
+    {name: "Highlight words related to (Datamuse API param: ml=):", key: "ml="},
+    {name: "Highlight words that often precede (Datamuse API param: rel_bgb=):", key: "rel_bgb="},
+    {name: "Highlight words that often follow (Datamuse API param: rel_bga=):", key: "rel_bga="},
+    {name: 'Highlight words from using the Datamuse API on this param=val:', key: ""},
+  ];
+  const indsTab = this.tabs["inds"]
   let html = `
   <div>
   <select name="xet-inds-select" id="xet-inds-select"
@@ -3271,18 +3295,36 @@ Exet.prototype.makeIndsTab = function(panelH) {
     html = html + `
     <option value="${ind.url}">${ind.name}</option>`
   }
-  html = html + '</select></div><br>'
-  html = html + `
+  html += '</select>';
+  html += `
+  &nbsp;<select name="xet-inds-highlight" class="xet-small"
+       title="If a highlighting option is selected, it will use the word entered to the right as its keyword"
+       id="xet-inds-highlight" onchange="exet.indsTabNav()">`;
+  for (let hlt of highlighters) {
+    html = html + `
+    <option value="${hlt.key}">${hlt.name}</option>`
+  }
+  html += `</select>
+  <input type="text" class="xlv-answer" size="15"
+    placeholder="no keyword"
+    title="Enter a keyword and choose a highlighting category to the left"
+    onchange="exet.indsTabNav()"
+    id='xet-inds-keyword'></input>`;
+  html += '</div>';
+
+  html += `
   <a href="" target="_blank" id="xet-inds-choice-url"
       class="xet-blue xet-small"></a><br>
   <iframe id="xet-inds-iframe" class="xet-iframe" src=""
     style="height:${panelH}px" height="${panelH}"></iframe>
   `;
   indsTab.content.innerHTML = html;
-  this.indsIframe = document.getElementById('xet-inds-iframe')
-  this.indsSelect = document.getElementById('xet-inds-select')
-  this.indsSelect.value = this.savedIndsSelect
-  this.indsUrl = document.getElementById('xet-inds-choice-url')
+  this.indsIframe = document.getElementById('xet-inds-iframe');
+  this.indsSelect = document.getElementById('xet-inds-select');
+  this.indsSelect.value = this.savedIndsSelect;
+  this.indsHighlight = document.getElementById('xet-inds-highlight');
+  this.indsKeyword = document.getElementById('xet-inds-keyword');
+  this.indsUrl = document.getElementById('xet-inds-choice-url');
 }
 
 Exet.prototype.researchingClue = function() {

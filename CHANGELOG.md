@@ -1,5 +1,13 @@
 # Changelog
 
+### Version: Exet v0.74 July 28, 2022
+
+- On the Lists tab, add a feature that lets you highlight words related
+  to a keyword using any of the options provided by the
+  [Datamuse words API](https://www.datamuse.com/api/). This is powered by the
+  [Xlufz web service](https://github.com/viresh-ratnakar/xlufz)
+  that I host at [xlufz.ratnakar.org](https://xlufz.ratnakar.org).
+
 ### Version: Unnumbered minor tweak July 26, 2022
 
 - Say 'count of' not 'counts of' when the count is 1 (in Analysis).

@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.73 July 26, 2022
+#### Version: Exet v0.74 July 28, 2022
 
 #### Author: Viresh Ratnakar
 
@@ -583,6 +583,14 @@ top in each tab. These tabs are:
   [Highlight press](https://www.highlightpress.com.au/),
   [Mythic beasts](http://sphinx.mythic-beasts.com/), and
   [cryptics.georgeho.org](https://cryptics.georgeho.org/).
+  - You can highlight certain words when looking at any of these lists, by
+    supplying a keyword and selecting a highlighting option from the menu
+    next to the List selection menu. This can be very useful to craft natural
+    (and deceptive!) cryptic clue surfaces. For example, you can highlight
+    anagrinds related to *alcohol* (*abuse*, *drunk*, *production*, etc.
+    would get highlighted). This feature is powered by the
+    [Xlufz web service](https://github.com/viresh-ratnakar/xlufz)
+    that I host at [xlufz.ratnakar.org](https://xlufz.ratnakar.org).
 
 ### Final touches
 
@@ -714,20 +722,20 @@ Here is an illustrative example of the kinds of analyses shown:
 > - Set clues (i.e., not \[DRAFT\]): 29 (100.00%)
 > 
 > - Entry lengths:
->   - 2	occurrences of	4	
->   - 4	occurrences of	5	
->   - 6	occurrences of	6	
+>   - 2	counts of	4	
+>   - 4	counts of	5	
+>   - 6	counts of	6	
 >     ...
 >       Distinct values: 8
 >       Range: 4 - 15
 >       Average: 7.3
 >       Median: 7
 > - Word/phrase popularities:
->   - 3	occurrences of	65	
+>   - 3	counts of	65	
 >     ...
->   - 2	occurrences of	90	
->   - 7	occurrences of	95	
->   - 3	occurrences of	100	
+>   - 2	counts of	90	
+>   - 7	counts of	95	
+>   - 3	counts of	100	
 >       Distinct values: 13
 >       Range: 0 - 100
 >       Average: 75.3
@@ -746,9 +754,9 @@ Here is an illustrative example of the kinds of analyses shown:
 >     ...
 >     Distinct values: 23
 > - Word-lengths of set clues:
->   - 2	occurrences of	4	
->   - 6	occurrences of	5	
->   - 5	occurrences of	8	
+>   - 1	count of	4	
+>   - 6	counts of	5	
+>   - 5	counts of	8	
 >     ...
 >       Distinct values: 10
 >       Range: 4 - 12
@@ -949,6 +957,11 @@ to be very relevant to some recent action that you took.
 - The composite anagram builder was inspired by similar constructs in Qxw
   as well as in
   [martindemello.net/wgn.html](http://martindemello.net/wgn.html).
+- The excellent and versatile
+  [Datamuse words API](https://www.datamuse.com/api/) powers my
+  [Xlufz web service](https://github.com/viresh-ratnakar/xlufz) used on the
+  "Lists" tab to highlight words related to a keyword when showing lists of
+  cryptic indicators or abbreviations.
 
 ## Appendix
 
