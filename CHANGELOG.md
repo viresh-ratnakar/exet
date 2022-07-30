@@ -2,6 +2,10 @@
 
 ### Version: Unnumbered minor tweak July 29, 2022
 
+- Simplify the highlighting menu wording and add tooltips with details.
+
+### Version: Unnumbered minor tweak July 29, 2022
+
 - When the Lists url is empty, just return without trying to highlight,
   even if a highlighting keyword is present.
 

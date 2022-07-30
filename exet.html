@@ -3275,22 +3275,22 @@ Exet.prototype.makeIndsTab = function(panelH) {
   ];
   const highlighters = [
     {name: "Optional: Using a keyword, choose a type of words to highlight:", key: "none"},
-    {name: "Highlight words related to (Datamuse API param: ml=):", key: "ml="},
-    {name: "Highlight words that often precede (Datamuse API param: rel_bgb=):", key: "rel_bgb="},
-    {name: "Highlight words that often follow (Datamuse API param: rel_bga=):", key: "rel_bga="},
-    {name: 'Highlight words from using the Datamuse API on this param=val:', key: ""},
+    {name: "Highlight words related to:", key: "ml="},
+    {name: "Highlight words that often precede:", key: "rel_bgb="},
+    {name: "Highlight words that often follow:", key: "rel_bga="},
+    {name: "Highlight words using Datamuse words API parameters:", key: ""},
   ];
-  const indsTab = this.tabs["inds"]
+  const indsTab = this.tabs["inds"];
   let html = `
   <div>
   <select name="xet-inds-select" id="xet-inds-select"
     onchange="exet.indsTabNav()">`
   for (let ind of inds) {
     if (ind.name == "separator") {
-      html = html + this.MENU_SEPARATOR
+      html += this.MENU_SEPARATOR;
       continue;
     }
-    html = html + `
+    html += `
     <option value="${ind.url}">${ind.name}</option>`
   }
   html += '</select>';
@@ -3299,8 +3299,11 @@ Exet.prototype.makeIndsTab = function(panelH) {
        title="If a highlighting option is selected, it will use the word entered to the right as its keyword"
        id="xet-inds-highlight" onchange="exet.indsTabNav()">`;
   for (let hlt of highlighters) {
-    html = html + `
-    <option value="${hlt.key}">${hlt.name}</option>`
+    const title = (hlt.key == 'none') ? '' : ' title="Datamuse words API ' + ((hlt.key == '') ?
+                  '[param=value[&amp;p2=v2...]] directly specified in keyword' :
+                  ('param ' + hlt.key + '[keyword]')) + '"';
+    html += `
+    <option value="${hlt.key}"${title}>${hlt.name}</option>`
   }
   html += `</select>
   <input type="text" class="xlv-answer" size="15"
