@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Unnumbered minor tweak July 30, 2022
+
+- For indicator queries on cryptics.georgeho.org, get 1000 rows by default.
+  While slightly slower, a more comprehensive list is more useful, and it
+  also works better with highlighting.
+- Add alternation indicators from cryptics.georgeho.org.
+
 ### Version: Unnumbered minor tweak July 29, 2022
 
 - Simplify the highlighting menu wording and add tooltips with details.
