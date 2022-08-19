@@ -2,12 +2,14 @@
   - Move all styling to CSS
   - Make README.md more complete
 - option for US dictionary
-- "Smart-delete" to purge excessive revisions
+- "Smart-delete" to purge excessive revisions: save revisions and keep just last 5 of each
 - Stricter grid connectivity checks
-- Clue length analysis
 
 --------------------Done------------------------------------
 
+- Improve autofill
+- Highlight preferred fills that get picked
+- Clue length analysis
 - clueBox/clueparentbox difference review
 - nina dialog position is weird now
 - linking block does not show up: it's attached to earlu to cur-clue which gets changed later. need to attach it to a more stable parent

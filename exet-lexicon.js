@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.html.
 
-Current version: v0.74 July 28, 2022
+Current version: v0.75 August 19, 2022
 */
 
 /**

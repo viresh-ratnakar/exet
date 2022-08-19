@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.74 July 28, 2022
+#### Version: Exet v0.75 August 19, 2022
 
 #### Author: Viresh Ratnakar
 
@@ -221,7 +221,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of July 2022) has 250,192 entries. Providing a popularity threshold
+  as of August 2022) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -283,9 +283,11 @@ You can provide up to 100 preferred words/phrases for using in the grid, by
 clicking on the button labelled "Set preferred fills" in the Exet tab, just
 under the column that shows grid-fill suggestions. This opens up a panel in
 which you enter a set of preferred words/phrases (or edit the previously entered
-set).  The words you provide here can be outside the lexicon too. These words
-will get shown as the top suggestions, whenever possible. Clicking anywhere
-outside the panel of preferred fills will dismiss the panel.
+set). The words you provide here can be outside the lexicon too. These words
+will get shown as the top suggestions, whenever possible. The preferred fills
+that are actually in use as solution entries are bolded in the displayed list.
+
+Clicking anywhere outside the panel of preferred fills will dismiss the panel.
 
 Similarly, you can provide a set of words that you do *not* want to appear
 in the crossword, by clicking on the "Set fill exclusions" button.
@@ -378,10 +380,9 @@ finds one, or until there is failure.
   harder for the pangram algorithm. Working with fewer constraints for such
   grids (smaller popularity threshold, etc. as listed in the previous
   section) is better.
-- If you monitor Autofill's progress and you can see that it is repeatedly
-  cycling through some specific choices for some lights but failing, you may
-  want to pause, clear, and re-try (a smaller beam size would have made it
-  fail faster in situations like this).
+- If you monitor Autofill's progress and you can see that it is not making
+  progress, you may want to pause, clear, and re-try (a smaller beam size
+  might have made it fail faster in situations like this).
 
 ### Providing the clues
 

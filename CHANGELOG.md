@@ -1,5 +1,22 @@
 # Changelog
 
+### Version: Exet v0.75 August 19, 2022
+
+- Use a contenteditable div to display "Preferred fills" instead of a textarea.
+- Show the currently used preferred fills in bold (the previous change was
+  needed for this).
+- Lots of improvements to Autofill:
+  - Use multiple (2 for now) refinement sweeps for each step, which results
+    in a more reliable viability score.
+  - This allows us to simplify the code by making doubly-checked and
+    chequered cases more similar (eg, equal progressBoost, no special-case
+    for pangrams for doubly-checked).
+  - Add a "popularity score" component to the score. This makes us now
+    prefer more popular entries.
+  - Handle preferred fills better: seed the beam with a few states, each
+    one containing a random subset of preferred fills placed in the grid.
+  - Keep track of hashes of candidate fills, to avoid cycling.
+
 ### Version: Unnumbered minor tweak July 30, 2022
 
 - For indicator queries on cryptics.georgeho.org, get 1000 rows by default.
