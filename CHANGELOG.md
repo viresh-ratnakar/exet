@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Unnumbered minor tweak August 19, 2022
+
+- Reduce the height of the Autofill panel in the constrained pangram
+  options part.
+
 ### Version: Exet v0.75 August 19, 2022
 
 - Use a contenteditable div to display "Preferred fills" instead of a textarea.
