@@ -1,5 +1,9 @@
 # Changelog
 
+### Version: Exet v0.76 September 7, 2022
+
+- Bugfix: do not keep adding duplicate selectionChange listeners.
+
 ### Version: Unnumbered minor tweak August 19, 2022
 
 - Reduce the height of the Autofill panel in the constrained pangram

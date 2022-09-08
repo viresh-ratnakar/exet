@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.75 August 19, 2022
+Current version: v0.76 September 7, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1306,7 +1306,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.75 August 19, 2022'
+  this.version = 'v0.76 September 7, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -4959,135 +4959,136 @@ Exet.prototype.lastTagOpener = function(s) {
 }
 
 Exet.prototype.maybeShowFormat = function() {
-  const xetFormat = document.getElementById('xet-format')
+  const xetFormat = document.getElementById('xet-format');
   if (!xetFormat) {
-    return
+    return;
   }
-  xetFormat.style.display = 'none'
-  this.saveCursor()
+  xetFormat.style.display = 'none';
+  this.saveCursor();
   if (!this.savedCursorElt ||
       this.savedCursorId != 'xet-clue' && this.savedCursorId != 'xet-anno') {
-    return
+    return;
   }
   const inClue = (this.savedCursorId == 'xet-clue')
-  let text = this.savedCursorElt.innerText
+  let text = this.savedCursorElt.innerText;
   let start = this.savedCursorStart;
   let end = this.savedCursorEnd;
-  let reversed = false
+  let reversed = false;
   if (start > end) {
-    let temp = start
-    start = end
-    end = temp
-    reversed = true
+    let temp = start;
+    start = end;
+    end = temp;
+    reversed = true;
   }
-  const sub = text.substring(start, end)
-  const prefix = text.substr(0, start)
-  const lprefix = prefix.toLowerCase()
-  const suffix = text.substr(end)
-  const lsuffix = suffix.toLowerCase()
+  const sub = text.substring(start, end);
+  const prefix = text.substr(0, start);
+  const lprefix = prefix.toLowerCase();
+  const suffix = text.substr(end);
+  const lsuffix = suffix.toLowerCase();
   if (!sub.trim()) {
-    return
+    return;
   }
   if (inClue) {
-    const enumStart = text.lastIndexOf('(')
+    const enumStart = text.lastIndexOf('(');
     if (enumStart >= 0 && end > enumStart) {
-      return
+      return;
     }
   }
-  const prevMark = this.lastTagOpener(prefix)
+  const prevMark = this.lastTagOpener(prefix);
   if (prevMark >= 0 && prevMark >= prefix.lastIndexOf('>')) {
-    return
+    return;
   }
 
   let onlyClear = sub.indexOf('<') >= 0 || sub.indexOf('>') >= 0 ||
     (inClue &&
-      (sub.indexOf('~') >= 0 || sub.indexOf('{') >= 0 || sub.indexOf('}') >= 0))
+      (sub.indexOf('~') >= 0 ||
+       sub.indexOf('{') >= 0 || sub.indexOf('}') >= 0));
 
   numActive = 0;
   for (let tag of Object.keys(this.formatTags)) {
-    const opt = document.getElementById('xet-format-' + tag)
-    opt.style.display = 'none'
-    const props = this.formatTags[tag]
-    if (!props.inClue.includes(inClue)) continue
-    let modText = text
-    let modPrefix = prefix
-    let modSub = sub
-    let modSuffix = suffix
-    let heading = ''
+    const opt = document.getElementById('xet-format-' + tag);
+    opt.style.display = 'none';
+    const props = this.formatTags[tag];
+    if (!props.inClue.includes(inClue)) continue;
+    let modText = text;
+    let modPrefix = prefix;
+    let modSub = sub;
+    let modSuffix = suffix;
+    let heading = '';
     let deltaStart = 0;
     let deltaEnd = 0;
     if (tag == 'clear') {
-      if (!onlyClear) continue
-      heading = 'Clear paired format tags within selection:'
-      modSub = this.deTag(sub, inClue)
+      if (!onlyClear) continue;
+      heading = 'Clear paired format tags within selection:';
+      modSub = this.deTag(sub, inClue);
     } else if (tag == 'caps') {
-      if (onlyClear) continue
-      heading = 'Toggle letter capitalizaton in selection:'
-      modSub = ''
+      if (onlyClear) continue;
+      heading = 'Toggle letter capitalizaton in selection:';
+      modSub = '';
       for (let c of sub) {
-        const uc = c.toUpperCase()
-        const lc = c.toLowerCase()
+        const uc = c.toUpperCase();
+        const lc = c.toLowerCase();
         if (c == uc) modSub += lc;
         else modSub += uc;
       }
     } else if (tag == 'alt') {
-      if (onlyClear) continue
-      if (this.isInTag(lprefix, lsuffix, '<b>', '</b>')) continue
-      heading = 'Make alternate letters in selection bold and in upper case:'
-      modSub = ''
-      let odd = true
+      if (onlyClear) continue;
+      if (this.isInTag(lprefix, lsuffix, '<b>', '</b>')) continue;
+      heading = 'Make alternate letters in selection bold and in upper case:';
+      modSub = '';
+      let odd = true;
       for (let c of sub) {
-        const lc = c.toLowerCase()
+        const lc = c.toLowerCase();
         if (lc >= 'a' && lc <= 'z') {
-          if (odd) modSub += '<b>' + c.toUpperCase() + '</b>'
-          else modSub += c
-          odd = !odd
+          if (odd) modSub += '<b>' + c.toUpperCase() + '</b>';
+          else modSub += c;
+          odd = !odd;
         } else {
-          modSub += c
+          modSub += c;
         }
       }
     } else {
-      if (onlyClear) continue
-      const inTag = this.isInTag(lprefix, lsuffix, props.open, props.close)
+      if (onlyClear) continue;
+      const inTag = this.isInTag(lprefix, lsuffix, props.open, props.close);
       if (inTag) {
-        heading = 'Clear selection\'s enclosing "' + tag + '" tag:'
-        opt.className = 'xet-format-option-active'
+        heading = 'Clear selection\'s enclosing "' + tag + '" tag:';
+        opt.className = 'xet-format-option-active';
         modPrefix = prefix.substr(0, inTag[0]) +
           prefix.substr(inTag[0] + props.open.length);
         modSuffix = suffix.substr(0, inTag[1]) +
-          suffix.substr(inTag[1] + props.close.length)
+          suffix.substr(inTag[1] + props.close.length);
       } else {
-        heading = 'Wrap selection in "' + tag + '" tag:'
-        opt.className = 'xet-format-option'
-        modPrefix = prefix + props.open
-        modSuffix = props.close + suffix
+        heading = 'Wrap selection in "' + tag + '" tag:';
+        opt.className = 'xet-format-option';
+        modPrefix = prefix + props.open;
+        modSuffix = props.close + suffix;
       }
     }
-    modText = modPrefix + modSub + modSuffix
-    if (modText == text) continue
-    deltaStart = modPrefix.length - prefix.length
+    modText = modPrefix + modSub + modSuffix;
+    if (modText == text) continue;
+    deltaStart = modPrefix.length - prefix.length;
     deltaEnd = (modPrefix.length + modSub.length) -
-               (prefix.length + sub.length)
-    const preview = document.getElementById('xet-format-' + tag + '-preview')
-    const ph = preview.getElementsByClassName('xet-placeholder')
-    ph[0].innerText = heading
-    ph[1].innerText = prefix
-    ph[2].innerText = sub
-    ph[3].innerText = suffix
-    ph[4].innerText = modPrefix
-    ph[5].innerText = modSub
-    ph[6].innerText = modSuffix
-    const rendered = inClue ? this.hideDefTags(modText) : modText
-    ph[7].innerHTML = rendered
-    ph[8].style.display = 'none'
+               (prefix.length + sub.length);
+    const preview = document.getElementById('xet-format-' + tag + '-preview');
+    const ph = preview.getElementsByClassName('xet-placeholder');
+    ph[0].innerText = heading;
+    ph[1].innerText = prefix;
+    ph[2].innerText = sub;
+    ph[3].innerText = suffix;
+    ph[4].innerText = modPrefix;
+    ph[5].innerText = modSub;
+    ph[6].innerText = modSuffix;
+    const rendered = inClue ? this.hideDefTags(modText) : modText;
+    ph[7].innerHTML = rendered;
+    ph[8].style.display = 'none';
     if (inClue) {
-      const revRendered = this.renderDefTags(modText)
+      const revRendered = this.renderDefTags(modText);
       if (revRendered != rendered) {
-        ph[8].style.display = ''
-        ph[9].innerHTML = revRendered
+        ph[8].style.display = '';
+        ph[9].innerHTML = revRendered;
       }
     }
-    const b = opt.firstElementChild
+    const b = opt.firstElementChild;
     if (reversed) {
       let temp = deltaStart;
       deltaStart = deltaEnd;
@@ -5101,7 +5102,7 @@ Exet.prototype.maybeShowFormat = function() {
     numActive++;
   }
   if (numActive > 0) {
-    xetFormat.style.display = ''
+    xetFormat.style.display = '';
   }
 }
 
@@ -5328,9 +5329,6 @@ Exet.prototype.makeClueEditable = function() {
 
   this.puz.resizeCurrClue()
   this.reposition()
-
-  const formatRevealer = this.maybeShowFormat.bind(this)
-  document.addEventListener('selectionchange', formatRevealer)
 }
 
 Exet.prototype.throttledClueChange = function() {
@@ -9056,6 +9054,9 @@ Exet.prototype.finishSetup = function() {
   }
   window.addEventListener('scroll', this.reposition.bind(this));
   window.addEventListener('resize', this.reposition.bind(this));
+
+  const formatRevealer = this.maybeShowFormat.bind(this);
+  document.addEventListener('selectionchange', formatRevealer);
 }
 
 function exetFromHistory(exetRev) {
