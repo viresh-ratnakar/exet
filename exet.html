@@ -1468,6 +1468,7 @@ Exet.prototype.setPuzzle = function(puz) {
   }
   this.puz = puz
   puz.useWebifi = false;
+  puz.hltOverwrittenMillis = 0;
   puz.revealAll(false)
 
   if (!this.prefix && !this.suffix) {

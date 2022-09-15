@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.76.1 September 15, 2022
+
+- Set .hltOverwrittenMillis to 0 in Exolve, to avoid activating its
+  new feature of briefly highlighting overwritten letters.
+
 ### Version: Exet v0.76 September 7, 2022
 
 - Bugfix: do not keep adding duplicate selectionChange listeners.
