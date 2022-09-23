@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.76.2 September 22, 2022
+
+- Make the upcoming Notes link in Exolve hidden. Refactor
+  to use a function for all such hiding, including an existence check.
+
 ### Minor update: Exet v0.76.1 September 15, 2022
 
 - Set .hltOverwrittenMillis to 0 in Exolve, to avoid activating its

@@ -1434,6 +1434,13 @@ Exet.prototype.startNav = function(dir='A', row=0, col=0) {
   }
 }
 
+Exet.prototype.hideExolveElement = function(suffix) {
+  const elt = document.getElementById(this.puz.prefix + '-' + suffix);
+  if (elt) {
+    elt.style.display = 'none';
+  }
+}
+
 Exet.prototype.setPuzzle = function(puz) {
   if (puz.hasDgmlessCells) {
     alert('Diagramless cells are not supported')
@@ -1650,22 +1657,15 @@ Exet.prototype.setPuzzle = function(puz) {
   }
 
   this.replaceHandlers()
-  document.getElementById(`${this.puz.prefix}-controls`).style.display = 'none'
-  document.getElementById(`${this.puz.prefix}-saving`).style.display = 'none'
-  document.getElementById(
-      `${this.puz.prefix}-tools-link`).style.display = 'none'
-  document.getElementById(
-      `${this.puz.prefix}-print`).style.display = 'none'
-  document.getElementById(
-      `${this.puz.prefix}-webifi`).style.display = 'none'
-  document.getElementById(
-      `${this.puz.prefix}-report-bug`).style.display = 'none'
-  document.getElementById(
-      `${this.puz.prefix}-exolve-link`).style.display = 'none'
-  this.postscript = document.getElementById(`${this.puz.prefix}-postscript`);
-  if (this.postscript) {
-    this.postscript.style.display = 'none';
-  }
+  this.hideExolveElement('controls');
+  this.hideExolveElement('saving');
+  this.hideExolveElement('tools-link');
+  this.hideExolveElement('print');
+  this.hideExolveElement('webifi');
+  this.hideExolveElement('notes');
+  this.hideExolveElement('report-bug');
+  this.hideExolveElement('exolve-link');
+  this.hideExolveElement('postscript');
 
   this.copyright = document.getElementById(`${this.puz.prefix}-copyright`)
   this.copyright.innerHTML = `<span class="xet-action">Edit optional
@@ -1777,10 +1777,11 @@ Exet.prototype.setPuzzle = function(puz) {
       'beforeend',
       `<span> Lexicon: ${exetLexicon.id} ${exetLexicon.language}
           ${exetLexicon.script}.</span>`)
-  // Make the puzzle ID visible.
-  const idDiv = document.getElementById(this.puz.prefix + '-id')
-  if (idDiv) {
-    status.insertAdjacentElement('beforebegin', idDiv)
+  // Make the puzzle ID visible. But in a div, saving vspace.
+  const idPara = document.getElementById(this.puz.prefix + '-id')
+  if (idPara) {
+    status.insertAdjacentHTML(
+        'beforebegin', `<div class="xlv-metadata">${idPara.innerHTML}</div>`);
   }
 
   // Display sweeping activity indicator
