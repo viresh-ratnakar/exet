@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.76.3 October 2, 2022
+
+- Allow exolve-email as an editable section.
+
 ### Minor update: Exet v0.76.2 September 22, 2022
 
 - Make the upcoming Notes link in Exolve hidden. Refactor
