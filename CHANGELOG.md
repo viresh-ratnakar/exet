@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.76.4 October 29, 2022
+
+- Use Exolve's destroy() to clean up preview versions of puzzles.
+
 ### Minor update: Exet v0.76.3 October 2, 2022
 
 - Allow exolve-email as an editable section.

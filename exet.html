@@ -961,7 +961,9 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
       this.idSelectors = []
       this.revSelectors = []
       this.preview.innerHTML = ''
-      delete exolvePuzzles[this.previewId]
+      if (exolvePuzzles[this.previewId]) {
+        exolvePuzzles[this.previewId].destroy();
+      }
       callback(this.storedRevs.revs[this.revChoice])
     })
   }
@@ -981,7 +983,9 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
     let id = choices[i].id
     selector.addEventListener('click', e => {
       this.preview.innerHTML = ''
-      delete exolvePuzzles[this.previewId]
+      if (exolvePuzzles[this.previewId]) {
+        exolvePuzzles[this.previewId].destroy();
+      }
       this.puzDeleter.disabled = true
       this.puzPriorDeleter.disabled = true
       this.puzRevDeleter.disabled = true
@@ -1057,7 +1061,9 @@ ExetRevManager.prototype.chooseRev = function() {
       this.puzRevDeleter.disabled = true
       this.puzRevSelector.disabled = true
       this.preview.innerHTML = ''
-      delete exolvePuzzles[this.previewId]
+      if (exolvePuzzles[this.previewId]) {
+        exolvePuzzles[this.previewId].destroy();
+      }
       if (i == this.revChoice) {
         this.revChoice = -1
         selector.className = ''
@@ -3178,7 +3184,9 @@ Exet.prototype.updateOtherSections = function() {
       this.otherSecError.innerText = '' + err;
     }
     xetTemp.innerHTML = ''
-    delete exolvePuzzles[tempId]
+    if (exolvePuzzles[tempId]) {
+      exolvePuzzles[tempId].destroy();
+    }
     if (specsOK) {
       this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
       if (this.postscript) {
@@ -7102,7 +7110,7 @@ Exet.prototype.killInvalidatedClues = function() {
     }
   }
   xetTemp.innerHTML = ''
-  delete exolvePuzzles[tempId]
+  newPuz.destroy();
 }
 
 Exet.prototype.unlinkClue = function(ci) {
@@ -7757,7 +7765,7 @@ Exet.prototype.makeExolve = function(specs) {
   let xlvFrame = document.getElementById('xet-xlv-frame')
   xlvFrame.innerHTML = ''
   if (this.puz) {
-    delete exolvePuzzles[this.puz.id]
+    this.puz.destroy();
   }
   this.puz = null;
   try {
