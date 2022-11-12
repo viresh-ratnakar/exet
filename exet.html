@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.76 September 7, 2022
+Current version: v0.77 November 12, 2022
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -1078,7 +1078,7 @@ ExetRevManager.prototype.chooseRev = function() {
         selector.className = 'xet-chosen'
         this.revChoices.className = 'xet-choices xet-picked'
         let exolve = this.storedRevs.revs[i].exolve.replace(
-            /exolve-id:[ ]*[a-zA-Z0-9-]*/, `exolve-id: ${this.previewId}`)
+            /exolve-id:[^\n]*/, `exolve-id: ${this.previewId}`)
         exet.renderPreview(exolve, "xet-preview")
         this.puzPriorDeleter.disabled = (i <= 0)
         this.puzRevDeleter.disabled = false
@@ -1312,7 +1312,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.76 September 7, 2022'
+  this.version = 'v0.77 November 12, 2022'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -1552,21 +1552,21 @@ Exet.prototype.setPuzzle = function(puz) {
     return;
   }
 
-  let clueChanges = false
-  let numA = 0
-  let numD = 0
+  let clueChanges = false;
+  let numA = 0;
+  let numD = 0;
   let numZ = 0;
   for (let idx in puz.clues) {
-    let clue = puz.clues[idx]
-    if (clue.dir == 'A') numA++
-    else if (clue.dir == 'D') numD++
-    else if (clue.dir == 'Z') numZ++
+    let clue = puz.clues[idx];
+    if (clue.dir == 'A') numA++;
+    else if (clue.dir == 'D') numD++;
+    else if (clue.dir == 'Z') numZ++;
     if (!clue.clue) {
       clue.clue = this.draftClue(idx);
       clueChanges = true;
       continue;
     }
-    const parseEnum = this.puz.parseEnum(clue.clue)
+    const parseEnum = this.puz.parseEnum(clue.clue);
     if (!parseEnum.enumStr && clue.enumStr) {
       // Restore enum hidden by *
       clue.clue += ' ' + clue.enumStr;
@@ -4692,26 +4692,26 @@ Exet.prototype.arrowNav = function(key) {
 }
 
 Exet.prototype.scrollCluesIfNeeded = function() {
-  let clue = this.puz.clues[this.currClueIndex()]
-  if (!clue) return
-  let elt = clue.clueTR
-  if (!elt) return
+  let clue = this.puz.clues[this.currClueIndex()];
+  if (!clue) return;
+  let elt = clue.clueTR;
+  if (!elt) return;
   const parPos = this.cluesPanel.getBoundingClientRect();
   if (parPos.bottom < 0) {
-    return
+    return;
   }
   let windowH = this.puz.getViewportHeight()
   if (!windowH || windowH <= 0) {
-    return
+    return;
   }
   if (parPos.top >= windowH) {
-    return
+    return;
   }
   const pos = elt.getBoundingClientRect();
-  let ref = this.cluesPanel.firstElementChild
+  let ref = this.cluesPanel.firstElementChild;
   if (pos.bottom < 0 || pos.bottom < parPos.top || pos.top >= windowH ||
       pos.top < parPos.top || pos.top >= parPos.bottom) {
-    this.cluesPanel.scrollTop = pos.top - ref.getBoundingClientRect().top
+    this.cluesPanel.scrollTop = pos.top - ref.getBoundingClientRect().top;
   }
 }
 
@@ -4909,16 +4909,26 @@ Exet.prototype.hideDefTags = function(s) {
   return s.replace(/\}~/g, '')
 }
 
+Exet.prototype.adjustSavedCursor = function(deltaStart, deltaEnd) {
+  this.savedCursorStart += deltaStart;
+  if (this.savedCursorStart < 0) {
+    this.savedCursorStart = 0;
+  }
+  this.savedCursorEnd += deltaEnd;
+  if (this.savedCursorEnd < 0) {
+    this.savedCursorEnd = 0;
+  }
+}
+
 Exet.prototype.updateFormat = function(inClue, text, modText,
                                        deltaStart, deltaEnd) {
-  const elt = this.savedCursorElt
-  if (!elt) return
-  elt.focus()
-  elt.innerText = modText
-  this.savedCursorStart += deltaStart
-  this.savedCursorEnd += deltaEnd
-  this.restoreCursor()
-  this.handleClueChange()
+  const elt = this.savedCursorElt;
+  if (!elt) return;
+  elt.focus();
+  elt.innerText = modText;
+  this.adjustSavedCursor(deltaStart, deltaEnd);
+  this.restoreCursor();
+  this.handleClueChange();
 }
 
 Exet.prototype.reposition = function() {
@@ -5354,53 +5364,53 @@ Exet.prototype.throttledClueChange = function() {
 }
 
 Exet.prototype.handleClueChange = function() {
-  let ci = this.currClueIndex()
+  let ci = this.currClueIndex();
   if (!ci) {
-    return
+    return;
   }
-  let currClueText = document.getElementById('xet-clue')
+  let currClueText = document.getElementById('xet-clue');
   if (!currClueText) {
-    return
+    return;
   }
-  let theClue = this.puz.clues[ci]
+  let theClue = this.puz.clues[ci];
   if (!theClue) {
-    return
+    return;
   }
-  let clueTR = theClue.clueTR
+  let clueTR = theClue.clueTR;
   if (!clueTR) {
-    return
+    return;
   }
-  let clueSpan = theClue.clueSpan
+  let clueSpan = theClue.clueSpan;
   if (!clueSpan) {
-    return
+    return;
   }
 
-  let currClueAnno = document.getElementById('xet-anno')
+  let currClueAnno = document.getElementById('xet-anno');
   if (!currClueAnno) {
-    return
+    return;
   }
   if (!theClue.annoSpan) {
-    return
+    return;
   }
 
-  this.saveCursor()
+  this.saveCursor();
 
-  let expEnumLen = this.puz.getAllCells(ci).length
-  this.stripInputLF(currClueText)
-  let clue = currClueText.innerText
-  const savedClue = clue
-  clue = clue.trim()
-  let clueSansEnum = clue
-  let oldEnum = ''
-  let enumPos = theClue.clue.lastIndexOf('(')
+  let expEnumLen = this.puz.getAllCells(ci).length;
+  this.stripInputLF(currClueText);
+  let clue = currClueText.innerText;
+  const savedClue = clue;
+  clue = clue.trim();
+  let clueSansEnum = clue;
+  let oldEnum = '';
+  let enumPos = theClue.clue.lastIndexOf('(');
   if (enumPos >= 0) {
-    oldEnum = theClue.clue.substr(enumPos).trim()
+    oldEnum = theClue.clue.substr(enumPos).trim();
   }
-  let newEnum = ''
-  enumPos = clue.lastIndexOf('(')
+  let newEnum = '';
+  enumPos = clue.lastIndexOf('(');
   if (enumPos >= 0) {
-    newEnum = clue.substr(enumPos).trim()
-    clueSansEnum = clue.substr(0, enumPos).trim()
+    newEnum = clue.substr(enumPos).trim();
+    clueSansEnum = clue.substr(0, enumPos).trim();
   }
   const enumParse = this.puz.parseEnum(newEnum);
   newEnum = enumParse.enumStr.trim();
@@ -5416,30 +5426,34 @@ Exet.prototype.handleClueChange = function() {
       this.showTip(this.TIP_ENUM_MISMATCH);
     }
     if (expEnumLen > 0) {
-      newEnum = oldEnum || ('(' + expEnumLen + ')')
+      newEnum = oldEnum || ('(' + expEnumLen + ')');
     } else {
-      newEnum = ''
+      newEnum = '';
     }
   }
-  clue = (clueSansEnum + ' ' + newEnum).trim()
+  clue = (clueSansEnum + ' ' + newEnum).trim();
   if (clue != savedClue) {
-    currClueText.innerText = clue
+    let delta = clue.length - savedClue.length;
+    if (delta < 0) {
+      this.adjustSavedCursor(delta, delta);
+    }
+    currClueText.innerText = clue;
   }
   if (this.currClueIsDraft) {
-    clue = this.DRAFT + ' ' + clue
+    clue = this.DRAFT + ' ' + clue;
   }
-  this.setDraftToggler()
+  this.setDraftToggler();
 
-  theClue.clue = clue
-  this.puz.parseInClueAnnos(theClue)
+  theClue.clue = clue;
+  this.puz.parseInClueAnnos(theClue);
 
-  this.stripInputLF(currClueAnno)
-  theClue.anno = currClueAnno.innerText
-  theClue.annoSpan.lastElementChild.innerHTML = theClue.anno
-  this.renderClue(theClue)
+  this.stripInputLF(currClueAnno);
+  theClue.anno = currClueAnno.innerText;
+  theClue.annoSpan.lastElementChild.innerHTML = theClue.anno;
+  this.renderClue(theClue);
 
-  this.puz.resizeCurrClue()
-  this.reposition()
+  this.puz.resizeCurrClue();
+  this.reposition();
 
   this.restoreCursor();
 
@@ -5453,10 +5467,10 @@ Exet.prototype.handleClueChange = function() {
   if (oldEnum != newEnum) {
     if (this.handleGridInput()) {
       // throttledSaveRev() got called already
-      return
+      return;
     }
   }
-  exetRevManager.throttledSaveRev(exetRevManager.REV_CLUE_CHANGE)
+  exetRevManager.throttledSaveRev(exetRevManager.REV_CLUE_CHANGE);
 }
 
 Exet.prototype.gridAcrossSpans = function(grid, w, row) {
@@ -5989,38 +6003,38 @@ ExetDher.prototype.add = function(candidate) {
   this.heapifyUp(false, num)
 }
 ExetDher.prototype.popInner = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts
-  let len = elts.length
+  let elts = inMax ? this.maxelts : this.minelts;
+  let len = elts.length;
   console.assert(len > 0, len);
-  let last = elts.pop()
+  let last = elts.pop();
   if (len == 1 || idx >= len - 1) {
-    return last
+    return last;
   }
   // len > 1 && idx < len - 1
-  let ret = elts[idx]
-  elts[idx] = last
-  last.dher[inMax] = idx
-  let parent = this.parent(idx)
+  let ret = elts[idx];
+  elts[idx] = last;
+  last.dher[inMax] = idx;
+  let parent = this.parent(idx);
   if (idx > 0 &&
       ((inMax && last.score > elts[parent].score) ||
        (!inMax && last.score < elts[parent].score))) {
-    this.heapifyUp(inMax, idx)
+    this.heapifyUp(inMax, idx);
   } else {
-    this.heapifyDown(inMax, idx)
+    this.heapifyDown(inMax, idx);
   }
-  return ret
+  return ret;
 }
 ExetDher.prototype.pop = function(inMax, idx=0) {
-  let elts = inMax ? this.maxelts : this.minelts
+  let elts = inMax ? this.maxelts : this.minelts;
   if (idx < 0 || idx >= elts.length) return null;
-  const otherIdx = elts[idx].dher[!inMax]
-  this.popInner(!inMax, otherIdx)
-  return this.popInner(inMax, idx)
+  const otherIdx = elts[idx].dher[!inMax];
+  this.popInner(!inMax, otherIdx);
+  return this.popInner(inMax, idx);
 }
 ExetDher.prototype.peep = function(inMax, idx=0) {
-  let elts = inMax ? this.maxelts : this.minelts
+  let elts = inMax ? this.maxelts : this.minelts;
   if (idx < 0 || idx >= elts.length) return null;
-  return elts[idx]
+  return elts[idx];
 }
 
 /**
@@ -6406,7 +6420,6 @@ Exet.prototype.autofillPriorityClues = function(refinementSweeps, constrainerLim
   if (this.autofill.priorityClues.length == 0) {
     return;
   }
-console.log('Pri loop: ' + this.autofill.priorityLoop);
   const usedP = {};
   const child = new ExetFillState(this.autofill.base);
   child.delta = this.autofill.base.delta.slice();
@@ -6605,33 +6618,33 @@ Exet.prototype.resetAutofill = function(status) {
 }
 
 Exet.prototype.updateAutofill = function(candidate) {
-  console.assert(this.autofill.base, this.autofill)
-  this.fillState = new ExetFillState(this.autofill.base)
+  console.assert(this.autofill.base, this.autofill);
+  this.fillState = new ExetFillState(this.autofill.base);
   // Show light-fill suggestions from full lights.
   for (let ci in candidate.clues) {
-    let lChoices = candidate.clues[ci].lChoices
+    const lChoices = candidate.clues[ci].lChoices;
     if (lChoices.length != 1) {
-      continue
+      continue;
     }
-    let theClue = this.fillState.clues[ci]
-    console.assert(theClue, ci)
+    const theClue = this.fillState.clues[ci];
+    console.assert(theClue, ci);
     theClue.lChoices = lChoices;
     theClue.lRejects = candidate.clues[ci].lRejects || [];
   }
   // Show grid-cell suggestions. 
   for (let row = 0; row < this.puz.gridHeight; row++) {
     for (let col = 0; col < this.puz.gridWidth; col++) {
-      let gridCell = this.puz.grid[row][col]
+      const gridCell = this.puz.grid[row][col];
       if (!gridCell.isLight) {
-        continue
+        continue;
       }
-      const choices = candidate.grid[row][col].cChoices
+      const choices = candidate.grid[row][col].cChoices;
       if (Object.keys(choices).length == 1) {
-        this.fillState.grid[row][col].cChoices = choices
+        this.fillState.grid[row][col].cChoices = choices;
       }
     }
   }
-  this.updateViablots()
+  this.updateViablots();
 }
 
 Exet.prototype.initAutofill = function() {
@@ -6655,43 +6668,43 @@ Exet.prototype.initAutofill = function() {
       pangramFirsts: false,
       pangramLasts: false,
       triedHashes: {},
-    }
+    };
   }
   this.autofill.doublyChecked = this.gridUnchequeredOK(
       this.puz.grid, this.puz.gridWidth, this.puz.gridHeight, false);
   this.autofill.clear = document.getElementById("xet-autofill-clear")
   this.autofill.clear.disabled = true
   this.autofill.clear.addEventListener('click', e => {
-    this.autofill.accept.disabled = true
-    this.autofill.clear.disabled = true
-    this.resetAutofill('Cleared')
-    this.resetViability()
+    this.autofill.accept.disabled = true;
+    this.autofill.clear.disabled = true;
+    this.resetAutofill('Cleared');
+    this.resetViability();
   })
-  this.autofill.accept = document.getElementById("xet-autofill-accept")
-  this.autofill.accept.disabled = true
+  this.autofill.accept = document.getElementById("xet-autofill-accept");
+  this.autofill.accept.disabled = true;
   this.autofill.accept.addEventListener('click', e => {
-    this.autofill.accept.disabled = true
-    this.autofill.clear.disabled = true
+    this.autofill.accept.disabled = true;
+    this.autofill.clear.disabled = true;
     this.acceptAll();
   })
-  this.autofill.startstop = document.getElementById("xet-autofill-startstop")
+  this.autofill.startstop = document.getElementById("xet-autofill-startstop");
   if (this.autofill.running) {
-    this.autofill.startstop.innerText = 'Pause'
-    this.autofill.startstop.className = 'xlv-button xet-pink-button'
+    this.autofill.startstop.innerText = 'Pause';
+    this.autofill.startstop.className = 'xlv-button xet-pink-button';
   }
   this.autofill.startstop.addEventListener(
-      'click', this.startstopAutofill.bind(this))
+      'click', this.startstopAutofill.bind(this));
 
   this.autofill.beamWidthInp = document.getElementById(
-      'xet-autofill-max-beam')
-  this.autofill.beamWidthInp.value = this.autofill.beamWidth
+      'xet-autofill-max-beam');
+  this.autofill.beamWidthInp.value = this.autofill.beamWidth;
 
   this.autofill.pangramInp = document.getElementById(
-      'xet-autofill-boost-pangram')
-  this.autofill.pangramInp.checked = this.autofill.boostPangram
+      'xet-autofill-boost-pangram');
+  this.autofill.pangramInp.checked = this.autofill.boostPangram;
   this.autofill.pangramLoopInp = document.getElementById(
-      'xet-autofill-pangram-loop')
-  this.autofill.pangramLoopInp.checked = this.autofill.loopForPangram
+      'xet-autofill-pangram-loop');
+  this.autofill.pangramLoopInp.checked = this.autofill.loopForPangram;
 
   this.autofill.pangramDetails = document.getElementById(
       'xet-autofill-pangram-details');
@@ -6917,40 +6930,40 @@ Exet.prototype.handleGridInput = function(revType=null) {
     for (let col = 0; col < this.puz.gridWidth; col++) {
       let gridCell = this.puz.grid[row][col]
       if (!gridCell.isLight) {
-        continue
+        continue;
       }
-      let newSol = (gridCell.currLetter != '0' ?  gridCell.currLetter : '?')
+      let newSol = (gridCell.currLetter != '0' ?  gridCell.currLetter : '?');
       if (gridCell.solution != newSol) {
-        gridCell.solution = newSol
-        needsUpdate = true
+        gridCell.solution = newSol;
+        needsUpdate = true;
       }
       if (gridCell.currLetter != '0' && gridCell.currLetter != '?' &&
           gridCell.viablot) {
-        gridCell.viablot.style.fill = 'transparent'
+        gridCell.viablot.style.fill = 'transparent';
       }
     }
   }
   for (let ci in this.puz.clues) {
-    let theClue = this.puz.clues[ci]
-    let oldPH = theClue.placeholder
-    let oldSol = theClue.solution
-    theClue.placeholder = ''
-    theClue.solution = ''
-    let enumPos = theClue.clue.lastIndexOf('(')
+    let theClue = this.puz.clues[ci];
+    let oldPH = theClue.placeholder;
+    let oldSol = theClue.solution;
+    theClue.placeholder = '';
+    theClue.solution = '';
+    let enumPos = theClue.clue.lastIndexOf('(');
     if (enumPos >= 0) {
       theClue.placeholder = this.puz.parseEnum(
-          theClue.clue.substr(enumPos)).placeholder
+          theClue.clue.substr(enumPos)).placeholder;
     }
-    this.puz.setClueSolution(ci)
+    this.puz.setClueSolution(ci);
     if (theClue.placeholder != oldPH || theClue.solution != oldSol) {
-      needsUpdate = true
+      needsUpdate = true;
     }
   }
   if (needsUpdate) {
-    if (!revType) revType = exetRevManager.REV_GRIDFILL_CHANGE
-    this.updatePuzzle(revType)
+    if (!revType) revType = exetRevManager.REV_GRIDFILL_CHANGE;
+    this.updatePuzzle(revType);
   }
-  return needsUpdate
+  return needsUpdate;
 }
 
 Exet.prototype.remapDisplayLabel = function(displayLabel, dir, newLabels) {
@@ -7708,34 +7721,67 @@ Exet.prototype.clearAllMarkings = function() {
   }
 }
 
-Exet.prototype.saveCursor = function() {
-  this.savedCursorStart = 0
-  this.savedCursorEnd = 0
-  this.savedCursorId = ''
-  this.savedCursorElt = null
-  let sel = window.getSelection();
-  if (!sel || !sel.focusNode) {
-    return
+Exet.prototype.parentWithId = function(elt) {
+  while (elt && !elt.id) {
+    elt = elt.parentNode;
   }
-  let parent = sel.focusNode.parentNode;
-  if (!parent || !parent.id) {
-    return
+  return elt;
+}
+
+Exet.prototype.saveCursor = function() {
+  this.savedCursorStart = 0;
+  this.savedCursorEnd = 0;
+  this.savedCursorId = '';
+  this.savedCursorElt = null;
+  let sel = window.getSelection();
+  if (!sel || !sel.focusNode || !sel.rangeCount) {
+    return;
+  }
+  let parent = this.parentWithId(sel.focusNode.parentNode);
+  if (!parent) {
+    return;
+  }
+  if (!parent.isContentEditable) {
+    return;
+  }
+  /**
+   * range.toString() does not count trailing newlines.
+   * sel.toString(0) does, but modifying the selection (to
+   * extend it to the start) seems to trigger a selectionchange
+   * event, leading to a sad infinite loop. We just live
+   * with this imperfection.
+   */
+  const range = sel.getRangeAt(0);
+  const rangeStr = range.toString();
+  const extRange = range.cloneRange();
+  extRange.setStart(parent, 0);
+  const extRangeStr = extRange.toString();
+  if (!extRangeStr.endsWith(rangeStr)) {
+    console.log('Weird selection in element ' + parent.id + ': extRange: [' +
+                extRangeStr + '], range: [' + rangeStr + ']');
+    return;
   }
   this.savedCursorId = parent.id;
-  this.savedCursorElt = parent
-  this.savedCursorEnd = sel.focusOffset;
-  if (sel.type != 'Range') {
-    this.savedCursorStart = this.savedCursorEnd;
-  } else if (sel.anchorNode == sel.focusNode) {
-    this.savedCursorStart = sel.anchorOffset;
-  } else {
-    const prefix = parent.innerText.substr(0, this.savedCursorEnd)
-    if (sel.toString().endsWith(prefix)) {
-      this.savedCursorStart = 0;
-    } else {
-      this.savedCursorStart = parent.innerText.length
+  this.savedCursorElt = parent;
+  this.savedCursorEnd = extRangeStr.length;
+  this.savedCursorStart = extRangeStr.length - rangeStr.length;
+}
+
+Exet.prototype.getTextNodeAtPosition = function(elt, index) {
+  const NODE_TYPE = NodeFilter.SHOW_TEXT;
+  const treeWalker = document.createTreeWalker(
+      elt, NODE_TYPE, function next(elem) {
+    if (index > elem.textContent.length){
+      index -= elem.textContent.length;
+      return NodeFilter.FILTER_REJECT
     }
-  }
+    return NodeFilter.FILTER_ACCEPT;
+  });
+  const c = treeWalker.nextNode();
+  return {
+    node: c ? c : elt,
+    position: index
+  };
 }
 
 Exet.prototype.restoreCursor = function() {
@@ -7743,22 +7789,20 @@ Exet.prototype.restoreCursor = function() {
     const elt = document.getElementById(this.savedCursorId)
     if (elt && elt.firstChild) {
       try {
-        const node = elt.firstChild
-        const l = node.length
-        if (this.savedCursorEnd > l) {
-          this.savedCursorEnd = l;
-        }
-        if (this.savedCursorStart > l) {
-          this.savedCursorStart = l;
-        }
-        window.getSelection().setBaseAndExtent(
-            node, this.savedCursorStart, node, this.savedCursorEnd);
+        const sel = window.getSelection();
+        const posStart = this.getTextNodeAtPosition(elt, this.savedCursorStart);
+        const posEnd = this.getTextNodeAtPosition(elt, this.savedCursorEnd);
+        sel.removeAllRanges();
+        const range = new Range();
+        range.setStart(posStart.node, posStart.position);
+        range.setEnd(posEnd.node, posEnd.position);
+        sel.addRange(range);
       } catch (err) {
       }
     }
   }
-  this.savedCursorEnd = 0
-  this.savedCursorId = ''
+  this.savedCursorEnd = 0;
+  this.savedCursorId = '';
 }
 
 Exet.prototype.makeExolve = function(specs) {
@@ -8835,9 +8879,9 @@ Exet.prototype.throttledUpdatePreflex = function() {
  * and resetViability(), and update preflex display.
  */
 Exet.prototype.updatePreflex = function() {
-  let preflexes = this.preflexInput.innerText.trim().split('\n');
-  preflex = [];
-  let seen = {};
+  const preflexes = this.preflexInput.innerText.trim().split('\n');
+  const preflex = [];
+  const seen = {};
   for (let ptext of preflexes) {
     ptext = ptext.trim().replace(/[^a-zA-Z' -]/g, '').replace(/[ ][ ]*/g, ' ');
     if (!ptext) continue;
@@ -8863,17 +8907,23 @@ Exet.prototype.updatePreflex = function() {
     pidOf[this.preflexSet[pid]] = pid;
   }
   let preflexHtml = '';
+  let preflexTextLen = 0;
   for (let ptext of preflex) {
     if (this.preflexInUse[pidOf[ptext]]) {
       preflexHtml += '<b>' + ptext + '</b>\n';
     } else {
       preflexHtml += ptext + '\n';
     }
+    preflexTextLen += ptext.length + 1;
   }
-  if (preflexHtml != this.preflexInput.innerHTML.trim()) {
-    const cursor = this.preflexInput.selectionStart;
+  if (preflexHtml != this.preflexInput.innerHTML) {
+    delta = preflexTextLen - this.preflexInput.innerText.length;
+    this.saveCursor();
+    if (delta < 0) {
+      this.adjustSavedCursor(delta, delta);
+    }
     this.preflexInput.innerHTML = preflexHtml;
-    this.preflexInput.selectionEnd = cursor;
+    this.restoreCursor();
   }
   exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE);
 }
@@ -8895,9 +8945,9 @@ Exet.prototype.renderUnpreflex = function() {
     unpreflexText += exetLexicon.lexicon[p]
   }
   if (this.unpreflexInput.value != unpreflexText) {
-    const cursor = this.unpreflexInput.selectionStart;
+    this.saveCursor();
     this.unpreflexInput.value = unpreflexText;
-    this.unpreflexInput.selectionEnd = cursor;
+    this.restoreCursor();
   }
   this.unpreflexSize.innerText = Object.keys(this.unpreflex).length
 }

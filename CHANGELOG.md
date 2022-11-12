@@ -1,5 +1,16 @@
 # Changelog
 
+### Version: Exet v0.77 November 12, 2022
+
+- Bug fix: when replacing within exolve spec to paste in the preview id, do
+  not assume the old restrictions on what letters the id may have.
+- Make selection saving/restoring more robust:
+  - Save locations using string lengths of selection range and the selection
+    range adjusted to start at the beginning.
+  - Go up as much as needed to find a parent element with an ID.
+  - Only save selection if this parent element isContentEditable.
+  - For restoring, locate and use the appropriate internal nodes if any.
+
 ### Minor update: Exet v0.76.4 October 29, 2022
 
 - Use Exolve's destroy() to clean up preview versions of puzzles.
