@@ -29,7 +29,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.77 November 12, 2022
+Current version: v0.78 January 16, 2023
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -632,7 +632,7 @@ Current version: v0.77 November 12, 2022
   outline: none;
   background-image:
     repeating-linear-gradient(to bottom, white, white 13px, lightgray 14px);
-  white-space: pre-wrap;
+  white-space: break-spaces;
 }
 #xet-unpreflex-editor {
   border: 1px solid chocolate;
@@ -1312,7 +1312,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.77 November 12, 2022'
+  this.version = 'v0.78 January 16, 2023'
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -7732,6 +7732,7 @@ Exet.prototype.saveCursor = function() {
   this.savedCursorStart = 0;
   this.savedCursorEnd = 0;
   this.savedCursorId = '';
+  this.savedCursorAtEnd = false;
   this.savedCursorElt = null;
   let sel = window.getSelection();
   if (!sel || !sel.focusNode || !sel.rangeCount) {
@@ -7749,7 +7750,8 @@ Exet.prototype.saveCursor = function() {
    * sel.toString(0) does, but modifying the selection (to
    * extend it to the start) seems to trigger a selectionchange
    * event, leading to a sad infinite loop. We just live
-   * with this imperfection.
+   * with this imperfection, except for the common case
+   * when the cursor is at the end.
    */
   const range = sel.getRangeAt(0);
   const rangeStr = range.toString();
@@ -7765,6 +7767,17 @@ Exet.prototype.saveCursor = function() {
   this.savedCursorElt = parent;
   this.savedCursorEnd = extRangeStr.length;
   this.savedCursorStart = extRangeStr.length - rangeStr.length;
+  if (rangeStr.length == 0) {
+    const parentText = parent.innerText;
+    const parentTextTrim = parentText.replace(/[\n\r]/g, '').trim();
+    const extRangeTrim = extRangeStr.replace(/[\n\r]/g, '').trim();
+    if (parentTextTrim == extRangeTrim) {
+      /* handle special case of being at the end */
+      this.savedCursorAtEnd = true;
+      this.savedCursorEnd = parentText.length;
+      this.savedCursorStart = this.savedCursorEnd;
+    }
+  }
 }
 
 Exet.prototype.getTextNodeAtPosition = function(elt, index) {
@@ -7786,9 +7799,12 @@ Exet.prototype.getTextNodeAtPosition = function(elt, index) {
 
 Exet.prototype.restoreCursor = function() {
   if (this.savedCursorId) {
-    const elt = document.getElementById(this.savedCursorId)
+    const elt = document.getElementById(this.savedCursorId);
     if (elt && elt.firstChild) {
       try {
+        if (this.savedCursorAtEnd) {
+          this.savedCursorStart = this.savedCursorEnd = elt.innerText.length;
+        }
         const sel = window.getSelection();
         const posStart = this.getTextNodeAtPosition(elt, this.savedCursorStart);
         const posEnd = this.getTextNodeAtPosition(elt, this.savedCursorEnd);

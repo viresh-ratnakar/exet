@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.78 January 16, 2023
+
+- Reduce the cursor-jumping-around behaviour when editing the list of
+  preferred words.
+
 ### Version: Exet v0.77 November 12, 2022
 
 - Bug fix: when replacing within exolve spec to paste in the preview id, do
