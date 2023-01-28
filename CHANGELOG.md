@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.78.1 January 27, 2023
+
+- Reduce textarea cols for Preamble/Explanations/Other Sections editables
+  to 55 from 80. Also make horizontal scrollbars appear to when needed.
+
 ### Version: Exet v0.78 January 16, 2023
 
 - Reduce the cursor-jumping-around behaviour when editing the list of

@@ -279,12 +279,11 @@ Current version: v0.78 January 16, 2023
   padding: 0 0 6px;
 }
 .xet-choices-box {  
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin: 4px 0;
   border: 1px solid gray;
   border-collapse: collapse;
   box-sizing: border-box;
+  overflow: auto;
+  margin: 4px 0;
 }
 #xet-light-choices-box {  
   width: 30ch;
@@ -2476,7 +2475,7 @@ Exet.prototype.makeExetTab = function() {
     HTML tags may be used in this section.
   </div>
   <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="80" wrap="hard" id="xet-preamble-text">
+     <textarea rows="100" cols="55" wrap="hard" id="xet-preamble-text">
      </textarea>
   </div>
 </div>
@@ -2490,7 +2489,7 @@ Exet.prototype.makeExetTab = function() {
     HTML tags may be used in this section.
   </div>
   <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="80" wrap="hard" id="xet-explanations-text">
+     <textarea rows="100" cols="55" wrap="hard" id="xet-explanations-text">
      </textarea>
   </div>
 </div>
@@ -2516,7 +2515,7 @@ Exet.prototype.makeExetTab = function() {
   <div id="xet-other-sections-error" style="min-height:20px" class="xet-red">
   </div>
   <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="80" wrap="hard" id="xet-other-sections-text">
+     <textarea rows="100" cols="55" wrap="hard" id="xet-other-sections-text">
      </textarea>
   </div>
 </div>
