@@ -179,7 +179,7 @@ function exetLexiconInit() {
     // First look at preferred choices (these may have idx >= indexLimit)
     const seen = {};
     if (preflexByLen[key.length]) {
-      for (idx of preflexByLen[keyParts.length]) {
+      for (idx of preflexByLen[key.length]) {
         if (dontReuse[idx]) continue;
         const phrase = this.lexicon[idx];
         if (this.keyMatchesPhrase(key, phrase)) {
