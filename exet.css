@@ -1,0 +1,638 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2020 Viresh Ratnakar
+ *
+ * See the full license notice in exet.js.
+ *
+ * Current version: v0.79 March 13, 2023
+ */
+
+[contenteditable="true"]:active,
+[contenteditable="true"]:focus{
+  border:none;
+  outline:none;
+} 
+.xet-frame {
+  width: 940px;
+  margin: 0 8px;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 14px;
+  position: relative;
+}
+.xet-controls-col {
+  padding: 4px;
+}
+.xet-frame hr {
+  margin-left: 0;
+  margin-right: 0;
+}
+.xet-tab {
+  height: 50px;
+  border: 4px solid #ddd;
+  border-bottom: 0;
+  background-color: #ddd;
+  border-radius: 10px 10px 0 0;
+  overflow: auto;
+}
+.xet-tab button {
+  font-size: 14px;
+  width: 105px;
+  height: 100%;
+  background-color: inherit;
+  float: left;
+  outline: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: 0.3s;
+  font-weight: bold;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid silver;
+}
+.xet-tab button:hover {
+  background-color: #f0f0f0;
+  border-bottom: 0;
+  cursor: pointer;
+}
+.xet-tab button.active {
+  background-color: white;
+  border-bottom: 0;
+}
+.xet-tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+.xet-iframe-loading {
+  float: right;
+  color: red;
+  cursor: wait;
+}
+.xet-td {
+  vertical-align: top;
+}
+.xet-iframe {
+  width: 910px;
+  border: 0;
+  overflow: auto;
+}
+.xet-panel {
+  width: 910px;
+  border: 0;
+  overflow: auto;
+}
+.xet-section {
+  border: 0;
+}
+.xet-high-tall-box {
+  height: 450px;
+}
+.xet-mid-tall-box {
+  height: 325px;
+}
+.xet-draft > td:first-child {
+  color: gray;
+}
+.xet-draft-marker,
+.xet-done-marker {
+  font-size: 12px;
+  font-family: monospace;
+  color: gray;
+}
+.xet-done-marker {
+  text-decoration: line-through;
+  text-decoration-color: dodgerblue;
+}
+.xet-clue-stat {
+  cursor: pointer;
+  padding: 2px;
+  border: 1px solid white;
+}
+.xet-clue-stat:hover {
+  border: 1px solid dodgerblue;
+  background: mistyrose;
+}
+.xet-anno {
+  font-family: monospace;
+  font-size: 14px;
+  color: darkgreen;
+}
+.xlv-curr-clue-label {
+  cursor: pointer;
+}
+.xlv-curr-clue {
+  font-family: monospace;
+  font-weight: normal;
+  font-size: 14px;
+  padding: 2px 2px 4px 2px;
+  overflow: visible;
+}
+.xet-curr-clue {
+  overflow-y: auto;
+}
+#xet-unlink {
+  padding: 4px;
+}
+.xet-linking {
+  position: absolute;
+  z-index: 1;
+  top: -28px;
+  left: 0;
+  background-color: white;
+  border: 1px solid dodgerblue;
+  padding: 2px 4px 0 4px;
+  color: darkgreen;
+  box-sizing: border-box;
+}
+.xet-blur *,
+.xet-blur {
+  color: #f0f0f0 !important;
+  outline-color: lightgray !important;
+}
+.xet-format {
+  position: absolute;
+  top: -28px;
+  right: 0;
+  z-index: 2;
+  background-color: white;
+}
+.xet-format-label {
+  margin: 0;
+  color: dodgerblue;
+  padding: 4px;
+}
+.xet-format-option .xlv-small-button,
+.xet-format-option-active .xlv-small-button {
+  padding: 4px 6px;
+  margin: 0;
+  border: none;
+  font-weight: normal;
+}
+.xet-format-option .xlv-small-button > *:not(.xet-format-panel),
+.xet-format-option-active .xlv-small-button > *:not(.xet-format-panel) {
+  color: gray;
+  text-decoration-thickness: 1px;
+}
+.xet-format-option .xlv-small-button:hover > *:not(.xet-format-panel),
+.xet-format-option-active .xlv-small-button:hover > *:not(.xet-format-panel) {
+  color: dodgerblue;
+  text-decoration-thickness: 1.5px;
+}
+#xet-format .xet-format-option-active .xlv-small-button {
+  background-color: #e1e1e1;
+}
+#xet-format .xet-format-option-active .xlv-small-button:hover {
+  background-color: lightsalmon;
+}
+.xet-format-option-active .xlv-small-button:hover .xet-format-panel,
+.xet-format-option .xlv-small-button:hover .xet-format-panel {
+  display: block;
+}
+.xet-format-panel {
+  margin: 0;
+  padding: 4px;
+  display: block;
+  text-align: left;
+  position: absolute;
+  background-color: white;
+  z-index: 2;
+  left: 100%;
+  top: 4px;
+  border: 1px solid dodgerblue;
+  box-sizing: border-box;
+  color: black;
+  display: none;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  width: 280px;
+}
+.xet-format-preview {
+  margin: 8px 8px;
+}
+.xet-format-selection {
+  background-color: #3399FF;
+  color: white;
+}
+.xet-small-action {
+  text-align: right;
+  font-family: monospace;
+  font-size: 10px;
+  font-style: italic;
+}
+.xet-red {
+  color: red;
+}
+.xet-blue {
+  color: blue;
+  text-decoration: none;
+}
+.xet-small {
+  font-family: monospace;
+  font-size: 10px;
+}
+.xet-bold {
+  font-weight: bold;
+}
+.xet-controls-row {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: left;
+}
+.xet-scratch-pad,
+.xet-controls-col {
+  display: flex;
+  flex-flow: column wrap;
+  align-items: flex-start;
+}
+.xet-scratch-pad {
+  padding: 0 0 6px;
+}
+.xet-choices-box {  
+  border: 1px solid gray;
+  border-collapse: collapse;
+  box-sizing: border-box;
+  overflow: auto;
+  margin: 4px 0;
+}
+#xet-light-choices-box {  
+  width: 30ch;
+  height: 340px;
+}
+#xet-light-choices,
+#xet-light-rejects {  
+  font-size: 16px;
+}
+.xet-choices {  
+  table-layout: auto;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  color: #333;
+  border: 1px solid gray;
+  border-collapse: collapse;
+  border-spacing: 0; 
+  font-family: monospace;
+  font-size: 12px;
+}
+.xet-choices td, .xet-choices th {
+  border: 0;
+  border-right: 1px solid gray;
+  border-left: 1px solid gray;
+  padding: 8px;
+}
+.xet-choices th {  
+  background: #DFDFDF;
+  font-weight: bold;
+}
+.xet-choices td {  
+  background: #FAFAFA;
+  text-align: left;
+  cursor: pointer;
+}
+.xet-choices tr:nth-child(even) td { background: #F1F1F1; }   
+.xet-choices tr:nth-child(odd) td { background: #FEFEFE; }  
+.xet-choices:not(.xet-picked) tr:hover td {
+  background: lightgreen;
+}  
+#xet-light-rejects tr:nth-child(odd) td { background: #f1cfff; }   
+#xet-light-rejects tr:nth-child(even) td { background: #e8c6f6; }  
+#xet-light-rejects tr:hover td {
+  background: lightblue;
+}  
+.xet-fill-settings {
+  width: 300px;
+  padding: 8px;
+  margin: 0 8px 6px 0;
+  border: 1px solid gray;
+  font-family: monospace;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+.xet-menu {
+  position: relative;
+  width:100%;
+}
+.xet-menu > ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.xet-menu > ul > li {
+  float: left;
+}
+.xet-dropbtn {
+  display: inline-block;
+  text-align: center;
+  padding: 8px 12px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid transparent;
+}
+.xet-dropdown:hover .xet-dropbtn {
+  background-color: #ddd;
+  cursor: pointer;
+  border: 1px solid gray;
+}
+.xet-menu li.xet-dropdown {
+  display: inline-block;
+}
+.xet-dropdown-content,
+.xet-dropdown-submenu {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 275px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  margin: 0;
+  border: 1px solid gray;
+}
+.xet-dropdown-submenu {
+  bottom: 0;
+  left: 100%;
+}
+.xet-autofill-panel {
+  top: 0;
+  bottom: auto;
+}
+.xet-dropdown-submenu textarea {
+  background-color: #e9e9e9;
+}
+.xet-dropdown-div {
+  line-height: 1.5;
+}
+.xet-dropdown-item,
+.xet-dropdown-div,
+.xet-dropdown-subitem {
+  margin: 0;
+  padding: 12px;
+  display: block;
+  text-align: left;
+  position: relative;
+}
+.xet-dropdown-content .xet-dropdown-item:nth-child(odd) {
+  background: #F1F1F1;
+}   
+.xet-dropdown-content .xet-dropdown-item:nth-child(even) {
+  background: #FEFEFE;
+}  
+.xet-dropdown-content .xet-dropdown-item:hover {
+  background-color: lightgreen;
+  cursor: pointer;
+}
+.xet-dropdown-submenu .xet-dropdown-subitem:nth-child(odd) {
+  background: #F1F1F1; }   
+.xet-dropdown-submenu .xet-dropdown-subitem:nth-child(even) {
+  background: #FEFEFE;
+}  
+.xet-dropdown-submenu .xet-dropdown-subitem:hover {
+  background-color: #a1ffa1;
+  cursor: pointer;
+}
+.xet-dropdown-item:hover .xet-dropdown-submenu {
+  display: block;
+}
+.xet-analysis {
+  width: 700px;
+  height: 440px;
+  overflow: auto;
+  padding: 6px 6px 6px 16px;
+  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, gainsboro 1px, transparent 1px),
+    linear-gradient(to bottom, gainsboro 1px, transparent 1px);
+}
+.xet-analysis li {
+  margin-top: 14px;
+}
+.xet-plotbar {
+  background: dodgerblue;
+  height: 16px;
+  margin: 2px;
+}
+#xet-tips .xlv-small-button {
+  margin: 4px;
+  padding: 4px;
+}
+#xet-tips.xet-tips .xlv-small-button:hover {
+  background-color: lightyellow;
+}
+.xet-tip {
+  background-color: lightyellow;
+  margin: 0 4px 4px;
+  padding: 12px 6px;
+  text-align: left;
+  width: 420px;
+  border: 1px solid gray;
+}
+.xet-tips {
+  text-align: right;
+}
+.xet-frame .xlv-clues {
+  font-size: 16px;
+  font-family: serif;
+  font-weight: 400;
+  line-height: normal;
+  box-sizing: border-box;
+}
+.xet-frame .xlv-clues {
+  width: 610px;
+}
+.xet-clues-box {
+  width: 625px;
+}
+.xet-rev-chooser {
+  position: absolute;
+  z-index: 1;
+  background-color: white;
+  border: 1px solid gray;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  font-size: 12px;
+}
+.xet-chosen {
+  font-weight: bold;
+  color: darkgreen;
+}
+.xet-editable {
+  outline: 1px solid lightgreen;
+  padding: 4px;
+  line-height: 1.8;
+}
+.xet-editable[contenteditable] {
+  outline: 1px solid lightgreen;
+}
+.xet-action {
+  color: dodgerblue;
+  font-weight: normal;
+  font-family: serif;
+  font-size: 14px;
+  font-style: italic;
+  margin: 4px 0;
+}
+#xet-scratch-pad {
+  margin: 0 6px 0 0;
+}
+.xet-icon {
+  padding: 0;
+  height: 25px;
+  width: 25px;
+}
+.xet-companag {
+  padding: 0 0 8px 0;
+  overflow: auto;
+}
+.xet-companag-text {
+  color: blue;
+  font-family: monospace;
+  font-size: 14px;
+}
+.xet-table-midline td:nth-child(2) {
+  border-left: 1px solid gray;
+  padding-left: 4px;
+}
+.xet-table-midline td {
+  padding-top: 4px;
+}
+.xet-table-midline {
+  margin-top: 10px;
+}
+.xet-preview {
+  height: 300px;
+  width: 800px;
+  overflow: auto;
+}
+.xet-full-width {
+  width: 100%;
+}
+.xet-wordplay-choices td {
+  vertical-align: top;
+  padding: 3px 0;
+}
+.xet-sweeping-box {
+  display: inline-block;
+  position: absolute;
+  height: 31px;
+  width: 31px;
+  right: 0;
+  bottom: -22px;
+}
+@keyframes xet-sweeping {
+  from {
+    width: 0; height: 0; border-radius: 0;
+    left: 15.5px; top: 15.5px; background: red;
+  }
+  to {
+    width: 10px; height: 10px; border-radius: 5px;
+    left: 10.5px; top: 10.5px; background: red;
+  }
+}
+.xet-sweeping,
+.xet-sweeping-animated {
+  position: absolute;
+}
+.xet-sweeping {
+  left: 15.5px;
+  top: 15.5px;
+  width: 0;
+  height: 0;
+  border-radius: 0;
+}
+.xet-sweeping-animated {
+  animation-name: xet-sweeping;
+  animation-duration: 2s;
+  animation-direction: alternate;
+  animation-iteration-count: infinite;
+}
+#xet-preflex-input {
+  color: green;
+}
+#xet-unpreflex-input {
+  color: chocolate;
+}
+#xet-preamble,
+#xet-explanations,
+#xet-other-sections {
+  width: 500px;
+}
+#xet-questions-list td > * {
+  margin: 6px;
+}
+#xet-tweak-colour-nina {
+  padding: 6px;
+  text-align: left;
+  overflow: visible;
+  font-size: 14px;
+}
+.xet-colour-nina {
+  padding: 4px;
+  position: relative;
+  min-height: 32px;
+}
+.xet-colour-nina .xet-colour-nina-radio {
+  margin: 0 2px 0 30px;
+  height: 25px;
+}
+.xet-colour-nina:hover .xet-colour-nina-radio {
+  background: whitesmoke;
+}
+.xet-colour-sample {
+  width: 25px;
+  height: 25px;
+}
+.xet-text-editor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 8px;
+  z-index: 2;
+  background-color: white;
+  border: 1px solid green;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  font-size: 12px;
+}
+.xet-text-editor .xet-choices-box div,
+.xet-text-editor .xet-choices-box textarea {
+  border: none;
+  padding: 0 0 6px 0;
+  outline: none;
+  background-image:
+    repeating-linear-gradient(to bottom, white, white 13px, lightgray 14px);
+  white-space: break-spaces;
+}
+#xet-unpreflex-editor {
+  border: 1px solid chocolate;
+}
+.xet-autofill-panel {
+  padding: 4px;
+  min-width: 400px;
+}
+.xet-autofill-panel .xlv-button {
+  margin: 2px 6px 4px;
+}
+#xet-outdated-message,
+#xet-outdated {
+  color: red;
+  font-weight: bold;
+}
+#xet-minpop {
+  text-align: right;
+}
+#xet-save-warnings {
+  padding: 2px 15px;
+}
+.xet-pink-button {
+  background-color: salmon !important;
+}
+.xet-pink-button:hover {
+  background-color: red !important;
+}
+.xet-long-button {
+  margin: 2px 0;
+}
+.xet-indent {
+  margin-left: 2em;
+}

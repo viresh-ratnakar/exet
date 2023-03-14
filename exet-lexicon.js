@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.html.
 
-Current version: v0.78 January 16, 2023
+Current version: v0.79 Match 13, 2023
 */
 
 /**
@@ -20,30 +20,41 @@ function exetLexiconInit() {
 
   exetLexicon.startLen = exetLexicon.lexicon.length;
 
-  // Set of all letters in the lexicon and their frequencies.
-  exetLexicon.allLetters = {}
-  exetLexicon.letterFrequencies = {}
+  /**
+   * Note that exetLexicon.letters is expected to be in upper-case,
+   * as are the keys in letterSet and letterFreq.
+   */
+  exetLexicon.allLetters = {};
+  exetLexicon.letterFreq = {};
+  exetLexicon.letterIndex = {};
+  exetLexicon.zeroHist = new Array(exetLexicon.letters.length);
+  for (let i = 0; i < exetLexicon.letters.length; i++) {
+    const c = exetLexicon.letters[i];
+    console.assert(c.toUpperCase() == c, c);
+    exetLexicon.letterIndex[c] = i;
+    exetLexicon.zeroHist[i] = 0;
+  }
   for (let c of exetLexicon.letters) {
     const cu = c.toUpperCase();
     exetLexicon.allLetters[cu] = true;
-    exetLexicon.letterFrequencies[cu] = 0;
+    exetLexicon.letterFreq[cu] = 0;
   }
   for (let w of exetLexicon.lexicon) {
     for (let c of w) {
       const cu = c.toUpperCase();
       if (!exetLexicon.allLetters[cu]) continue;
-      exetLexicon.letterFrequencies[cu] += 1;
+      exetLexicon.letterFreq[cu] += 1;
     }
   }
   let maxFreq = 0;
   let minFreq = Number.MAX_VALUE;
-  for (let c in exetLexicon.letterFrequencies) {
-    if (exetLexicon.letterFrequencies[c] > maxFreq) maxFreq = exetLexicon.letterFrequencies[c];
-    if (exetLexicon.letterFrequencies[c] < minFreq) minFreq = exetLexicon.letterFrequencies[c];
+  for (let c in exetLexicon.letterFreq) {
+    if (exetLexicon.letterFreq[c] > maxFreq) maxFreq = exetLexicon.letterFreq[c];
+    if (exetLexicon.letterFreq[c] < minFreq) minFreq = exetLexicon.letterFreq[c];
   }
   exetLexicon.letterRarities = {}
-  for (let c in exetLexicon.letterFrequencies) {
-    let x = 1.0 - ((exetLexicon.letterFrequencies[c] - minFreq) /
+  for (let c in exetLexicon.letterFreq) {
+    let x = 1.0 - ((exetLexicon.letterFreq[c] - minFreq) /
                    (maxFreq - minFreq));
     if (x < 0.7) x = 0.7;
     exetLexicon.letterRarities[c] = 1.0 + (1.5 * (x - 0.7) / 0.3);
@@ -56,19 +67,20 @@ function exetLexiconInit() {
 
   /**
    * Remove all punctuation, normalize spaces, only retain
-   * letters and dashes and quotes and spaces.
+   * letters and dashes and quotes and spaces. Return in
+   * lower case. Applied to clue texts, usually.
    */
   exetLexicon.depunct = function(s) {
-    let out = ''
+    let out = '';
     for (let c of s) {
       if (c == ' ' || c == '-' || c == "'" ||
           this.allLetters[c.toUpperCase()]) {
-        out += c
+        out += c;
       } else if (c == '—') {
-        out += ' '
+        out += ' ';
       }
     }
-    return out.replace(/\s+/g, ' ').toLowerCase().trim()
+    return out.replace(/\s+/g, ' ').toLowerCase().trim();
   }
 
   /**
@@ -94,9 +106,8 @@ function exetLexiconInit() {
     let key = ''
     if (!partialSol) return key;
     let lowerSol = partialSol.toLowerCase()
-    for (let i = 0; i < partialSol.length; ++i) {
-      let c = lowerSol.charAt(i);
-      if ((c >= 'a' && c <= 'z') || c == '?') {
+    for (let c of lowerSol) {
+      if (this.allLetters[c.toUpperCase()] || c == '?') {
         key = key + c;
       }
     }
@@ -136,9 +147,9 @@ function exetLexiconInit() {
   }
 
   exetLexicon.reverse = function(s) {
-    return s.split("").reverse().join("");
+    return s.split('').reverse().join('');
   }
-  
+
   /**
    * partialSol can contain letters, question-marks, spaces, hyphens.
    * limit=0 for all matches, else return at most limit matches.
@@ -161,24 +172,24 @@ function exetLexiconInit() {
     if (indexLimit <= 0) {
       indexLimit = this.startLen;
     }
-    let choices = []
+    let choices = [];
     const key = this.makeLexKey(partialSol);
-    if (!key) return choices
+    if (!key) return choices;
     const rkey = tryRev ? this.reverse(key) : '';
     // First look at preferred choices (these may have idx >= indexLimit)
-    let seen = {}
+    const seen = {};
     if (preflexByLen[key.length]) {
-      for (idx of preflexByLen[key.length]) {
-        if (dontReuse[idx]) continue
-        let phrase = this.lexicon[idx]
+      for (idx of preflexByLen[keyParts.length]) {
+        if (dontReuse[idx]) continue;
+        const phrase = this.lexicon[idx];
         if (this.keyMatchesPhrase(key, phrase)) {
-          choices.push(idx)
-          seen[idx] = true
+          choices.push(idx);
+          seen[idx] = true;
         }
         if (tryRev && this.keyMatchesPhrase(rkey, phrase)) {
           const ridx = 0 - idx;
-          choices.push(ridx)
-          seen[ridx] = true
+          choices.push(ridx);
+          seen[ridx] = true;
         }
       }
     }
@@ -187,23 +198,23 @@ function exetLexiconInit() {
       const loopKey = (i == 0) ? key : rkey;
       let gkey = loopKey;
       while (!this.index[gkey]) {
-        const ngkey = this.generalizeKey(gkey)
-        if (ngkey == gkey) return choices
+        const ngkey = this.generalizeKey(gkey);
+        if (ngkey == gkey) return choices;
         gkey = ngkey;
       }
-      let indices = this.index[gkey];
+      const indices = this.index[gkey];
       for (let idx of indices) {
-        if (idx >= indexLimit) break
-        if (dontReuse[idx]) continue
-        if (unpreflex[idx]) continue
-        let phrase = this.lexicon[idx]
+        if (idx >= indexLimit) break;
+        if (dontReuse[idx]) continue;
+        if (unpreflex[idx]) continue;
+        const phrase = this.lexicon[idx];
         if (noProperNouns && this.isProperNoun(phrase)) {
-          continue
+          continue;
         }
         const loopIdx = (i == 0) ? idx : 0 - idx;
         if (this.keyMatchesPhrase(loopKey, phrase) && !seen[loopIdx]) {
-          choices.push(loopIdx)
-          if (limit > 0 && choices.length >= limit) break
+          choices.push(loopIdx);
+          if (limit > 0 && choices.length >= limit) break;
         }
       }
     }
@@ -221,17 +232,18 @@ function exetLexiconInit() {
   }
   
   exetLexicon.makeAnagramKey = function(phrase) {
-    return phrase.toLowerCase().replace(/ /g, '').split('').sort().join('')
+    const lp = this.lcLettersOf(phrase);
+    return lp.split('').sort().join('')
   }
 
   exetLexicon.getAnagrams1 = function(phrase, limit=0, getIndices=false) {
     const key = this.makeAnagramKey(phrase);
-    const NUM_SHARDS = this.anagrams.length
-    let shard = this.javaHash(key) % NUM_SHARDS
-    if (shard < 0) shard += NUM_SHARDS
-    const anagrams = []
+    const NUM_SHARDS = this.anagrams.length;
+    let shard = this.javaHash(key) % NUM_SHARDS;
+    if (shard < 0) shard += NUM_SHARDS;
+    const anagrams = [];
     for (let idx of this.anagrams[shard]) {
-      let candidate = this.lexicon[idx]
+      const candidate = this.lexicon[idx];
       if (this.makeAnagramKey(candidate) == key) {
         anagrams.push(getIndices ? idx : candidate);
         if (limit > 0 && anagrams.length >= limit) {
@@ -270,17 +282,17 @@ function exetLexiconInit() {
    * some subset of the letters first. But, for an n-letter phrase, the
    * number of subsets to look at is 2^n (or something like that, depending
    * on repetitions). So, we use "salient letter key"s (slKey). From letter
-   * frequencies in words, the most common 8 letters are [eisarnto]. We
-   * build a histogram key of the phrase using only these letters. This leads
-   * to an index where the key 'ae' has the biggest mass, at around 1000
-   * lexicon words. Next, we limit the subsets to examine as follows. For
+   * frequencies in words, the most common 8 letters (in English) are
+   * [eisarnto]. We build a histogram key of the phrase using only these letters.
+   * This leads to an index where the key 'ae' has the biggest mass, at around
+   * 1000 lexicon words. Next, we limit the subsets to examine as follows. For
    * each salient letter in the phrase, limit its possible counts (in the
    * subset to examine) so that the total number of possibilities is <= 1000.
    * For each subset, we go through all possible candidate words that have
    * that specific slKey (< 1000), and for each candidate, we check if its
    * full letter histogram is subsumed by the full letter histogram of the phrase.
    */
-  
+
   exetLexicon.getSubsetAnagrams = function(phrase, seqOK) {
     const slk = this.slKey(phrase);
     const slkLimits = slk.slice();
@@ -339,14 +351,12 @@ function exetLexiconInit() {
   }
 
   exetLexicon.letterHist = function(phrase) {
-    const hist = [
-      0,0,0,0,0,0,0,0,0,0,
-      0,0,0,0,0,0,0,0,0,0,
-      0,0,0,0,0,0];
-    for (let l of phrase) {
-      const lc = l.toLowerCase().charCodeAt() - 97;
-      if (lc < 0 || lc > 25) continue;
-      hist[lc]++;
+    const phraseU = phrase.toUpperCase();
+    const hist = this.zeroHist.slice();
+    for (let l of phraseU) {
+      const idx = this.letterIndex[l];
+      if (!idx) continue;
+      hist[idx]++;
     }
     return hist;
   }
@@ -357,7 +367,7 @@ function exetLexiconInit() {
   exetLexicon.letterHistSub = function(h1, h2) {
     const ret = h1.slice();
     let allZeros = true;
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < h1.length; i++) {
       ret[i] = ret[i] - h2[i];
       if (ret[i] < 0) return null;
       if (ret[i] > 0) allZeros = false;
@@ -369,7 +379,7 @@ function exetLexiconInit() {
   exetLexicon.slKey = function(phrase) {
     const hist = [0,0,0,0,0,0,0,0];
     for (let l of phrase) {
-      const idx = this.SLK_CODES.indexOf(l.toLowerCase().charCodeAt());
+      const idx = this.SLK_LETTERS.indexOf(l.toUpperCase());
       if (idx < 0) continue;
       hist[idx]++;
     }
@@ -380,11 +390,24 @@ function exetLexiconInit() {
    * Initialize anagram-related indices.
    */
   exetLexicon.initAnagrammer = function() {
-    this.SLK_LETTERS = 'eisarnto';
-    console.assert(this.SLK_LETTERS.length == 8, this.SLK_LETTERS);
-    this.SLK_CODES = [];
-    for (let l of this.SLK_LETTERS) {
-      this.SLK_CODES.push(l.charCodeAt());
+    /**
+     * Find the 8 most frequent letters.
+     */
+    this.SLK_LETTERS = ['', '', '', '', '', '', '', ''];
+    const counts = [-1, -1, -1, -1, -1, -1, -1, -1];
+    for (let l of this.letters) {
+      const count = this.letterFreq[l];
+      for (let x = 0; x < 8; x++) {
+        if (count > counts[x]) {
+          for (let y = 7; y > x; y--) {
+            this.SLK_LETTERS[y] = this.SLK_LETTERS[y - 1];
+            counts[y] = counts[y - 1];
+          }
+          this.SLK_LETTERS[x] = l;
+          counts[x] = count;
+          break;
+        }
+      }
     }
     this.slkIndex = {};
     for (let idx = 1; idx < this.lexicon.length; idx++) {
@@ -398,11 +421,11 @@ function exetLexiconInit() {
   
   exetLexicon.lettersFromHist = function(h) {
     let ret = '';
-    for (let i = 0; i < 26; i++) {
-      const c = String.fromCharCode(97 + i).repeat(h[i]);
-      ret = ret + c;
+    for (let i = 0; i < this.letters.length; i++) {
+      if (!h[i]) continue;
+      ret += this.letters[i].repeat(h[i]);
     }
-    return ret;
+    return ret.toLowerCase();
   }
   
   exetLexicon.lexToSortedWords = function(list) {

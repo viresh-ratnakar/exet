@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.79 March 13, 2023
+
+- Refactor, moving css/js into separate files, leaving a slim exet.html.
+  This will be useful to create exet-<lang>.html versions for other
+  languages.
+- Fix minor bug in getAnagramKey() (it was not stripping dashes etc.).
+- Remove links to Highlights Press as they seem to have taken down
+  their indicator list pages.
+
 ### Version: Exet v0.78.1 January 27, 2023
 
 - Reduce textarea cols for Preamble/Explanations/Other Sections editables

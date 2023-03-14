@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.78.1 January 27, 2023
+#### Version: Exet v0.79 March 13, 2023
 
 #### Author: Viresh Ratnakar
 
@@ -17,6 +17,8 @@ that enables interactive crossword solving in a browser.
 These are all the files needed from this repository:
 
 - [`exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.html),
+- [`exet.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.js),
+- [`exet.css`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.css),
 - [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js),
 - [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
 - [`exet-version.txt`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-version.txt),
@@ -221,7 +223,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of January 2023) has 250,192 entries. Providing a popularity threshold
+  as of March 2023) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -581,7 +583,6 @@ top in each tab. These tabs are:
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and cryptic abbreviations. The sources are:
   [Crossword Unclued](https://www.crosswordunclued.com), Wikipedia,
-  [Highlight press](https://www.highlightpress.com.au/),
   [Mythic beasts](http://sphinx.mythic-beasts.com/), and
   [cryptics.georgeho.org](https://cryptics.georgeho.org/).
   - You can highlight certain words when looking at any of these lists, by
@@ -666,7 +667,7 @@ The "Open" menu lets you pick any old revision of any crossword. It also shows
 a preview of the puzzle revision that you select.
 
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
-January 2023). When this limit is reached, Exet will warn you that it cannot
+March 2023). When this limit is reached, Exet will warn you that it cannot
 save crossword revisions. You can use the "Manage storage" menu option in the
 "Open" menu at any time to delete old revisions of some crosswords and/or
 entirely delete old crosswords (after downloading Exolve files with solutions
