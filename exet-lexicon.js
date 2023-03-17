@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.html.
 
-Current version: v0.79 Match 13, 2023
+Current version: v0.80 Match 16, 2023
 */
 
 /**
@@ -27,13 +27,18 @@ function exetLexiconInit() {
   exetLexicon.allLetters = {};
   exetLexicon.letterFreq = {};
   exetLexicon.letterIndex = {};
+  exetLexicon.maxCharCodes = 1;
   exetLexicon.zeroHist = new Array(exetLexicon.letters.length);
   for (let i = 0; i < exetLexicon.letters.length; i++) {
     const c = exetLexicon.letters[i];
     console.assert(c.toUpperCase() == c, c);
+    if (c.length > exetLexicon.maxCharCodes) {
+      exetLexicon.maxCharCodes = c.length;
+    }
     exetLexicon.letterIndex[c] = i;
     exetLexicon.zeroHist[i] = 0;
   }
+  console.assert(exetLexicon.maxCharCodes == 1, exetLexicon.maxCharCodes);
   for (let c of exetLexicon.letters) {
     const cu = c.toUpperCase();
     exetLexicon.allLetters[cu] = true;
@@ -354,9 +359,8 @@ function exetLexiconInit() {
     const phraseU = phrase.toUpperCase();
     const hist = this.zeroHist.slice();
     for (let l of phraseU) {
-      const idx = this.letterIndex[l];
-      if (!idx) continue;
-      hist[idx]++;
+      if (!this.allLetters[l]) continue;
+      hist[this.letterIndex[l]]++;
     }
     return hist;
   }

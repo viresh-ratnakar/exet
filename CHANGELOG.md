@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.80 March 16, 2023
+
+- Bug fix: letterHist() function was not counting As at all after the last
+  version!
+- Start noting maxCharCodes in the lexicon.
+
 ### Version: Exet v0.79 March 13, 2023
 
 - Refactor, moving css/js into separate files, leaving a slim exet.html.

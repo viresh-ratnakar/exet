@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.79 March 13, 2023
+Current version: v0.80 March 16, 2023
 */
 
 function ExetModals() {
@@ -802,6 +802,20 @@ Exet.prototype.setPuzzle = function(puz) {
     alert('Non-numeric clues not yet supported')
     return;
   }
+  if ((puz.language && puz.language != exetLexicon.language) ||
+      (!puz.language && 'en' != exetLexicon.language) ||
+      (puz.languageScript && puz.languageScript != exetLexicon.script) ||
+      (!puz.languageScript && 'Latin' != exetLexicon.script)) {
+    alert('The lexicon is in ' +
+          exetLexicon.language + ' (' + exetLexicon.script + ') but the ' +
+          'puzzle has ' + puz.language + ' (' + puz.languageScript + ')');
+    return;
+  }
+  if (puz.langMaxCharCodes != exetLexicon.maxCharCodes) {
+    alert('Lexicon has MaxCharCodes = ' + exetLexicon.maxCharCodes +
+          ' but the puzzle has ' + puz.langMaxCharCodes);
+    return;
+  }
   if (puz.columnarLayout) {
     puz.columnarLayout = false;
     puz.gridcluesContainer.className = 'xlv-grid-and-clues-flex'
@@ -853,7 +867,7 @@ Exet.prototype.setPuzzle = function(puz) {
                           'setter', 'copyright', 'nina', 'colour', 'color',
                           'question', 'across', 'down', '3d', '3d-across',
                           '3d-away', '3d-down', 'prelude', 'preamble',
-                          'explanations', 'maker', 'reversals'];
+                          'explanations', 'maker', 'reversals', 'language'];
   const rangesToSkip = [];
   for (let sec of sectionsToSkip) {
     if (this.puz.sectionLines[sec]) {
@@ -7235,11 +7249,12 @@ Exet.prototype.updatePuzzle = function(revType=0) {
 
 Exet.prototype.getGrid = function(solved=true) {
   if (!this.puz) {
-    return ''
+    return '';
   }
-  let grid = ''
+  const ENTRY_WIDTH = 3 + this.puz.langMaxCharCodes;
+  let grid = '';
   for (let i = 0; i < this.puz.gridHeight; i++) {
-    let gridRow = '    '
+    let gridRow = '    ';
     for (let j = 0; j < this.puz.gridWidth; j++) {
       let gridCell = this.puz.grid[i][j]
       let entry = '.';
@@ -7252,12 +7267,12 @@ Exet.prototype.getGrid = function(solved=true) {
                               '+' : (gridCell.hasBarAfter ?
                               '|' : (gridCell.hasBarUnder ? '_' : '')));
       }
-      while (entry.length < 4) entry += ' ';
+      while (entry.length < ENTRY_WIDTH) entry += ' ';
       gridRow += entry;
     }
-    grid = grid + '\n' + gridRow
+    grid = grid + '\n' + gridRow;
   }
-  return grid
+  return grid;
 }
 
 Exet.prototype.showClue = function(clue, forExolve=true,
@@ -7388,6 +7403,11 @@ Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
   exolve-copyright: ${this.puz.copyright}` : '') + `
   exolve-maker: ${maker}`
 
+  if (this.puz.language || this.puz.languageScript ||
+      this.puz.langMaxCharCodes > 1) {
+    exolve += `
+  exolve-language: ${exetLexicon.language} ${exetLexicon.script} ${exetLexicon.maxCharCodes}`
+  }
   if (showColoursNinas) {
     exolve += this.getExolveColours();
     if (solved) {
@@ -8570,6 +8590,7 @@ function exetBlank(w=15, h=15, layers3d=1, id='', automagic=false,
     exolve-id: ${id}
     exolve-title: Crossword
     exolve-setter: Exetter
+    exolve-language: ${exetLexicon.language} ${exetLexicon.script} ${exetLexicon.maxCharCodes}
     exolve-width: ${w}
     exolve-height: ${h}
     exolve-grid: ${grid}
