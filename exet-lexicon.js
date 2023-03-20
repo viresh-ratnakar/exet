@@ -3,9 +3,9 @@ MIT License
 
 Copyright (c) 2022 Viresh Ratnakar
 
-See the full Exet license notice in exet.html.
+See the full Exet license notice in exet.js.
 
-Current version: v0.80 Match 16, 2023
+Current version: v0.81 March 20, 2023
 */
 
 /**
@@ -24,7 +24,7 @@ function exetLexiconInit() {
    * Note that exetLexicon.letters is expected to be in upper-case,
    * as are the keys in letterSet and letterFreq.
    */
-  exetLexicon.allLetters = {};
+  exetLexicon.letterSet = {};
   exetLexicon.letterFreq = {};
   exetLexicon.letterIndex = {};
   exetLexicon.maxCharCodes = 1;
@@ -38,17 +38,99 @@ function exetLexiconInit() {
     exetLexicon.letterIndex[c] = i;
     exetLexicon.zeroHist[i] = 0;
   }
-  console.assert(exetLexicon.maxCharCodes == 1, exetLexicon.maxCharCodes);
   for (let c of exetLexicon.letters) {
-    const cu = c.toUpperCase();
-    exetLexicon.allLetters[cu] = true;
-    exetLexicon.letterFreq[cu] = 0;
+    exetLexicon.letterSet[c] = true;
+    exetLexicon.letterFreq[c] = 0;
   }
+
+  /**
+   * Word splitting functions. We override these when maxCharCodes > 1
+   * (the overrides are slower, so we do not use them for the 1 case).
+   */
+  if (exetLexicon.maxCharCodes == 1) {
+    exetLexicon.partsOf = function(s) {
+      return s.split('');
+    }
+    exetLexicon.lettersOf = function(s) {
+      const parts = s.toUpperCase().split('');
+      const out = [];
+      for (p of parts) {
+        if (this.letterSet[p]) out.push(p);
+      }
+      return out;
+    }
+    /**
+     * Sequence of just the letters of s, uppercased.
+     */
+    exetLexicon.letterString = function(s) {
+      const sU = s.toUpperCase();
+      let out = '';
+      for (let c of sU) {
+        if (this.letterSet[c]) {
+          out += c;
+        }
+      }
+      return out;
+    }
+  } else {
+    exetLexicon.partsOf = function(s) {
+      const rawParts = s.split('');
+      const rawPartsU = s.toUpperCase().split('');
+      const len = rawParts.length;
+      let x = 0;
+      const out = [];
+      while (x < len) {
+        let multi = 1;
+        for (let m = this.maxCarCodes; m > 1; m--) {
+          const ch = rawPartsU.slice(x, x + m).join('');
+          if (this.letterSet[ch]) {
+            multi = m;
+            break;
+          }
+        }
+        const part = (multi == 1) ? rawParts[x] :
+                     rawParts.slice(x, x + multi).join('');
+        out.push(part);
+        x += multi;
+      }
+      return out;
+    }
+    exetLexicon.lettersOf = function(s) {
+      const parts = this.partsOf(s.toUpperCase());
+      const out = [];
+      for (p of parts) {
+        if (this.letterSet[p]) out.push(p);
+      }
+      return out;
+    }
+    /**
+     * Sequence of just the letters of s, uppercased.
+     */
+    exetLexicon.letterString = function(s) {
+      return this.lettersOf(s).join('')
+    }
+  }
+  /**
+   * Sequence of just the letters of s, lowercased.
+   */
+  exetLexicon.lcLettersOf = function(s) {
+    const out = this.lettersOf(s);
+    for (let i = 0; i < out.length; i++) {
+      out[i] = out[i].toLowerCase();
+    }
+    return out;
+  }
+  /**
+   * String of just the letters of s, lowercased.
+   */
+  exetLexicon.lcLetterString = function(s) {
+    return this.letterString(s).toLowerCase();
+  }
+
   for (let w of exetLexicon.lexicon) {
-    for (let c of w) {
-      const cu = c.toUpperCase();
-      if (!exetLexicon.allLetters[cu]) continue;
-      exetLexicon.letterFreq[cu] += 1;
+    const wLetters = exetLexicon.lettersOf(w);
+    for (let c of wLetters) {
+      exetLexicon.letterFreq[c] += 1;
     }
   }
   let maxFreq = 0;
@@ -77,29 +159,16 @@ function exetLexiconInit() {
    */
   exetLexicon.depunct = function(s) {
     let out = '';
-    for (let c of s) {
+    const parts = this.partsOf(s);
+    for (let c of parts) {
       if (c == ' ' || c == '-' || c == "'" ||
-          this.allLetters[c.toUpperCase()]) {
+          this.letterSet[c.toUpperCase()]) {
         out += c;
       } else if (c == '—') {
         out += ' ';
       }
     }
     return out.replace(/\s+/g, ' ').toLowerCase().trim();
-  }
-
-  /**
-   * Sequence of just the letters of s, lowercased.
-   */
-  exetLexicon.lcLettersOf = function(s) {
-    const sl = s.toLowerCase();
-    let out = '';
-    for (let c of sl) {
-      if (this.allLetters[c.toUpperCase()]) {
-        out += c;
-      }
-    }
-    return out;
   }
 
   exetLexicon.letterRarity = function(c) {
@@ -110,9 +179,9 @@ function exetLexiconInit() {
   exetLexicon.makeLexKey = function(partialSol) {
     let key = ''
     if (!partialSol) return key;
-    let lowerSol = partialSol.toLowerCase()
-    for (let c of lowerSol) {
-      if (this.allLetters[c.toUpperCase()] || c == '?') {
+    const parts = this.partsOf(partialSol.toLowerCase());
+    for (let c of parts) {
+      if (this.letterSet[c.toUpperCase()] || c == '?') {
         key = key + c;
       }
     }
@@ -120,9 +189,10 @@ function exetLexiconInit() {
   }
   
   exetLexicon.generalizeKey = function(key) {
-    for (let i = key.length - 1; i >= 0; --i) {
-      if (key.charAt(i) != '?') {
-        return key.substr(0, i) + '?' + key.substr(i + 1);
+    const parts = this.partsOf(key);
+    for (let i = parts.length - 1; i >= 0; --i) {
+      if (parts[i] != '?') {
+        return parts.slice(0, i).join('') + '?' + parts.slice(i + 1).join('');
       }
     }
     return key;
@@ -237,7 +307,7 @@ function exetLexiconInit() {
   }
   
   exetLexicon.makeAnagramKey = function(phrase) {
-    const lp = this.lcLettersOf(phrase);
+    const lp = this.lcLetterString(phrase);
     return lp.split('').sort().join('')
   }
 
@@ -320,7 +390,7 @@ function exetLexiconInit() {
     const fullHist = this.letterHist(phrase);
     const subkey = [0,0,0,0,0,0,0,0];
     const anagrams = [];
-    const phraseSeq = seqOK ? '' : this.lcLettersOf(phrase);
+    const phraseSeq = seqOK ? '' : this.lcLetterString(phrase);
   
     // Vary the more common letters in the inner loops.
     for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
@@ -347,7 +417,7 @@ function exetLexiconInit() {
                       const diffHist = this.letterHistSub(fullHist, wordHist);
                       if (!diffHist) continue;
                       if (!seqOK &&
-                          phraseSeq.includes(this.lcLettersOf(word))) {
+                          phraseSeq.includes(this.lcLetterString(word))) {
                         continue;
                       }
                       anagrams.push([wordIndex, diffHist]);
@@ -356,10 +426,9 @@ function exetLexiconInit() {
   }
 
   exetLexicon.letterHist = function(phrase) {
-    const phraseU = phrase.toUpperCase();
+    const phraseU = this.lettersOf(phrase);
     const hist = this.zeroHist.slice();
     for (let l of phraseU) {
-      if (!this.allLetters[l]) continue;
       hist[this.letterIndex[l]]++;
     }
     return hist;
@@ -382,8 +451,9 @@ function exetLexiconInit() {
   
   exetLexicon.slKey = function(phrase) {
     const hist = [0,0,0,0,0,0,0,0];
-    for (let l of phrase) {
-      const idx = this.SLK_LETTERS.indexOf(l.toUpperCase());
+    const phraseU = this.lettersOf(phrase);
+    for (let l of phraseU) {
+      const idx = this.SLK_LETTERS.indexOf(l);
       if (idx < 0) continue;
       hist[idx]++;
     }
@@ -459,14 +529,14 @@ function exetLexiconInit() {
     const anagrams = [];
     const seenAnagrams = {};
     const partials = this.getSubsetAnagrams(phrase, seqOK);
-    const phraseSeq = seqOK ? '' : this.lcLettersOf(phrase);
+    const phraseSeq = seqOK ? '' : this.lcLetterString(phrase);
     for (let partial of partials) {
       const delta = this.lettersFromHist(partial[1]);
       if (!delta) continue;
       const deltaAnagrams = this.getAnagrams1(delta, limit, true);
       for (let deltaAnagram of deltaAnagrams) {
         if (!seqOK &&
-            phraseSeq.includes(this.lcLettersOf(
+            phraseSeq.includes(this.lcLetterString(
                 this.lexicon[deltaAnagram]))) {
           continue;
         }
@@ -553,7 +623,7 @@ function exetLexiconInit() {
   
   exetLexicon.getSpoonerismsInner = function(phrase, phones) {
     const spoons = [];
-    const nphrase = this.lcLettersOf(phrase);
+    const nphrase = this.lcLetterString(phrase);
     const NUM_SHARDS = this.phindex.length;
   
     for (let phone of phones) {
@@ -641,7 +711,7 @@ function exetLexiconInit() {
   
   exetLexicon.getHomophonesInner = function(phrase, phones) {
     const hp = [];
-    const nphrase = this.lcLettersOf(phrase);
+    const nphrase = this.lcLetterString(phrase);
     const NUM_SHARDS = this.phindex.length;
   
     for (let phone of phones) {
@@ -651,7 +721,7 @@ function exetLexiconInit() {
         if (!this.phones[q] ||
             !this.phones[q].includes(phone)) continue;
         const qphrase = this.lexicon[q];
-        if (nphrase == this.lcLettersOf(qphrase)) {
+        if (nphrase == this.lcLetterString(qphrase)) {
           continue;
         }
         hp.push(qphrase);
@@ -687,7 +757,7 @@ function exetLexiconInit() {
         for (let q1 of q1list) {
           for (let q2 of q2list) {
             const candidate = q1 + ' ' + q2;
-            if (nphrase == this.lcLettersOf(candidate)) continue;
+            if (nphrase == this.lcLetterString(candidate)) continue;
             hp.push(candidate);
           }
         }

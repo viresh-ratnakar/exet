@@ -1,5 +1,14 @@
 # Changelog
 
+### Version: Exet v0.81 March 20, 2023
+
+- Some refactoring towards getting non-English/Latin to work (including
+  compound-letter languages such as Hindi): Make all iterations over letters
+  in a string behave correctly for `maxCharCodes > 1`. Do this by confining them
+  to be within the `ExetLexicon` functions `partsOf()`, `lettersOf()`,
+  `letterString()`. For the `maxCharCodes == 1` case, the implementations are
+  fast, making use of `for (let ch of str)`.
+
 ### Version: Exet v0.80 March 16, 2023
 
 - Bug fix: letterHist() function was not counting As at all after the last
