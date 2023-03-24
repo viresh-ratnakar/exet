@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.81 March 20, 2023
+Current version: v0.82 March 24, 2023
 */
 
 /**
@@ -81,7 +81,7 @@ function exetLexiconInit() {
       const out = [];
       while (x < len) {
         let multi = 1;
-        for (let m = this.maxCarCodes; m > 1; m--) {
+        for (let m = this.maxCharCodes; m > 1; m--) {
           const ch = rawPartsU.slice(x, x + m).join('');
           if (this.letterSet[ch]) {
             multi = m;
@@ -155,7 +155,7 @@ function exetLexiconInit() {
   /**
    * Remove all punctuation, normalize spaces, only retain
    * letters and dashes and quotes and spaces. Return in
-   * lower case. Applied to clue texts, usually.
+   * lower case. Applied to clue texts, preferred/disallowed entries.
    */
   exetLexicon.depunct = function(s) {
     let out = '';
@@ -176,18 +176,26 @@ function exetLexiconInit() {
     return this.letterRarities[cu] || 0;
   }
 
-  exetLexicon.makeLexKey = function(partialSol) {
-    let key = ''
+  /**
+   * Returns array of uppercase letters and ?s that
+   * can be joined and lowercased to form the lexicon
+   * index key.
+   */
+  exetLexicon.lexkey = function(partialSol) {
+    const key = [];
     if (!partialSol) return key;
-    const parts = this.partsOf(partialSol.toLowerCase());
+    const parts = this.partsOf(partialSol.toUpperCase());
     for (let c of parts) {
-      if (this.letterSet[c.toUpperCase()] || c == '?') {
-        key = key + c;
+      if (this.letterSet[c] || c == '?') {
+        key.push(c);
       }
     }
     return key;
   }
   
+  /**
+   * Generalizes lexkey string, turning the last non-? into ?.
+   */
   exetLexicon.generalizeKey = function(key) {
     const parts = this.partsOf(key);
     for (let i = parts.length - 1; i >= 0; --i) {
@@ -199,13 +207,13 @@ function exetLexiconInit() {
   }
   
   exetLexicon.keyMatchesPhrase = function(key, phrase) {
-    let phraseKey = this.makeLexKey(phrase)
+    const phraseKey = this.lexkey(phrase)
     if (phraseKey.length != key.length) {
       return false;
     }
     for (let i = 0; i < key.length; i++) {
-      if (key.charAt(i) != '?' &&
-          key.charAt(i) != phraseKey.charAt(i)) {
+      const kc = key[i];
+      if (kc != '?' && kc != phraseKey[i]) {
         return false;
       }
     }
@@ -221,14 +229,11 @@ function exetLexiconInit() {
     return this.lexicon[Math.abs(idx)];
   }
 
-  exetLexicon.reverse = function(s) {
-    return s.split('').reverse().join('');
-  }
-
   /**
    * partialSol can contain letters, question-marks, spaces, hyphens.
    * limit=0 for all matches, else return at most limit matches.
-   * dontReuse should be an object with dontReuse[idx] set to true for lexicon indices that have already been used. It will get updated.
+   * dontReuse should be an object with dontReuse[idx] set to true for (+ve)
+   *     lexicon indices that have already been used.
    * noProperNouns: disallow proper nouns
    * indexLimit: only consider lexicon indices less than this. 0 for no constraints.
    * tryRev: try reversals.
@@ -248,13 +253,14 @@ function exetLexiconInit() {
       indexLimit = this.startLen;
     }
     let choices = [];
-    const key = this.makeLexKey(partialSol);
-    if (!key) return choices;
-    const rkey = tryRev ? this.reverse(key) : '';
+    const key = this.lexkey(partialSol);
+    const keylen = key.length;
+    if (!keylen) return choices;
+    const rkey = tryRev ? key.slice().reverse() : [];
     // First look at preferred choices (these may have idx >= indexLimit)
     const seen = {};
-    if (preflexByLen[key.length]) {
-      for (idx of preflexByLen[key.length]) {
+    if (preflexByLen[keylen]) {
+      for (idx of preflexByLen[keylen]) {
         if (dontReuse[idx]) continue;
         const phrase = this.lexicon[idx];
         if (this.keyMatchesPhrase(key, phrase)) {
@@ -271,7 +277,8 @@ function exetLexiconInit() {
     const loops = tryRev ? 2 : 1;
     for (let i = 0; (i < loops) && (limit <= 0 || choices.length < limit); i++) {
       const loopKey = (i == 0) ? key : rkey;
-      let gkey = loopKey;
+      /** Keep in lower case the actual key used to look into index */
+      let gkey = loopKey.join('').toLowerCase();
       while (!this.index[gkey]) {
         const ngkey = this.generalizeKey(gkey);
         if (ngkey == gkey) return choices;
