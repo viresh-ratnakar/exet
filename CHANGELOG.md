@@ -1,5 +1,33 @@
 # Changelog
 
+### Version: Exet v0.83 March 24, 2023
+
+- Oops, quick bug fix. Had accidentally commented out a couple of lines,
+  and that led to rampant attempts to repeatedly save, leading to quick
+  runs on local storage!
+
+### Version: Exet v0.82 March 24, 2023
+
+- More refactoring about supporting more languages and scripts.
+- Rename makeLexKey() to lexkey() and make it return an array of letters
+  instead of a string now. Its use involves comparing to letters in
+  candidates that have to be turned into arrays (to account for multi-char
+  letters), so this is more convenient.
+- The special key used in local storage for saving Exet state is now
+  qualified by lang/script/maxCarCodes if any of them has a non-default
+  value.
+- When loading an Exolve puzzle, reject if it has a solution letter not in
+  the lexicon.
+- Bug fix: a negative lexicon index was not (in a couple of places) abs()'d
+  before looking up its entry.
+- Bug fix: when a cell letter is forced (as there is only one possible
+  choice, this now enters all the implied entry choices into dontReuse{}.
+  Note that there could be more than one as the same letter sequence can have
+  two or more entries.
+- When makeExolve() fails, fall back to a new blank puzzle (except when it
+  somehow fails while creating a blank puzzle!).
+- Always create Exolve grid specs with enough spaces around cell letters.
+
 ### Version: Exet v0.81 March 20, 2023
 
 - Some refactoring towards getting non-English/Latin to work (including

@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.82 March 24, 2023
+Current version: v0.83 March 24, 2023
 */
 
 function ExetModals() {
@@ -97,7 +97,7 @@ function ExetRevManager() {
       "for preferred words"
   this.revMsgs[this.REV_OPTIONS_CHANGE] = "Crossword options change"
 
-  /* State for throttled revision-saving *
+  /* State for throttled revision-saving */
   this.throttleRevTimer = null;
   this.saveLagMS = 5000
   this.throttlingLastRev = 0;
