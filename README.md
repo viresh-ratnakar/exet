@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.83 March 24, 2023
+#### Version: Exet v0.84 April 3, 2023
 
 #### Author: Viresh Ratnakar
 
@@ -10,7 +10,7 @@ Exet is free, open source software for setting crosswords.
 You can use Exet from my serving site: [exet.app](https://exet.app).
 
 You can also download and use/serve your own copy of the software. For that,
-you need files from this repository as well as a couple of files from
+you need files from this repository as well as a few files from
 [Exolve](https://github.com/viresh-ratnakar/exolve), the companion software
 that enables interactive crossword solving in a browser.
 
@@ -31,8 +31,9 @@ These are all the files needed from this repository:
 
 And here are the files needed from Exolve:
 
-- [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
 - [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
+- [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
+- [`exolve-from-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-puz.js).
 
 Exet comes with a permissive MIT license. The full license notice is provided in
 the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
@@ -183,10 +184,10 @@ two formats is the state of the grid at that time. "Add automagic blocks"
 can be used repeatedly. More details on what "Add automagic blocks" does
 are [provided in the appendix](#automagic-blocks).
 
-You can also open any existing HTML file that contains a puzzle in the Exolve
-format (when you save such a crossword after editing it, the saved Exolve file
-will replicate whatever is there before and after the Exolve part in the
-original HTML file that you opened).
+You can also open a .puz file, or any existing HTML file that contains a puzzle
+in the Exolve format (when you save such a crossword after editing it, the saved
+Exolve file will replicate whatever is there before and after the Exolve part in
+the original HTML file that you opened).
 
 #### Reversing the current light
 When you choose the option to reverse a light from the Edit menu, the
@@ -223,7 +224,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of March 2023) has 250,192 entries. Providing a popularity threshold
+  as of April 2023) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -667,7 +668,7 @@ The "Open" menu lets you pick any old revision of any crossword. It also shows
 a preview of the puzzle revision that you select.
 
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
-March 2023). When this limit is reached, Exet will warn you that it cannot
+April 2023). When this limit is reached, Exet will warn you that it cannot
 save crossword revisions. You can use the "Manage storage" menu option in the
 "Open" menu at any time to delete old revisions of some crosswords and/or
 entirely delete old crosswords (after downloading Exolve files with solutions

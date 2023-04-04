@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.84 April 3, 2023
+
+- Bug fix: setting colour/nina at the "light" level was buggy for linked clues.
+- Feature added: can import .puz files now.
+- Use https: link to Exet in exolve-maker.
+
 ### Version: Exet v0.83 March 24, 2023
 
 - Oops, quick bug fix. Had accidentally commented out a couple of lines,

@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.83 March 24, 2023
+Current version: v0.84 April 3, 2023
 */
 
 function ExetModals() {
@@ -1198,7 +1198,7 @@ Exet.prototype.makeExetTab = function() {
             Go back to a specific revision of the current puzzle
           </div>
           <div class="xet-dropdown-item">
-            Open Exolve file: <input id="xet-file"
+            Open Exolve or .puz file: <input id="xet-file"
                 onchange="exetLoadFile();" type="file"></input>
           </div>
           <div class="xet-dropdown-item">
@@ -3897,9 +3897,15 @@ Exet.prototype.currClueIndex = function() {
   return this.puz.clueOrParentIndex(this.puz.currClueIndex);
 }
 Exet.prototype.currClue = function() {
-  const ci = this.currClueIndex()
-  if (!ci) return null
-  return this.puz.clues[ci]
+  const ci = this.currClueIndex();
+  if (!ci) return null;
+  return this.puz.clues[ci];
+}
+Exet.prototype.currLight = function() {
+  /* Do not follow to the parent */
+  const ci = this.puz.currClueIndex;
+  if (!ci) return null;
+  return this.puz.clues[ci];
 }
 
 Exet.prototype.draftClue = function(ci) {
@@ -6817,8 +6823,9 @@ Exet.prototype.removeNinaOrColour = function(nOrCList) {
   let index = -1;
   let lindex = -1;
   let doBreak = false;
-  const clue = this.currClue();
-  const clueCells = clue && clue.cells ? JSON.stringify(clue.cells) : 'NONE';
+  const light = this.currLight();
+  const lightCells = (light && light.cells) ? JSON.stringify(light.cells) :
+                     'NONE';
   for (let i = 0; !doBreak && i < nOrCList.length; i++) {
     const nOrC = nOrCList[i];
     for (let x = 0; x < nOrC.list.length; x++) {
@@ -6833,7 +6840,7 @@ Exet.prototype.removeNinaOrColour = function(nOrCList) {
           lindex = x;
         }
       } else {
-        if (JSON.stringify(cccc.cells) == clueCells) {
+        if (JSON.stringify(cccc.cells) == lightCells) {
           index = i;
           lindex = x;
           doBreak = true;
@@ -6868,8 +6875,8 @@ Exet.prototype.addNina = function(index=-1) {
   if (this.tweakColourNina.style.display == 'none') {
     return
   }
-  const clue = this.currClue();
-  if (this.colourToAddType == 'light' && !clue) {
+  const light = this.currLight();
+  if (this.colourToAddType == 'light' && !light) {
     return
   }
   this.removeNina();
@@ -6888,8 +6895,8 @@ Exet.prototype.addNina = function(index=-1) {
     });
   } else {
     this.puz.ninas[nindex].list.push({
-      str: this.puz.clueLabelDisp(clue),
-      cells: clue.cells,
+      str: this.puz.clueLabelDisp(light),
+      cells: light.cells,
       isLight: true,
     });
   }
@@ -6969,8 +6976,8 @@ Exet.prototype.addColour = function(index=-1) {
   if (this.tweakColourNina.style.display == 'none') {
     return
   }
-  const clue = this.currClue();
-  if (this.colourToAddType == 'light' && !clue) {
+  const light = this.currLight();
+  if (this.colourToAddType == 'light' && !light) {
     return
   }
   this.removeColour();
@@ -6989,8 +6996,8 @@ Exet.prototype.addColour = function(index=-1) {
     });
   } else {
     this.puz.colourfuls[cindex].list.push({
-      str: this.puz.clueLabelDisp(clue),
-      cells: clue.cells,
+      str: this.puz.clueLabelDisp(light),
+      cells: light.cells,
       isLight: true,
     });
   }
@@ -7405,7 +7412,7 @@ Exet.prototype.getExolveQuestions = function(solved) {
 Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
                                     showEnums=true, showColoursNinas=true) {
   const maker = `
-    Software: <a target="_blank" href="http://exet.app">Exet</a><br>
+    Software: <a target="_blank" href="https://exet.app">Exet</a><br>
     Version: ${this.version}<br>
     Lexicon: ${exetLexicon.id}<br>
     Timestamp: ${(new Date()).toString()}<br>`
@@ -8657,17 +8664,25 @@ function exetBlank3D(w3d, h3d, d3d, id='') {
 function exetLoadFile() {
   let fr = new FileReader(); 
   fr.onload = function(){ 
-    let start = fr.result.indexOf('exolve-begin')
-    let end = fr.result.indexOf('exolve-end')
+    const buffer = fr.result;
+    const utf8decoder = new TextDecoder();
+    let exolve = utf8decoder.decode(buffer);
+    let start = exolve.indexOf('exolve-begin');
+    if (start < 0) {
+      /* Try parsing as .puz */
+      exolve = exolveFromPuz(buffer, exet.exolveFile);
+      start = exolve.indexOf('exolve-begin');
+    }
+    let end = exolve.indexOf('exolve-end');
     if (start < 0 || end < 0 || start >= end) {
-      alert('Invalid Exolve specifications');
+      alert('Invalid Exolve/.puz specifications');
       return;
     }
     end += 'exolve-end'.length;
-    exet.prefix = fr.result.substring(0, start).trim();
-    exet.suffix = fr.result.substring(end).trim();
+    exet.prefix = exolve.substring(0, start).trim();
+    exet.suffix = exolve.substring(end).trim();
     exet.exolveOtherSec = '';
-    let specs = fr.result.substring(start, end);
+    let specs = exolve.substring(start, end);
     exet.setPreflex([]);
     exet.unpreflex = {};
     exet.setMinPop(0);  // Do not presume: there may be filled entries!
@@ -8707,9 +8722,9 @@ function exetLoadFile() {
         exetRevManager.REV_LOADED_FROM_FILE,
         exet.exolveFile);
   } 
-  let f = document.getElementById('xet-file').files[0]
-  exet.exolveFile = f.name
-  fr.readAsText(f)
+  let f = document.getElementById('xet-file').files[0];
+  exet.exolveFile = f.name;
+  fr.readAsArrayBuffer(f);
 }
 
 let exetRevManager;
