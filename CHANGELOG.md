@@ -1,5 +1,18 @@
 # Changelog
 
+### Version: Exet v0.85 May 3, 2023
+
+- In creating embeddable Exolve, use a new, random div ID everytime.
+- Towards creating language-specific Exets:
+  - Refactor, moving all language-specific tabs and tools into configurable
+    lists of objects that are set in the language-specific exet\*.html file.
+  - Remove Nutrimatic anagrams. Exet's own anagrams are pretty much equally
+    good now and will work for all languages.
+  - Reorganize the anagrams tab a bit. When no draft anagram is entered,
+    we show a simplified view. Move the tab to go before Charades.
+- Chambers does not allow embedding in iframes any more. Create links that open
+  in new tabs. Add Wiktionary as a (nice!) research resource.
+
 ### Version: Exet v0.84 April 3, 2023
 
 - Bug fix: setting colour/nina at the "light" level was buggy for linked clues.

@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.84 April 3, 2023
+#### Version: Exet v0.85 May 3, 2023
 
 #### Author: Viresh Ratnakar
 
@@ -224,7 +224,7 @@ To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
 - A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of April 2023) has 250,192 entries. Providing a popularity threshold
+  as of May 2023) has 250,192 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -532,12 +532,15 @@ usage, pronunciation, and etymology. The "Research" tab lets you do that
 by using reputed online resources, conveniently linking directly to the
 word/phrase in the current light:
 
-- **Chambers Dictionary & Thesaurus**: [chambers.co.uk](https://chambers.co.uk)
-- **Merriam-Webster Dictionary & Thesaurus**: [www.merriam-webster.com](https://www.merriam-webster.com)
 - **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
+- **Wiktionary**: [en.wiktionary.org](https://en.wiktionary.org)
+- **Merriam-Webster Dictionary & Thesaurus**: [www.merriam-webster.com](https://www.merriam-webster.com)
 - **Onelook**: [onelook.com](https://onelook.com)
 - **DictionaryAPI**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
+- **Chambers Dictionary & Thesaurus**: [chambers.co.uk](https://chambers.co.uk).
+  Note that Chambers now does not allow embedding their pages in
+  iframes, so these links open in new tabs.
 
 In addition, the "Research" tab lets you search
 [cryptics.georgeho.org](https://cryptics.georgeho.org/), which is an excellent
@@ -668,7 +671,7 @@ The "Open" menu lets you pick any old revision of any crossword. It also shows
 a preview of the puzzle revision that you select.
 
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
-April 2023). When this limit is reached, Exet will warn you that it cannot
+May 2023). When this limit is reached, Exet will warn you that it cannot
 save crossword revisions. You can use the "Manage storage" menu option in the
 "Open" menu at any time to delete old revisions of some crosswords and/or
 entirely delete old crosswords (after downloading Exolve files with solutions

@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.84 April 3, 2023
+Current version: v0.85 May 3, 2023
 */
 
 /**
@@ -525,6 +525,10 @@ function exetLexiconInit() {
     return wordsList;
   }
   
+  /**
+   * Returns k-word anagrams, sorted by increasing #words and then worsening
+   * worst popularity
+   */
   exetLexicon.getAnagramsK = function(phrase, limit, k, seqOK) {
     return this.lexToSortedWords(
         this.getAnagramsKIndices(phrase, limit, k, seqOK));

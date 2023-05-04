@@ -10,7 +10,7 @@ Copyright (c) 2020 Viresh Ratnakar
 
 See the full license notice in exet.js.
 
-Current version: v0.84 April 3, 2023
+Current version: v0.85 May 3, 2023
 -->
 
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
@@ -21,6 +21,115 @@ Current version: v0.84 April 3, 2023
 
 <script defer src="lufz-en-lexicon.js"></script>
 <script src="exet-lexicon.js"></script>
+
+<script>
+
+/**
+ * Language-specific parameters.
+ */
+
+EXET_RESEARCH_TOOLS = [
+  /** The first entry should not be name: "separator" */
+  {url: "https://thefreedictionary.com/", name: "The Free Dictionary"},
+  {url: "https://en.wiktionary.org/wiki/", name: "Wiktionary", suffix: "#English"},
+  {url: "https://www.merriam-webster.com/dictionary/",
+   name: "Merriam-Webster"},
+  {url: "https://www.merriam-webster.com/thesaurus/",
+   name: "Merriam-Webster Thesaurus"},
+  {url: "https://onelook.com/thesaurus/?s=", name: "Onelook"},
+  {url: "https://api.dictionaryapi.dev/api/v2/entries/en/",
+   name: "DictionaryAPI"},
+  {url: "https://www.etymonline.com/search?q=", name: "Etymonline"},
+  {name: "separator"},
+  // The next link only shows definitions in published cryptic crosswords,
+  // not the clues themselves, by choice.
+  {url: "https://cryptics.georgeho.org/data?sql=select+lower%28definition%29+as+def%2C+count%28%2A%29+as+popularity+from+clues+where+%22answer%22+%3D+upper%28%3Ap0%29+and+def+not+in+%28%22nan%22%2C+%22%22%29+group+by+def+order+by+popularity+desc&_hide_sql=1&p0=", name: "Definitions in published cryptic crosswords (cryptics.georgeho.org)"},
+  {url: "https://cryptics.georgeho.org/data/indicators?indicator__in=",
+   needsClueWords: true,
+   name: "Clue phrases as indicators in published cryptic crosswords (cryptics.georgeho.org)"},
+  {name: "separator"},
+  {url: "https://chambers.co.uk/search/?title=21st&query=",
+   newTab: true,
+   name: "Chambers"},
+  {url: "https://chambers.co.uk/search/?title=thes&query=",
+   newTab: true,
+   name: "Chambers Thesaurus"},
+];
+
+EXET_EXTRA_TABS = [
+  {
+    id: "hiddens",
+    display: "Hidden",
+    hover: "Nutrimatic: hidden answers and reversed hidden answers",
+    sections: [
+      {url: "https://nutrimatic.org/?q=", maker: 'Nutrimatic-Hidden',
+       title: "Hidden answers"},
+      {url: "https://nutrimatic.org/?q=", maker: 'Nutrimatic-RevHidden',
+       title: "Reversed hidden answers"},
+    ]
+  },
+  {
+    id: "alternations",
+    display: "Alternations",
+    hover: "Nutrimatic: alternations and reversed alternations",
+    sections: [
+      {url: "https://nutrimatic.org/?q=", maker: 'Nutrimatic-Alternation',
+       title: "Alternations"},
+      {url: "https://nutrimatic.org/?q=", maker: 'Nutrimatic-RevAlternation',
+       title: "Reversed alternations"},
+    ]
+  },
+];
+
+EXET_LISTS_LINKS = [
+  {name: "Crossword Unclued's anagram indicators",
+   url: "https://www.crosswordunclued.com/2008/09/anagram-indicators.html"},
+  {name: "Crossword Unclued's hidden words indicators",
+   url: "https://www.crosswordunclued.com/2009/03/" +
+        "hidden-word-indicators.html"},
+  {name: "Crossword Unclued's reversal indicators",
+   url: "https://www.crosswordunclued.com/2009/07/reversal-indicators.html"},
+  {name: "Crossword Unclued's homophone indicators",
+   url: "https://www.crosswordunclued.com/2009/02/homophone-indicators.html"},
+  {name: "separator"},
+  {name: "Crossword Unclued's deletion indicators",
+   url: "https://www.crosswordunclued.com/2009/04/deletion-indicators.html"},
+  {name: "Crossword Unclued's letter-picking indicators",
+   url: "https://www.crosswordunclued.com/2009/04/" +
+        "letter-sequence-indicators.html"},
+  {name: "Crossword Unclued's containment indicators",
+   url: "https://www.crosswordunclued.com/2009/02/" +
+        "container-and-content-indicators.html"},
+  {name: "separator"},
+  {name: "Crossword Unclued's list of abbreviations",
+   url: "https://www.crosswordunclued.com/2008/10/" +
+        "cryptic-abbreviations.html"},
+  {name: "Wikipedia's list of abbreviations",
+   url: "https://en.wikipedia.org/wiki/Crossword_abbreviations"},
+  {name: "Mythic beasts list of abbreviations",
+   url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
+  {name: "separator"},
+  {name: "All indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+%2A+from+indicators_consolidated&_hide_sql=1"},
+  {name: "Alternation indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22alternation%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Anagram indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22anagram%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Container indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22container%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Deletion indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22deletion%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Hidden word indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22hidden%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Homophone indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22homophone%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Insertion indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22insertion%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+  {name: "Reversal indicators from cryptics.georgeho.org",
+   url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22reversal%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+];
+
+</script>
 
 <script src="exet.js"></script>
 

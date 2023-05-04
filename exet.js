@@ -662,8 +662,39 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
   // prefix, suffix, exolve should be set directly.
 };
 
-function Exet() {
-  this.version = 'v0.78 January 16, 2023'
+/**
+ * The parameters define language-specific external URLs.
+ *
+ * @param {!Array} researchTools
+ *   Array of objects that become Research menu options, each with these properties:
+ *     name: if 'separator' then nothing else is needed
+ *     url: URL that will be prepended to the current word
+ *     suffix: optional suffix to apply after the word
+ *     needsClueWords: if true, then instead of the current word, ["Words","in","clue"] will be used
+ *     newTab: if true, open in new tab (site does not load in iframes)
+ * @param {!Array} extraTabs
+ *   Array of objects that become Exet tabs, each with these properties:
+ *     id: A unique ID for the tab
+ *     display: Title for the tab
+ *     hover: Hover-text for the tab title
+ *     sections: An array of 1 or 2 columns to be shown side-by-side in the tab
+ *       Each section Object has these properties:
+ *       url: URL that will be prepended to the param
+ *       maker: A function that maps a string to a string OR one of these names
+ *         identifying some such canned functions:
+ *         'Nutrimatic-Hidden', 'Nutrimatic-RevHidden',
+ *         'Nutrimatic-Alternation', 'Nutrimatic-RevAlternation',
+ *       title: Section heading
+ * @param {!Array} listsLinks
+ *   Array of objects that become Links menu options, each with these properties:
+ *     name: if 'separator' then nothing else is needed
+ *     url: URL for the lists page
+ */
+function Exet(researchTools, extraTabs, listsLinks) {
+  this.version = 'v0.85 May 3, 2023';
+  this.researchTools = researchTools;
+  this.extraTabs = extraTabs;
+  this.listsLinks = listsLinks;
   this.puz = null
   this.prefix = ''
   this.suffix = ''
@@ -958,30 +989,38 @@ Exet.prototype.setPuzzle = function(puz) {
   puz.gridInput.addEventListener('keydown', this.handleKeyDown.bind(this));
   puz.gridInput.addEventListener('input', this.throttledGridInput.bind(this));
 
-  this.tabs = {
-    "exet": {
+  const firstFewTabs = [
+    {
       id: "exet",
       display: "Exet",
       hover: "Main Exet functions: load, save, grid-fill, edit, etc.",
       sections: [],
       url: "",
     },
-    "research": {
+    {
       id: "research",
       display: "Research",
-      hover: "Dictionaries (Chambers, The Free Dictionary, Onelook, ...) and " +
-             "usage in published cryptic crosswords (cryptics.georgeho.org)",
+      hover: "Research tools for the current word and clue",
       sections: [],
     },
-    "wordplay1": {
+    {
       id: "wordplay1",
+      display: "Anagrams",
+      hover: "Anagrams, composite anagrams",
+      sections: [
+        {id: "xet-companag", maker: this.makeCAParam,
+         title: "Anagrams and composite/extended anagrams"},
+      ],
+    },
+    {
+      id: "wordplay2",
       display: "Charades",
       hover: "Charades, including anagrams, reversals, containers",
       sections: [{id: "xet-charades", maker: this.makeCharadeParam,
                   title: "Charades, including anagrams, reversals, containers"}],
     },
-    "wordplay2": {
-      id: "wordplay2",
+    {
+      id: "wordplay3",
       display: "Edits, Sounds",
       hover: "Edits (deletions, insertions, and substitutions), " +
              "Homophones, Spoonerisms",
@@ -992,47 +1031,33 @@ Exet.prototype.setPuzzle = function(puz) {
          title: "&#x1F56A; Homophones~ and &#x1F50A; Spoonerisms&lrhar;"},
       ]
     },
-    "wordplay3": {
-      id: "wordplay3",
-      display: "Anagrams",
-      hover: "Anagrams, composite anagrams",
-      sections: [
-        {id: "xet-companag", maker: this.makeCAParam,
-         title: "Anagrams and composite/extended anagrams"},
-        {url: "https://nutrimatic.org/?q=", maker: this.makeAnagramParam,
-         title: "Anagrams including phrases, from Nutrimatic"},
-      ],
-    },
-    "wordplay4": {
-      id: "wordplay4",
-      display: "Hidden",
-      hover: "Nutrimatic: hidden answers and reversed hidden answers",
-      sections: [
-        {url: "https://nutrimatic.org/?q=", maker: this.makeHiddenParam,
-         title: "Hidden answers"},
-        {url: "https://nutrimatic.org/?q=", maker: this.makeRevHiddenParam,
-         title: "Reversed hidden answers"},
-      ]
-    },
-    "alternations": {
-      id: "alternations",
-      display: "Alternations",
-      hover: "Nutrimatic: alternations and reversed alternations",
-      sections: [
-        {url: "https://nutrimatic.org/?q=", maker: this.makeAlternationParam,
-         title: "Alternations"},
-        {url: "https://nutrimatic.org/?q=", maker: this.makeRevAlternationParam,
-         title: "Reversed alternations"},
-      ]
-    },
-    "inds": {
+  ];
+  const lastFewTabs = [
+    {
       id: "inds",
       display: "Lists",
-      hover: "Crossword Unclued, Wikipedia, Mythic beasts, " +
-             "cryptics.georgeho.org: cryptic indicators and abbreviations lists",
+      hover: "Cryptic indicators and abbreviations lists",
       sections: [],
     },
-  };
+  ];
+
+  this.tabs = {};
+  for (let tab of firstFewTabs) {
+    this.tabs[tab.id] = tab;
+  }
+  for (let tab of this.extraTabs) {
+    if (tab.sections.length > 0) {
+      for (let section of tab.sections) {
+        if (typeof section.maker == 'string') {
+          section.maker = this.getNamedMaker(section.maker);
+        }
+      }
+    }
+    this.tabs[tab.id] = tab;
+  }
+  for (let tab of lastFewTabs) {
+    this.tabs[tab.id] = tab;
+  }
 
   this.replaceHandlers()
   this.hideExolveElement('controls');
@@ -2616,52 +2641,7 @@ Exet.prototype.makeIndsTab = function(panelH) {
   const inds = [
     {name: "Please select:", url: ""},
     {name: "separator"},
-    {name: "Crossword Unclued's anagram indicators",
-     url: "https://www.crosswordunclued.com/2008/09/anagram-indicators.html"},
-    {name: "Crossword Unclued's hidden words indicators",
-     url: "https://www.crosswordunclued.com/2009/03/" +
-          "hidden-word-indicators.html"},
-    {name: "Crossword Unclued's reversal indicators",
-     url: "https://www.crosswordunclued.com/2009/07/reversal-indicators.html"},
-    {name: "Crossword Unclued's homophone indicators",
-     url: "https://www.crosswordunclued.com/2009/02/homophone-indicators.html"},
-    {name: "separator"},
-    {name: "Crossword Unclued's deletion indicators",
-     url: "https://www.crosswordunclued.com/2009/04/deletion-indicators.html"},
-    {name: "Crossword Unclued's letter-picking indicators",
-     url: "https://www.crosswordunclued.com/2009/04/" +
-          "letter-sequence-indicators.html"},
-    {name: "Crossword Unclued's containment indicators",
-     url: "https://www.crosswordunclued.com/2009/02/" +
-          "container-and-content-indicators.html"},
-    {name: "separator"},
-    {name: "Crossword Unclued's list of abbreviations",
-     url: "https://www.crosswordunclued.com/2008/10/" +
-          "cryptic-abbreviations.html"},
-    {name: "Wikipedia's list of abbreviations",
-     url: "https://en.wikipedia.org/wiki/Crossword_abbreviations"},
-    {name: "Mythic beasts list of abbreviations",
-     url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
-    {name: "separator"},
-    {name: "All indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+%2A+from+indicators_consolidated&_hide_sql=1"},
-    {name: "Alternation indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22alternation%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Anagram indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22anagram%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Container indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22container%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Deletion indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22deletion%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Hidden word indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22hidden%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Homophone indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22homophone%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Insertion indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22insertion%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-    {name: "Reversal indicators from cryptics.georgeho.org",
-     url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22reversal%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
-  ];
+  ].concat(this.listsLinks);
   const highlighters = [
     {name: "Optional: Using a keyword, choose a type of words to highlight:", key: "none"},
     {name: "Highlight words related to:", key: "ml="},
@@ -2717,55 +2697,57 @@ Exet.prototype.makeIndsTab = function(panelH) {
   this.indsUrl = document.getElementById('xet-inds-choice-url');
 }
 
-Exet.prototype.researchingClue = function() {
-  return this.researchSelect.value.startsWith(
-      "https://cryptics.georgeho.org/data/indicators");
+Exet.prototype.researchNeedsClueWords = function() {
+  const researchTab = this.tabs['research'];
+  const rc = researchTab.currChoice;
+  if (rc < 0 || rc >= researchTab.choices.length) {
+    return false;
+  }
+  return researchTab.choices[rc].needsClueWords || false;
 }
 
 Exet.prototype.researchTabNav = function() {
-  const words = this.researchingClue() ? this.currClueWordsList() :
-    this.tabs["research"].words;
-  const url = this.researchSelect.value + words;
-  if (this.researchIframe.src == url) {
-    return
+  const researchTab = this.tabs['research'];
+  const choiceIndex = this.researchSelect.value;
+  if (choiceIndex < 0 ||
+      choiceIndex >= researchTab.choices.length) {
+    return;
   }
+  const words = researchTab.choices[choiceIndex].needsClueWords ?
+                this.currClueWordsList() : researchTab.words;
+  if (choiceIndex == researchTab.currChoice &&
+      researchTab.savedWords == words) {
+    return;
+  }
+  const choice = researchTab.choices[choiceIndex];
+  const url = choice.url + words + (choice.suffix || '');
+  if (choice.newTab) {
+    this.researchSelect.value = researchTab.currChoice;
+    window.open(url, '_blank');
+    return;
+  }
+  researchTab.currChoice = choiceIndex;
+  researchTab.savedWords = words;
   this.loadIframe(this.researchIframe, url, this.researchUrl);
 }
 
 Exet.prototype.makeResearchTab = function(panelH) {
-  let research = [
-    {url: "https://chambers.co.uk/search/?title=21st&query=",
-     name: "Chambers"},
-    {url: "https://chambers.co.uk/search/?title=thes&query=",
-     name: "Chambers Thesaurus"},
-    {url: "https://www.merriam-webster.com/dictionary/",
-     name: "Merriam-Webster"},
-    {url: "https://www.merriam-webster.com/thesaurus/",
-     name: "Merriam-Webster Thesaurus"},
-    {url: "https://thefreedictionary.com/", name: "The Free Dictionary"},
-    {url: "https://onelook.com/thesaurus/?s=", name: "Onelook"},
-    {url: "https://api.dictionaryapi.dev/api/v2/entries/en/",
-     name: "DictionaryAPI"},
-    {url: "https://www.etymonline.com/search?q=", name: "Etymonline"},
-    {name: "separator"},
-    // The next link only shows definitions in published cryptic crosswords,
-    // not the clues themselves, by choice.
-    {url: "https://cryptics.georgeho.org/data?sql=select+lower%28definition%29+as+def%2C+count%28%2A%29+as+popularity+from+clues+where+%22answer%22+%3D+upper%28%3Ap0%29+and+def+not+in+%28%22nan%22%2C+%22%22%29+group+by+def+order+by+popularity+desc&_hide_sql=1&p0=", name: "Definitions in published cryptic crosswords (cryptics.georgeho.org)"},
-    {url: "https://cryptics.georgeho.org/data/indicators?indicator__in=", name: "Clue phrases as indicators in published cryptic crosswords (cryptics.georgeho.org)"},
-    {name: "separator"},
-  ]
-  let researchTab = this.tabs["research"]
+  const researchTab = this.tabs["research"];
+  researchTab.choices = this.researchTools;
+  researchTab.currChoice = -1;  /** set by researchTabNav() */
+  researchTab.savedWords = null;
   let html = `
   <div>
-  <select name="xet-research-select" id="xet-research-select" value="${research[0].url}"
+  <select name="xet-research-select" id="xet-research-select" value="0"
     onchange="exet.researchTabNav()">`
-  for (let ru of research) {
-    if (ru.name == "separator") {
+  for (let rc = 0; rc < researchTab.choices.length; rc++) {
+    const choice = researchTab.choices[rc];
+    if (choice.name == "separator") {
       html = html + this.MENU_SEPARATOR
       continue;
     }
     html = html + `
-    <option value="${ru.url}">${ru.name}</option>`
+    <option value="${rc}">${choice.name + (choice.newTab ? ' (opens in new tab)' : '')}</option>`
   }
   html = html + '</select></div><br>'
   html = html + `
@@ -3195,25 +3177,46 @@ Exet.prototype.updateCA = function() {
   }
   extraS = extra.join('');
 
+  const emptyDraft = anagram.length == 0;
+  if (emptyDraft) {
+    this.cahExtra.style.visibility = 'hidden';
+    this.cahUnused.style.visibility = 'hidden';
+    this.caExtra.style.visibility = 'hidden';
+    this.caUnused.style.visibility = 'hidden';
+    this.cahExtraAnags.style.visibility = 'hidden';
+    this.cahUnusedAnags.title = 'Anagrams of Fodder';
+    this.caExtraAnags.style.display = 'none';
+  } else {
+    this.cahExtra.style.visibility = 'visible';
+    this.cahUnused.style.visibility = 'visible';
+    this.caExtra.style.visibility = 'visible';
+    this.caUnused.style.visibility = 'visible';
+    this.cahExtraAnags.style.visibility = 'visible';
+    this.cahUnusedAnags.title = 'Anagrams of Fodder, excluding letters in Draft';
+    this.caExtraAnags.style.display = '';
+  }
+
   this.caExtra.innerText = extraS;
-  let html = '';
+  let html = '<table>\n';
   let maxAnags = extra.length < 8 ? 400 : (extra.length < 10 ? 200 : 100);
   let extraAnags = exetLexicon.getAnagrams(extraS, maxAnags);
   for (let choice of extraAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`;
   }
+  html += '\n</table>';
   this.caExtraAnags.innerHTML = html;
 
   unusedS = unused.join('');
   this.caUnused.innerText = unusedS;
-  html = '';
+  html = '<table>\n';
   maxAnags = unused.length < 8 ? 400 : (unused.length < 10 ? 200 : 100);
   let unusedAnags = exetLexicon.getAnagrams(unusedS, maxAnags);
   for (let choice of unusedAnags) {
     html = html + `
       <tr><td>${choice}</td></tr>`;
   }
+  html += '\n</table>';
   this.caUnusedAnags.innerHTML = html;
 }
 
@@ -3221,10 +3224,12 @@ Exet.prototype.populateCompanag = function() {
   const ca = document.getElementById('xet-companag');
   ca.className = 'xet-companag';
   ca.innerHTML = `
+  <table width="100%">
+  <tr><td class="xet-td">
     <table class="xet-table-midline">
       <tr>
-        <td class="xet-td">Fodder:</td>
-        <td class="xet-td">Draft anagram:</td>
+        <td class="xet-td xet-cah">Fodder:</td>
+        <td class="xet-td xet-cah">Anagram draft:</td>
       </tr>
       <tr>
         <td class="xet-td"><input type="text"
@@ -3235,38 +3240,72 @@ Exet.prototype.populateCompanag = function() {
           class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input></td>
       </tr>
       <tr>
-        <td class="xet-td">Extra in draft:</td>
-        <td class="xet-td"><div>Unused in draft:</td>
+        <td></td><td></td>
       </tr>
       <tr>
-        <td class="xet-td"><div class="xet-companag-text"
-            id='xet-ca-extra'></div></td>
-        <td class="xet-td"><div class="xet-companag-text"
-            id='xet-ca-unused'></div></td>
+        <td class="xet-td xet-cah" id="xet-cah-extra">Extras (Draft minus Fodder)</td>
+        <td class="xet-td xet-cah" id="xet-cah-unused">Fodder (minus Draft)</td>
       </tr>
       <tr>
-        <td class="xet-td">
-          <i>Extra* anagrams:<i>
-          <br><hr>
-          <table id="xet-ca-extra-anags">
-          </table>
-        </td>
-        <td class="xet-td">
-          <i>Unused* anagrams:</i>
-          <br><hr>
-          <table id="xet-ca-unused-anags">
-          </table>
-        </td>
+        <td class="xet-td xet-companag-text"
+            id='xet-ca-extra'></td>
+        <td class="xet-td xet-companag-text"
+            id='xet-ca-unused'></td>
       </tr>
-    </table>`;
+    </table>
+    <br>
+    <br>
+    <br>
+    <br>
+    <div class="xet-anag-help">
+    <ul>
+    <li>When the "Anagram draft" field is left blank, you can
+    see anagrams of whatever is entered in the "Fodder" field.
+    </li>
+    <li>
+    If you enter something in the "Anagram draft" field, then
+    anagrams of "Fodder" <i>excluding</i> the letters in "Draft"
+    are shown under the "Fodder*" heading.
+    </li>
+    <li>
+    Anagrams of any extra letters in Draft (that are not there in
+    Fodder) are shown under the "Extras*" heading.
+    </li>
+    </ul>
+    </div>
+  </td>
+  <td class="xet-td">
+    <div class="xet-anag-table">
+      <table class="xet-table-midline">
+        <tr>
+          <td class="xet-td xet-cah" id="xet-cah-unused-anags">
+            Fodder*
+          </td>
+          <td class="xet-td xet-cah" id="xet-cah-extra-anags">
+            Extras*
+          </td>
+        </tr>
+        <tr>
+          <td class="xet-td" id="xet-ca-unused-anags">
+          </td>
+          <td class="xet-td" id="xet-ca-extra-anags">
+          </td>
+        </tr>
+      </table>
+    </div>
+  </td></tr>`;
   this.caFodder = document.getElementById('xet-ca-fodder');
   this.caAnagram = document.getElementById('xet-ca-anagram');
   this.caExtra = document.getElementById('xet-ca-extra');
   this.caUnused = document.getElementById('xet-ca-unused');
+  this.cahExtra = document.getElementById('xet-cah-extra');
+  this.cahUnused = document.getElementById('xet-cah-unused');
   this.caFodder.addEventListener('input', this.updateCA.bind(this));
   this.caAnagram.addEventListener('input', this.updateCA.bind(this));
   this.caExtraAnags = document.getElementById('xet-ca-extra-anags');
   this.caUnusedAnags = document.getElementById('xet-ca-unused-anags');
+  this.cahExtraAnags = document.getElementById('xet-cah-extra-anags');
+  this.cahUnusedAnags = document.getElementById('xet-cah-unused-anags');
 }
 
 Exet.prototype.populateFrame = function() {
@@ -3530,18 +3569,18 @@ Exet.prototype.print = function(solved=true) {
 
 Exet.prototype.toClipboard = function(solved=true, inpid) {
   const inp = document.getElementById(inpid);
-
+  const id = `exolve-div-${Math.random().toString(36).substring(2, 8)}`;
   let prefix = '' +
       '<link rel="stylesheet" type="text/css" href="' + exetState.exolveUrl +
           'exolve-m.css"/>\n' +
       '<script src="' + exetState.exolveUrl + 'exolve-m.js">\n' +
-      '<\/script>\n' +
-      '<div id="exolve">\n' +
-      '<\/div>\n' +
+      '<\/script>\n\n' +
+      '<div id="' + id + '">\n' +
+      '<\/div>\n\n' +
       '<script>\n' +
-      '  createExolve(`\n';
+      'createExolve(`\n';
   let suffix = '' +
-      '  `);\n' +
+      '  `, "' + id + '");\n' +
       '<\/script>\n'
   inp.value = prefix + this.getExolve('', false, solved, exetState.showEnums) +
               suffix;
@@ -3849,15 +3888,12 @@ Exet.prototype.makeCharadeParam = function(s) {
   return exetLexicon.lcLetterString(s);
 }
 
-Exet.prototype.makeAnagramParam = function(s) {
-  return '<' + exetLexicon.lcLetterString(s) + '>';
-}
-
 Exet.prototype.makeCAParam = function(s) {
   return s.toLowerCase().replace(/\?/g, '');
 }
 
-Exet.prototype.makeAlternationParam = function(s) {
+/** Nutrimatic-specific maker */
+Exet.prototype.nutrAlternationParam = function(s) {
   const sL = exetLexicon.lcLettersOf(s);
   let out = 'A%3F';
   for (let c of sL) {
@@ -3866,7 +3902,8 @@ Exet.prototype.makeAlternationParam = function(s) {
   return out + '%3F';
 }
 
-Exet.prototype.makeRevAlternationParam = function(s) {
+/** Nutrimatic-specific maker */
+Exet.prototype.nutrRevAlternationParam = function(s) {
   const sL = exetLexicon.lcLettersOf(s);
   sL.reverse();
   let out = 'A%3F';
@@ -3876,7 +3913,8 @@ Exet.prototype.makeRevAlternationParam = function(s) {
   return out + '%3F';
 }
 
-Exet.prototype.makeHiddenParam = function(s) {
+/** Nutrimatic-specific maker */
+Exet.prototype.nutrHiddenParam = function(s) {
   const sL = exetLexicon.lcLettersOf(s);
   if (sL.length < 2) return s;
   const last = sL.length - 1;
@@ -3884,13 +3922,31 @@ Exet.prototype.makeHiddenParam = function(s) {
          '"' + sL[last] + 'A"A*';
 }
 
-Exet.prototype.makeRevHiddenParam = function(s) {
+/** Nutrimatic-specific maker */
+Exet.prototype.nutrRevHiddenParam = function(s) {
   const sL = exetLexicon.lcLettersOf(s);
   if (sL.length < 2) return s;
   sL.reverse();
   const last = sL.length - 1;
   return 'A*"A' + sL[0] + '"' + sL.slice(1, last).join('') +
          '"' + sL[last] + 'A"A*';
+}
+
+Exet.prototype.getNamedMaker = function(name) {
+  if (!name) {
+    return this.makeCAParam;
+  } else if (name == 'Nutrimatic-Hidden') {
+    return this.nutrHiddenParam;
+  } else if (name == 'Nutrimatic-RevHidden') {
+    return this.nutrRevHiddenParam;
+  } else if (name == 'Nutrimatic-Alternation') {
+    return this.nutrAlternationParam;
+  } else if (name == 'Nutrimatic-RevAlternation') {
+    return this.nutrRevAlternationParam;
+  } else {
+    console.log('Unknown parameter function maker name: ' + name);
+    return this.makeCAParam;
+  }
 }
 
 Exet.prototype.currClueIndex = function() {
@@ -4836,7 +4892,8 @@ Exet.prototype.handleClueChange = function() {
 
   this.restoreCursor();
 
-  if (this.currTab == "research" && this.researchingClue()) {
+  if (this.currTab == "research" &&
+      this.researchNeedsClueWords()) {
     this.researchTabNav();
   }
   if (!this.currClueIsDraft &&
@@ -8748,7 +8805,14 @@ document.addEventListener('DOMContentLoaded', () => {
     throw "localStorage is not available!"
   }
 
-  exet = new Exet;
+  const researchTools = (typeof EXET_RESEARCH_TOOLS == 'undefined') ? [] :
+    EXET_RESEARCH_TOOLS;
+  const extraTabs = (typeof EXET_EXTRA_TABS == 'undefined') ? [] :
+    EXET_EXTRA_TABS;
+  const listsLinks = (typeof EXET_LISTS_LINKS == 'undefined') ? [] :
+    EXET_LISTS_LINKS;
+  exet = new Exet(researchTools, extraTabs, listsLinks);
+
   exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
   if (exetState) {
     exetState = JSON.parse(exetState)
