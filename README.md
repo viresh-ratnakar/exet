@@ -2,12 +2,16 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.85 May 3, 2023
+#### Version: Exet v0.86 May 13, 2023
 
 #### Author: Viresh Ratnakar
 
 Exet is free, open source software for setting crosswords.
-You can use Exet from my serving site: [exet.app](https://exet.app).
+You can use Exet from my serving site:
+
+- English: [exet.app or https://viresh-ratnakar.github.io/exet.html](https://exet.app).
+- Hindi: [https://viresh-ratnakar.github.io/exet-hindi.html](https://viresh-ratnakar.github.io/exet-hindi.html).
+- Portuguese (Brazilian): [https://viresh-ratnakar.github.io/exet-brazilian.html](https://viresh-ratnakar.github.io/exet-brazilian.html).
 
 You can also download and use/serve your own copy of the software. For that,
 you need files from this repository as well as a few files from
@@ -17,12 +21,20 @@ that enables interactive crossword solving in a browser.
 These are all the files needed from this repository:
 
 - [`exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.html),
+- [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
+  - The above two files should be replaced by their language-specific variants, for the non-English
+    languages that Exet supports:
+  - Hindi:
+    - [`exet-hindi.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-hindi.html),
+    - [`lufz-hi-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-hi-lexicon.js),
+  - Portuguese (Brazilian):
+    - [`exet-brazilian.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-brazilian.html),
+    - [`lufz-pt-br-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-pt-br-lexicon.js),
 - [`exet.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.js),
 - [`exet.css`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.css),
 - [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js),
 - [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
 - [`exet-version.txt`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-version.txt),
-- [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
 - [`no-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-unches.png),
   [`t-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/t-unches.png),
   [`l-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/l-unches.png),
@@ -54,36 +66,71 @@ crossword to any web site or blog, using Exolve (but see the
 [known caveats in the Exolve
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-widget)).
 
-As of now, Exet only suggests English grid-fills (I'll add support for other
-languages eventually).
+As of now, Exet only suggests English, Hindi, and Portuguese (Brazilian).
+I'll add support for more languages over time.
 
 I welcome [bug reports and feature
 requests](https://github.com/viresh-ratnakar/exet/issues/new).
-You may contact me via email too, at viresh at gmail dot com.
+You may contact me via email too, at [viresh@exet.app](mailto:viresh@exet.app).
 
 If you use Exet and like it, please consider posting links to it and/or writing
 reviews, to help spread the word.
 
 ## Lexicon
 
-The list of words used by Exet for providing grid-fill suggestions is a
-modified version of the "UKACD" words list, which comes with its own
+### English
+
+The list of English words used by Exet for providing grid-fill suggestions
+is a modified version of the "UKACD" words list, which comes with its own
 copyight notice that is reproduced near the bottom of this page. I made the
 following modifications to the UKACD words list:
 
-- Removed a few swear words.
+- Added a variety of words, idioms, proverbs collated from several web
+  sources.
 - Replaced all accented characters with non-accented ones.
 - Deleted all punctuation characters other than spaces, hyphens, and
-  apostrophes.  - Attached a popularity score to each word/phrase using a
+  apostrophes.
+- Removed lots of swear words and offensive words.
+- Attached a popularity score to each word/phrase using a
   dump of all of Wikipedia's English-language articles.
+- Attached pronunciations (when available) using CMUdict.
 - Created an index of the lexicon suitable for use by my JavaScript
-  code. Source code for the last two steps is available in my
+  code. Source code for the last few steps is available in my
   [Lufz GitHub repository](https://github.com/viresh-ratnakar/lufz).
 
-The `exetLexicon` JavaScript object can be set up in other apps too,
-by loading these two script files.
+### Hindi
 
-- [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js)
+The Hindi lexicon, including popularity scores and pronunciations, is
+taken from
+[Verma et al. (2020) Shabd: A Psycholinguistic Database for Hindi.
+(submitted).](https://osf.io/fygme/)
+
+### Portuguese (Brazilian)
+
+The Portuguese (Brazilian) lexicon was assembled from the following sources:
+
+- The entries come from
+  [Dictionary collection in Portuguese (pt-BR)](https://github.com/fserb/pt-br)
+  by Fernando Serboncini. Its MIT License is copied below.
+- Pronunciations are taken from
+  [dicionario-fonetico](https://github.com/iwmo/dicionario-fonetico),
+  which is derived from the
+  [Common Orthographic Vocabulary of the Portuguese
+  Language]("http://www.portaldalinguaportuguesa.org/index.php?action=fonetica&act=list").
+- I trimmed away some swear words (using my English exclusion list).
+- I added importance score using occurrences in Portuguese Wikipedia.
+- The lexicon was huge, so I retained only entries that I found at least 1 occurrence for
+  in Wikipedia.
+
+### Using `exetLexicon` in other apps
+
+The `exetLexicon` JavaScript object can be set up in other apps too,
+by loading two script files.
+
+- One of these language-specific files:
+  - [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js)
+  - [`lufz-hi-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-hi-lexicon.js)
+  - [`lufz-pt-br-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-pt-br-lexicon.js)
 - [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js)
 
 This provides functionality such as getting anagrams, homophones, spoonerisms,
@@ -95,7 +142,7 @@ To use Exet, you simply open a link to `exet.html`, such as [this one on
 my site](https://viresh-ratnakar.github.io/exet.html), in a browser.
 
 The first time you open Exet, it might take a few seconds to load, as it fetches
-a large (19 MB) lexicon file.
+a large (25 MB for English) lexicon file.
 
 After it loads, your browser screen should look something like this:
 
@@ -139,11 +186,6 @@ and "away" clues within the layers. See the
 [Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
 for details on 3-D crosswords.
 
-You can navigate to any cell using the arrow keys or by clicking on it
-(including the dark, block cells). The following controls are all available
-from the "Edit" menu as well as through some keyboard shortcuts listed below
-and also shown in the Edit menu (the shortcut key only works when there is an
-active grid cell):
 
 - Add automagic blocks (#)
 - Autofill:
@@ -223,8 +265,8 @@ punctuation, i.e., the presence of interword space/dash/apostrophe characters.
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
-- A minimum "popularity" threshold. The lexicon ("ukacd18-lufz-v0.03 en Latin"
-  as of May 2023) has 250,192 entries. Providing a popularity threshold
+- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.06"), as of
+  May 2023, has 268,740 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -234,15 +276,15 @@ settings that control the nature of fill suggestions. These are:
 
   | Threshold | #Entries | Last included entries    |
   |-----------|----------|--------------------------|
-  |       0   | 250,192  | don't count your chickens before they are hatched, confabular, fluid dynamics |
-  |       25  | 187,643  | encages, brassily, ondes musicales |
-  |       50  | 125,095  | Ziphius, Nipponese, incitation |
-  |       60  | 100,076  | Barbary sheep, humidified, brownouts |
-  |       70  |  75,057  | somersaults, bipyramid, photodiodes |
-  |   **80**  |**50,038**|**in deep water, booing, ecco**        |
-  |      85   |  37,528  | cobbled, bituminous, searchlights  |
-  |       90  |  25,019  | fermi, ratify, restore |
-  |       95  |  12,509  | countless, Saturdays, Green Party |
+  |       0   | 268,740  | to be or not to be that is the question, You're a better man than I am Gunga Din |
+  |       25  | 201,554  | titfers, simular, coalize |
+  |       50  | 134,369  | gallows humour, double-stopping, trading estates |
+  |       60  | 107,495  | tyrannis, fluffing, fluidics |
+  |       70  |  80,621  | grey seals, accretions, organismal |
+  |   **80**  |**53,747**|**dampened, normalcy, lampreys**        |
+  |      85   |  40,310  | tubules, Sylvian, klezmer  |
+  |       90  |  26,873  | linebackers, footballing, Ramakrishna |
+  |       95  |  13,436  | reactive, FX, anal |
 
 - Whether to exclude proper nouns.
 - Whether to allow grid-fill suggestions (and autofill) to try to reverse
@@ -284,11 +326,6 @@ letter suggestions.
 
 You can provide up to 100 preferred words/phrases for using in the grid, by
 clicking on the button labelled "Set preferred fills" in the Exet tab, just
-under the column that shows grid-fill suggestions. This opens up a panel in
-which you enter a set of preferred words/phrases (or edit the previously entered
-set). The words you provide here can be outside the lexicon too. These words
-will get shown as the top suggestions, whenever possible. The preferred fills
-that are actually in use as solution entries are bolded in the displayed list.
 
 Clicking anywhere outside the panel of preferred fills will dismiss the panel.
 
@@ -1090,6 +1127,32 @@ word.
 ----------------------------------------------------------------------
 ```
 
+### Dictionary collection in Portuguese (pt-BR)
+
+```
+MIT License
+
+Copyright 2021 Fernando Serboncini
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ### Exet
 
 ```
@@ -1115,6 +1178,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+The latest code and documentation for Exet can be found at:
+https://github.com/viresh-ratnakar/exet
+```
+
+# Exet
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 ```

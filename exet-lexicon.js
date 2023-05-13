@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.85 May 3, 2023
+Current version: v0.86 May 13, 2023
 */
 
 /**
@@ -150,6 +150,11 @@ function exetLexiconInit() {
     'AA': true, 'AE': true, 'AH': true, 'AO': true, 'AW': true, 'AY': true,
     'EH': true, 'ER': true, 'EY': true, 'IH': true, 'IY': true, 'OW': true,
     'OY': true, 'UH': true, 'UW': true,
+    'i': true, 'y': true, 'ɨ': true, 'ʉ': true, 'ɯ': true, 'u': true, 'ɪ': true,
+    'ʏ': true, 'ʊ': true, 'e': true, 'ø': true, 'ɘ': true, 'ɵ': true, 'ɤ': true,
+    'o': true, 'e̞': true, 'ø̞': true, 'ə': true, 'ɤ̞': true, 'o̞': true, 'ɛ': true,
+    'œ': true, 'ɜ': true, 'ɞ': true, 'ʌ': true, 'ɔ': true, 'æ': true, 'ɐ': true,
+    'a': true, 'ɶ': true, 'ä': true, 'ɑ': true, 'ɒ': true,
   };
 
   /**
@@ -178,8 +183,7 @@ function exetLexiconInit() {
 
   /**
    * Returns array of uppercase letters and ?s that
-   * can be joined and lowercased to form the lexicon
-   * index key.
+   * can be joined to form the lexicon index key.
    */
   exetLexicon.lexkey = function(partialSol) {
     const key = [];
@@ -221,8 +225,15 @@ function exetLexiconInit() {
   }
   
   exetLexicon.isProperNoun = function(s) {
-    const first = s.charAt(0);
-    return first.toUpperCase() == first && s.charAt(1) != '-';
+    if (this.script != 'Latin') {
+      return false;
+    }
+    const parts = this.partsOf(s);
+    if (parts.length <= 1) {
+      return false;
+    }
+    const first = parts[0];
+    return first.toUpperCase() == first && parts[1] != '-';
   }
 
   exetLexicon.getLex = function(idx) {
@@ -277,8 +288,7 @@ function exetLexiconInit() {
     const loops = tryRev ? 2 : 1;
     for (let i = 0; (i < loops) && (limit <= 0 || choices.length < limit); i++) {
       const loopKey = (i == 0) ? key : rkey;
-      /** Keep in lower case the actual key used to look into index */
-      let gkey = loopKey.join('').toLowerCase();
+      let gkey = loopKey.join('');
       while (!this.index[gkey]) {
         const ngkey = this.generalizeKey(gkey);
         if (ngkey == gkey) return choices;
@@ -303,30 +313,38 @@ function exetLexiconInit() {
     return choices;
   }
   
+  exetLexicon.utf8Encoder = new TextEncoder();
+
   exetLexicon.javaHash = function(key) {
     let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-      let c = key.charCodeAt(i);
+    const keyBytes = this.utf8Encoder.encode(key);
+    for (let i = 0; i < keyBytes.length; i++) {
+      const c = (keyBytes[i] << 24) >> 24;  /** make int8 from unit8 */
+
       hash = ((hash << 5) - hash) + c;
       hash = hash & hash; // Convert to 32bit integer
     }
     return hash;
   }
   
-  exetLexicon.makeAnagramKey = function(phrase) {
-    const lp = this.lcLetterString(phrase);
-    return lp.split('').sort().join('')
+  exetLexicon.anagramKey = function(letters) {
+    return letters.slice().sort().join('');
   }
 
-  exetLexicon.getAnagrams1 = function(phrase, limit=0, getIndices=false) {
-    const key = this.makeAnagramKey(phrase);
+  exetLexicon.anagramKeyStr = function(phrase) {
+    const letters = this.lettersOf(phrase);
+    return letters.sort().join('');
+  }
+
+  exetLexicon.getAnagrams1 = function(letters, limit=0, getIndices=false) {
+    const key = this.anagramKey(letters);
     const NUM_SHARDS = this.anagrams.length;
     let shard = this.javaHash(key) % NUM_SHARDS;
     if (shard < 0) shard += NUM_SHARDS;
     const anagrams = [];
     for (let idx of this.anagrams[shard]) {
       const candidate = this.lexicon[idx];
-      if (this.makeAnagramKey(candidate) == key) {
+      if (this.anagramKeyStr(candidate) == key) {
         anagrams.push(getIndices ? idx : candidate);
         if (limit > 0 && anagrams.length >= limit) {
           break;
@@ -343,8 +361,9 @@ function exetLexiconInit() {
    *   for 2-word anagrams).
    */
   exetLexicon.getAnagrams = function(phrase, limit, seqOK=true) {
-    const anagrams1 = this.getAnagrams1(phrase, limit);
-    const phraseLen = phrase.length;
+    const letters = this.lettersOf(phrase);
+    const anagrams1 = this.getAnagrams1(letters, limit);
+    const phraseLen = letters.length;
     if (phraseLen < 4 || (limit > 0 && anagrams1.length >= limit)) {
       return anagrams1;
     }
@@ -352,7 +371,7 @@ function exetLexiconInit() {
     if (limit > 0) {
       limit -= anagrams1.length;
     }
-    const anagramsK = this.getAnagramsK(phrase, limit, multiK, seqOK);
+    const anagramsK = this.getAnagramsK(letters, limit, multiK, seqOK);
     return anagrams1.concat(anagramsK);
   }
   
@@ -375,8 +394,8 @@ function exetLexiconInit() {
    * full letter histogram is subsumed by the full letter histogram of the phrase.
    */
 
-  exetLexicon.getSubsetAnagrams = function(phrase, seqOK) {
-    const slk = this.slKey(phrase);
+  exetLexicon.getSubsetAnagrams = function(letters, seqOK) {
+    const slk = this.slKey(letters);
     const slkLimits = slk.slice();
     let product = 1;
     for (let i = 0; i < 8; i++) {
@@ -394,10 +413,10 @@ function exetLexiconInit() {
         }
       }
     }
-    const fullHist = this.letterHist(phrase);
+    const fullHist = this.letterHist(letters);
     const subkey = [0,0,0,0,0,0,0,0];
     const anagrams = [];
-    const phraseSeq = seqOK ? '' : this.lcLetterString(phrase);
+    const phraseSeq = seqOK ? '' : letters.join('');
   
     // Vary the more common letters in the inner loops.
     for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
@@ -419,12 +438,11 @@ function exetLexiconInit() {
                     const wordIndices = this.slkIndex[subkey];
                     if (!wordIndices) continue;
                     for (let wordIndex of wordIndices) {
-                      const word = this.lexicon[wordIndex];
-                      const wordHist = this.letterHist(word);
-                      const diffHist = this.letterHistSub(fullHist, wordHist);
+                      const subLetters = this.lettersOf(this.lexicon[wordIndex]);
+                      const subWordHist = this.letterHist(subLetters);
+                      const diffHist = this.letterHistSub(fullHist, subWordHist);
                       if (!diffHist) continue;
-                      if (!seqOK &&
-                          phraseSeq.includes(this.lcLetterString(word))) {
+                      if (!seqOK && phraseSeq.includes(subLetters.join(''))) {
                         continue;
                       }
                       anagrams.push([wordIndex, diffHist]);
@@ -432,10 +450,9 @@ function exetLexiconInit() {
     return anagrams;
   }
 
-  exetLexicon.letterHist = function(phrase) {
-    const phraseU = this.lettersOf(phrase);
+  exetLexicon.letterHist = function(letters) {
     const hist = this.zeroHist.slice();
-    for (let l of phraseU) {
+    for (let l of letters) {
       hist[this.letterIndex[l]]++;
     }
     return hist;
@@ -456,10 +473,9 @@ function exetLexiconInit() {
     return ret;
   }
   
-  exetLexicon.slKey = function(phrase) {
+  exetLexicon.slKey = function(letters) {
     const hist = [0,0,0,0,0,0,0,0];
-    const phraseU = this.lettersOf(phrase);
-    for (let l of phraseU) {
+    for (let l of letters) {
       const idx = this.SLK_LETTERS.indexOf(l);
       if (idx < 0) continue;
       hist[idx]++;
@@ -492,21 +508,22 @@ function exetLexiconInit() {
     }
     this.slkIndex = {};
     for (let idx = 1; idx < this.lexicon.length; idx++) {
-      const entry = this.lexicon[idx];
-      const k = this.slKey(entry);
+      const letters = this.lettersOf(this.lexicon[idx]);
+      const k = this.slKey(letters);
       if (!this.slkIndex[k]) this.slkIndex[k] = [];
       this.slkIndex[k].push(idx);
     }
   }
-  exetLexicon.initAnagrammer();
   
   exetLexicon.lettersFromHist = function(h) {
-    let ret = '';
+    const ret = [];
     for (let i = 0; i < this.letters.length; i++) {
       if (!h[i]) continue;
-      ret += this.letters[i].repeat(h[i]);
+      for (let j = 0; j < h[i]; j++) {
+        ret.push(this.letters[i]);
+      }
     }
-    return ret.toLowerCase();
+    return ret;
   }
   
   exetLexicon.lexToSortedWords = function(list) {
@@ -529,25 +546,25 @@ function exetLexiconInit() {
    * Returns k-word anagrams, sorted by increasing #words and then worsening
    * worst popularity
    */
-  exetLexicon.getAnagramsK = function(phrase, limit, k, seqOK) {
+  exetLexicon.getAnagramsK = function(letters, limit, k, seqOK) {
     return this.lexToSortedWords(
-        this.getAnagramsKIndices(phrase, limit, k, seqOK));
+        this.getAnagramsKIndices(letters, limit, k, seqOK));
   }
   
-  exetLexicon.getAnagramsKIndices = function(phrase, limit, k, seqOK) {
+  exetLexicon.getAnagramsKIndices = function(letters, limit, k, seqOK) {
     console.assert(k > 1, k);
     console.assert(limit >= 0, limit);
     const anagrams = [];
     const seenAnagrams = {};
-    const partials = this.getSubsetAnagrams(phrase, seqOK);
-    const phraseSeq = seqOK ? '' : this.lcLetterString(phrase);
+    const partials = this.getSubsetAnagrams(letters, seqOK);
+    const phraseSeq = seqOK ? '' : letters.join('');
     for (let partial of partials) {
       const delta = this.lettersFromHist(partial[1]);
-      if (!delta) continue;
+      if (!delta.length) continue;
       const deltaAnagrams = this.getAnagrams1(delta, limit, true);
       for (let deltaAnagram of deltaAnagrams) {
         if (!seqOK &&
-            phraseSeq.includes(this.lcLetterString(
+            phraseSeq.includes(this.letterString(
                 this.lexicon[deltaAnagram]))) {
           continue;
         }
@@ -557,7 +574,9 @@ function exetLexiconInit() {
           anagrams.push(candidate);
           if (limit > 0) {
             limit--;
-            if (limit == 0) return anagrams;
+            if (limit == 0) {
+              return anagrams;
+            }
           }
         }
       }
@@ -568,7 +587,7 @@ function exetLexiconInit() {
     console.assert(limit >= 0, limit);
     for (let partial of partials) {
       const delta = this.lettersFromHist(partial[1]);
-      if (!delta) continue;
+      if (!delta.length) continue;
       // Delta has sorted order, need to set seqOK to true for recursive call.
       const deltaAnagrams = this.getAnagramsKIndices(delta, limit, k - 1, true);
       for (let deltaAnagram of deltaAnagrams) {
@@ -596,10 +615,20 @@ function exetLexiconInit() {
     }
     return ret;
   }
-  
+
+  exetLexicon.initAnagrammer();
+
   /**
    * End of code for multi-word anagrams.
    */
+
+  exetLexicon.containsPhone = function(index, phone_str) {
+    const phones = this.phones[index];
+    for (let ph of phones) {
+      if (ph.join('') == phone_str) return true;
+    }
+    return false;
+  }
 
   exetLexicon.getPhones = function(phrase) {
     const phones = [];
@@ -624,7 +653,7 @@ function exetLexiconInit() {
         const part2_phones = this.getPhones(part2);
         for (let p2 of part2_phones) {
           for (let p1 of part1_phones) {
-            phones.push(p1 + ' ' + p2);
+            phones.push(p1.concat(p2));
           }
         }
       }
@@ -634,15 +663,14 @@ function exetLexiconInit() {
   
   exetLexicon.getSpoonerismsInner = function(phrase, phones) {
     const spoons = [];
-    const nphrase = this.lcLetterString(phrase);
+    const nphrase = this.letterString(phrase);
     const NUM_SHARDS = this.phindex.length;
   
     for (let phone of phones) {
-      const pparts = phone.split(' ');
       const nonVowelSpans = [];
       let currSpan = [-1, -1];
-      for (let i = 0; i < pparts.length; i++) {
-        if (!this.vowelPhonemes[pparts[i]]) {
+      for (let i = 0; i < phone.length; i++) {
+        if (!this.vowelPhonemes[phone[i]]) {
           if (currSpan[0] < 0) {
             currSpan[0] = i;
           }
@@ -655,7 +683,7 @@ function exetLexiconInit() {
         }
       }
       if (currSpan[0] >= 0 && currSpan[1] < 0) {
-        currSpan[1] = pparts.length;
+        currSpan[1] = phone.length;
         nonVowelSpans.push(currSpan);
       }
       if (nonVowelSpans.length < 2) {
@@ -672,32 +700,30 @@ function exetLexiconInit() {
                last2 < nonVowelSpans[second_span][1]; last2++) {
             for (let start2 = nonVowelSpans[second_span][0];
                  start2 <= last2; start2++) {
-              const phone1_arr = pparts.slice(start2, last2 + 1).concat(
-                  pparts.slice(last1 + 1, start2));
-              if (phone1_arr.length == 0) continue;
-              const phone2_arr = pparts.slice(0, last1 + 1).concat(
-                  pparts.slice(last2 + 1));
-              if (phone2_arr.length == 0) continue;
+              const phone1 = phone.slice(start2, last2 + 1).concat(
+                  phone.slice(last1 + 1, start2));
+              if (phone1.length == 0) continue;
+              const phone2 = phone.slice(0, last1 + 1).concat(
+                  phone.slice(last2 + 1));
+              if (phone2.length == 0) continue;
   
-              const phone1 = phone1_arr.join(' ');
-              let shard = this.javaHash(phone1) % NUM_SHARDS;
+              const phone1_str = phone1.join('');
+              let shard = this.javaHash(phone1_str) % NUM_SHARDS;
               if (shard < 0) shard += NUM_SHARDS;
               const q1list = [];
               for (let q1 of this.phindex[shard]) {
-                if (!this.phones[q1] ||
-                    !this.phones[q1].includes(phone1)) continue;
+                if (!this.containsPhone(q1, phone1_str)) continue;
                 q1list.push(this.lexicon[q1]);
               }
   
               if (q1list.length == 0) continue;
   
-              const phone2 = phone2_arr.join(' ');
-              shard = this.javaHash(phone2) % NUM_SHARDS;
+              const phone2_str = phone2.join('');
+              shard = this.javaHash(phone2_str) % NUM_SHARDS;
               if (shard < 0) shard += NUM_SHARDS;
               const q2list = [];
               for (let q2 of this.phindex[shard]) {
-                if (!this.phones[q2] ||
-                    !this.phones[q2].includes(phone2)) continue;
+                if (!this.containsPhone(q2, phone2_str)) continue;
                 q2list.push(this.lexicon[q2]);
               }
   
@@ -722,44 +748,43 @@ function exetLexiconInit() {
   
   exetLexicon.getHomophonesInner = function(phrase, phones) {
     const hp = [];
-    const nphrase = this.lcLetterString(phrase);
+    const nphrase = this.letterString(phrase);
     const NUM_SHARDS = this.phindex.length;
   
     for (let phone of phones) {
-      let shard = this.javaHash(phone) % NUM_SHARDS;
+      const phone_str = phone.join('');
+      let shard = this.javaHash(phone_str) % NUM_SHARDS;
       if (shard < 0) shard += NUM_SHARDS;
       for (let q of this.phindex[shard]) {
-        if (!this.phones[q] ||
-            !this.phones[q].includes(phone)) continue;
+        if (!this.containsPhone(q, phone_str)) continue;
         const qphrase = this.lexicon[q];
-        if (nphrase == this.lcLetterString(qphrase)) {
+        if (nphrase == this.letterString(qphrase)) {
           continue;
         }
         hp.push(qphrase);
       }
   
       // Now try splitting phone into two parts.
-      const pparts = phone.split(' ');
-      for (let i = 1; i <= pparts.length - 1; i++) {
-        const phone1 = pparts.slice(0, i).join(' ');
-        shard = this.javaHash(phone1) % NUM_SHARDS;
+      for (let i = 1; i <= phone.length - 1; i++) {
+        const phone1 = phone.slice(0, i);
+        const phone1_str = phone1.join('');
+        shard = this.javaHash(phone1_str) % NUM_SHARDS;
         if (shard < 0) shard += NUM_SHARDS;
         const q1list = [];
         for (let q1 of this.phindex[shard]) {
-          if (!this.phones[q1] ||
-              !this.phones[q1].includes(phone1)) continue;
+          if (!this.containsPhone(q1, phone1_str)) continue;
           q1list.push(this.lexicon[q1]);
         }
   
         if (q1list.length == 0) continue;
   
-        const phone2 = pparts.slice(i).join(' ');
-        shard = this.javaHash(phone2) % NUM_SHARDS;
+        const phone2 = phone.slice(i);
+        const phone2_str = phone2.join('');
+        shard = this.javaHash(phone2_str) % NUM_SHARDS;
         if (shard < 0) shard += NUM_SHARDS;
         const q2list = [];
         for (let q2 of this.phindex[shard]) {
-          if (!this.phones[q2] ||
-              !this.phones[q2].includes(phone2)) continue;
+          if (!this.containsPhone(q2, phone2_str)) continue;
           q2list.push(this.lexicon[q2]);
         }
   
@@ -768,7 +793,7 @@ function exetLexiconInit() {
         for (let q1 of q1list) {
           for (let q2 of q2list) {
             const candidate = q1 + ' ' + q2;
-            if (nphrase == this.lcLetterString(candidate)) continue;
+            if (nphrase == this.letterString(candidate)) continue;
             hp.push(candidate);
           }
         }

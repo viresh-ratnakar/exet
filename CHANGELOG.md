@@ -1,5 +1,28 @@
 # Changelog
 
+### Version: Exet v0.86 May 13, 2023
+
+- Major expansion of English wordlist (now 268,740 entries instead of 250,192).
+- Addition of support for Hindi (exet-hindi.html) and Portuguese-Brazilian
+  (exet-brazilian.html).
+- The above changes required some code tweaks:
+  - Add support for IPA as phonetic language (in addition to ARPAbet used
+    in CMUdict),
+  - The lexicon code files (lufz-en-lexicon.js, lufz-hi-lexicon.js,
+    lufz-pt-br-lexicon.js) are updated versions created using
+    [Lufz v0.06](https://github.com/viresh-ratnakar/lufz).
+  - Disable upper-case-start-based proper-noun detection for non-Latin
+    languages.
+  - Fix JavaHash implementation for UTF8: encode to UTF8 and convert bytes
+    to signed ints.
+  - Lexicon indexing keys now use uppercase letters.
+  - Use the vector-of-letters representation wherever possible, instead
+    of doing redundant conversions.
+  - Factor out language-specific configurations (resources, links, default
+    dimension, default popularity threshold, etc.) into an exetConfig
+    dictionary that we set in exet\*.html.
+- Minor CSS tweaks/fixes.
+
 ### Version: Exet v0.85 May 3, 2023
 
 - In creating embeddable Exolve, use a new, random div ID everytime.

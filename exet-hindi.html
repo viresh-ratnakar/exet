@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<!--
+MIT License
+
+Copyright (c) 2020 Viresh Ratnakar
+
+See the full license notice in exet.js.
+
+Current version: v0.86 May 13, 2023
+-->
+
+<link rel="stylesheet" type="text/css" href="exolve-m.css?v1.49"/>
+<link rel="stylesheet" type="text/css" href="exet.css?v0.86"/>
+
+<script>
+
+/**
+ * Language-specific parameters.
+ */
+exetConfig = {
+  defaultDimension: 7,
+  defaultPopularity: 0,
+  researchTools: [
+    /** The first entry should not be name: "separator" */
+    {url: "https://hi.wiktionary.org/wiki/", name: "Wiktionary"},
+  ],
+  extraTabs: [],
+  listsLinks: [
+    {name: "Crossword Unclued's write-up on Hindi cryptic crosswords",
+     url: "https://www.crosswordunclued.com/2012/07/hindi-cryptic-crosswords.html"},
+    {name: "separator"},
+    {name: "Crossword Unclued's list of abbreviations",
+     url: "https://www.crosswordunclued.com/2008/10/" +
+          "cryptic-abbreviations.html"},
+    {name: "Wikipedia's list of abbreviations",
+     url: "https://en.wikipedia.org/wiki/Crossword_abbreviations"},
+    {name: "Mythic beasts list of abbreviations",
+     url: "http://sphinx.mythic-beasts.com/~mark/random/indicators/"},
+  ],
+};
+</script>
+
+<script src="exolve-m.js?v1.49"></script>
+<script src="exolve-from-puz.js?v0.86"></script>
+<script defer src="lufz-hi-lexicon.js?v0.86"></script>
+<script src="exet-lexicon.js?v0.86"></script>
+<script src="exet.js?v0.86"></script>
+
+<title>Exet Hindi: Create a crossword in Hindi</title>
+
+</head>
+<body>
+
+<div id="xet-loading"
+    style="text-align:center;font-family:monospace;padding-top:100px">
+  <h3><span class="xet-blue">Exet: A web app for crossword construction</span></h3>
+  <h4>Loading the lexicon. This may take a few seconds, please wait...</h4>
+</div>
+
+<div id="xet-xlv-frame">
+</div>
+
+</body>
+</html>

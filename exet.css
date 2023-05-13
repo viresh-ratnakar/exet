@@ -5,7 +5,7 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v0.85 May 3, 2023
+ * Current version: v0.86 May 13, 2023
  */
 
 [contenteditable="true"]:active,
@@ -87,7 +87,7 @@
   border: 0;
 }
 .xet-high-tall-box {
-  height: 450px;
+  height: 460px;
 }
 .xet-mid-tall-box {
   height: 325px;
@@ -130,6 +130,7 @@
   overflow: visible;
 }
 .xet-curr-clue {
+  min-height: 80px;
   overflow-y: auto;
 }
 #xet-unlink {
@@ -649,6 +650,9 @@
 }
 .xet-anag-help:hover {
   color: black;
+}
+.xet-anag-help ul {
+  padding-inline-start: 10px;
 }
 .xet-anag-table {
   min-width: 300px;

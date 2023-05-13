@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.84 April 3, 2023
+Current version: v0.86 May 13, 2023
 */
 
 function ExetModals() {
@@ -662,50 +662,19 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
   // prefix, suffix, exolve should be set directly.
 };
 
-/**
- * The parameters define language-specific external URLs.
- *
- * @param {!Array} researchTools
- *   Array of objects that become Research menu options, each with these properties:
- *     name: if 'separator' then nothing else is needed
- *     url: URL that will be prepended to the current word
- *     suffix: optional suffix to apply after the word
- *     needsClueWords: if true, then instead of the current word, ["Words","in","clue"] will be used
- *     newTab: if true, open in new tab (site does not load in iframes)
- * @param {!Array} extraTabs
- *   Array of objects that become Exet tabs, each with these properties:
- *     id: A unique ID for the tab
- *     display: Title for the tab
- *     hover: Hover-text for the tab title
- *     sections: An array of 1 or 2 columns to be shown side-by-side in the tab
- *       Each section Object has these properties:
- *       url: URL that will be prepended to the param
- *       maker: A function that maps a string to a string OR one of these names
- *         identifying some such canned functions:
- *         'Nutrimatic-Hidden', 'Nutrimatic-RevHidden',
- *         'Nutrimatic-Alternation', 'Nutrimatic-RevAlternation',
- *       title: Section heading
- * @param {!Array} listsLinks
- *   Array of objects that become Links menu options, each with these properties:
- *     name: if 'separator' then nothing else is needed
- *     url: URL for the lists page
- */
-function Exet(researchTools, extraTabs, listsLinks) {
-  this.version = 'v0.85 May 3, 2023';
-  this.researchTools = researchTools;
-  this.extraTabs = extraTabs;
-  this.listsLinks = listsLinks;
-  this.puz = null
-  this.prefix = ''
-  this.suffix = ''
-  this.exolveOtherSec = ''
-  this.preflex = []
+function Exet() {
+  this.version = 'v0.86 May 7, 2023';
+  this.puz = null;
+  this.prefix = '';
+  this.suffix = '';
+  this.exolveOtherSec = '';
+  this.preflex = [];
   this.preflexInUse = {};
-  this.unpreflex = {}
-  this.noProperNouns = false
-  this.asymOK = false
-  this.tryReversals = false
-  this.DEFAULT_MINPOP = 80
+  this.unpreflex = {};
+  this.noProperNouns = false;
+  this.asymOK = false;
+  this.tryReversals = false;
+  this.DEFAULT_MINPOP = exetConfig.defaultPopularity;
   this.setMinPop(this.DEFAULT_MINPOP)
   this.DRAFT = '[DRAFT]';
   this.CLUE_NOT_SET = 'Set clue and clear draft marker...';
@@ -1009,7 +978,8 @@ Exet.prototype.setPuzzle = function(puz) {
       hover: "Anagrams, composite anagrams",
       sections: [
         {id: "xet-companag", maker: this.makeCAParam,
-         title: "Anagrams and composite/extended anagrams"},
+         title: "Anagrams and composite/extended anagrams",
+         hover: "You can unblur the detailed help text by hovering your cursor over it",},
       ],
     },
     {
@@ -1045,7 +1015,7 @@ Exet.prototype.setPuzzle = function(puz) {
   for (let tab of firstFewTabs) {
     this.tabs[tab.id] = tab;
   }
-  for (let tab of this.extraTabs) {
+  for (let tab of exetConfig.extraTabs) {
     if (tab.sections.length > 0) {
       for (let section of tab.sections) {
         if (typeof section.maker == 'string') {
@@ -1232,12 +1202,12 @@ Exet.prototype.makeExetTab = function() {
               <div style="padding:4px;text-align:center">
                 <div>
                   <label for="xet-w">Width:</label>
-                  <input id="xet-w" name="xet-w" value="15"
+                  <input id="xet-w" name="xet-w" value="${exetConfig.defaultDimension}"
                     type="text" size="3" maxlength="3" placeholder="W">
                   </input>
                   &times;
                   <label for="xet-h">Height:</label>
-                  <input id="xet-h" name="xet-h" value="15"
+                  <input id="xet-h" name="xet-h" value="${exetConfig.defaultDimension}"
                     type="text" size="3" maxlength="3" placeholder="H">
                   </input>
                 </div>
@@ -1565,7 +1535,7 @@ Exet.prototype.makeExetTab = function() {
                   Min popularity: <span
                       id="xet-autofill-minpop">${this.minpop}</span> %ile
                   (<span id="xet-autofill-index-minpop">${Number(
-                        this.indexMinPop).toLocaleString()}` +
+                        this.indexMinPop - 1).toLocaleString()}` +
                   `</span> entries)
                 </div>
                 <div style="padding:4px" title="You can edit the list ` +
@@ -1843,8 +1813,8 @@ Exet.prototype.makeExetTab = function() {
             <input id="xet-minpop" name="xet-minpop" class="xlv-answer"
               size="4" maxlength="4" type="text"></input> %ile<br>
             <span id="xet-minpop-incl">${Number(
-                this.indexMinPop).toLocaleString()}</span> out of
-            ${Number(exetLexicon.startLen).toLocaleString()} words/phrases
+                this.indexMinPop - 1).toLocaleString()}</span> out of
+            ${Number(exetLexicon.startLen - 1).toLocaleString()} words/phrases
             <br>
             <br>
             <b title="If checked, this excludes proper nouns from ` +
@@ -1975,7 +1945,7 @@ Exet.prototype.makeExetTab = function() {
       return
     }
     this.setMinPop(this.minpopInput.value)
-    this.minpopInclSpan.innerText = Number(this.indexMinPop).toLocaleString()
+    this.minpopInclSpan.innerText = Number(this.indexMinPop - 1).toLocaleString()
     this.resetViability()
     exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
   })
@@ -1986,6 +1956,10 @@ Exet.prototype.makeExetTab = function() {
     this.resetViability()
     exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
   })
+  if (exetLexicon.script != 'Latin') {
+    this.noProperNounsInput.disabled = true;
+    this.noProperNounsInput.title = 'Proper-noun filtering is only available for Latin currently';
+  }
   this.tryReversalsInput = document.getElementById("xet-try-reversals")
   this.tryReversalsInput.checked = this.tryReversals
   this.tryReversalsInput.addEventListener('change', e => {
@@ -2139,7 +2113,7 @@ Exet.prototype.makeExetTab = function() {
   // Move the scratch pad over to here.
   const scratchP = document.getElementById("xet-scratch-pad")
   this.puz.scratchPad.rows = "3"
-  this.puz.scratchPad.cols = "38"
+  this.puz.scratchPad.cols = "32"
   const scratchPLabel = document.getElementById(this.puz.prefix + '-shuffle')
   scratchPLabel.style.padding = '8px 0'
   scratchPLabel.style.fontWeight = 'bold'
@@ -2641,7 +2615,7 @@ Exet.prototype.makeIndsTab = function(panelH) {
   const inds = [
     {name: "Please select:", url: ""},
     {name: "separator"},
-  ].concat(this.listsLinks);
+  ].concat(exetConfig.listsLinks);
   const highlighters = [
     {name: "Optional: Using a keyword, choose a type of words to highlight:", key: "none"},
     {name: "Highlight words related to:", key: "ml="},
@@ -2733,7 +2707,7 @@ Exet.prototype.researchTabNav = function() {
 
 Exet.prototype.makeResearchTab = function(panelH) {
   const researchTab = this.tabs["research"];
-  researchTab.choices = this.researchTools;
+  researchTab.choices = exetConfig.researchTools;
   researchTab.currChoice = -1;  /** set by researchTabNav() */
   researchTab.savedWords = null;
   let html = `
@@ -3257,6 +3231,8 @@ Exet.prototype.populateCompanag = function() {
     <br>
     <br>
     <br>
+    <br>
+    <br>
     <div class="xet-anag-help">
     <ul>
     <li>When the "Anagram draft" field is left blank, you can
@@ -3349,9 +3325,10 @@ Exet.prototype.populateFrame = function() {
         } else {
           frameHTML = frameHTML + '<td class="xet-td">'
         }
+        const titleHover = section.hover ? `title="${section.hover} "` : '';
         if (section.url) {
           frameHTML = frameHTML + `
-            <div class="xet-bold">${section.title || ''}</div>
+            <div ${titleHover}class="xet-bold">${section.title || ''}</div>
             <a href="" target="_blank" id="xet-${id}-url-${i}"
                 class="xet-blue xet-small"></a><br>
             <iframe class="xet-iframe" style="height:${h}px;width:${panelW}px;"
@@ -3370,7 +3347,7 @@ Exet.prototype.populateFrame = function() {
             `;
           }
           frameHTML = frameHTML + `
-            <div class="xet-bold">${section.title || ''}</div>
+            <div ${titleHover}class="xet-bold">${section.title || ''}</div>
             ${paramHtml}
             <div id="${section.id}"
               class="xet-panel"
@@ -5922,7 +5899,7 @@ Exet.prototype.updateAutofillPreflex = function() {
       this.unpreflex).length
   this.autofill.minpopSpan.innerText = this.minpop
   this.autofill.indexMinPopSpan.innerText = Number(
-      this.indexMinPop).toLocaleString()
+      this.indexMinPop - 1).toLocaleString()
   this.autofill.properNounsSpan.innerText = this.noProperNouns ?
       "disallowed" : "allowed"
   this.autofill.tryReversalsSpan.innerText = this.tryReversals ?
@@ -8607,7 +8584,7 @@ function exetFromHistory(exetRev) {
   }
 }
 
-function exetBlank(w=15, h=15, layers3d=1, id='', automagic=false,
+function exetBlank(w, h, layers3d=1, id='', automagic=false,
                    chequered=true, topUnches=false, leftUnches=false) {
   if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
     alert('Width and height must be specified in the range, 1-100')
@@ -8749,7 +8726,7 @@ function exetLoadFile() {
     exet.makeExolve(specs);
     if (!exet.puz) {
       alert('Could not load Exolve puzzle from file, reverting to a new blank puzzle');
-      exetBlank();
+        exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension);
       return;
     }
     exet.startNav();
@@ -8805,13 +8782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     throw "localStorage is not available!"
   }
 
-  const researchTools = (typeof EXET_RESEARCH_TOOLS == 'undefined') ? [] :
-    EXET_RESEARCH_TOOLS;
-  const extraTabs = (typeof EXET_EXTRA_TABS == 'undefined') ? [] :
-    EXET_EXTRA_TABS;
-  const listsLinks = (typeof EXET_LISTS_LINKS == 'undefined') ? [] :
-    EXET_LISTS_LINKS;
-  exet = new Exet(researchTools, extraTabs, listsLinks);
+  exet = new Exet();
 
   exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
   if (exetState) {
@@ -8841,9 +8812,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let url = new URL(location.href)
     let newgrid = url.searchParams.get('newgrid')
     if (newgrid == 'blank') {
-      exetBlank(15, 15, 1, '', false, false)
+      exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension, 1, '', false, false)
     } else {
-      exetBlank(15, 15, 1, '', true, true)
+      exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension, 1, '', true, true)
     }
   }
   exet.finishSetup()
