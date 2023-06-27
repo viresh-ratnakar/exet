@@ -1,46 +1,43 @@
-- code docs/cleanups
-  - Move all styling to CSS
-  - Make README.md more complete
-- option for US dictionary
-- "Smart-delete" to purge excessive revisions: save revisions and keep just last 5 of each
-- Stricter grid connectivity checks
-
---------------------Done------------------------------------
-
-- Improve autofill
-- Highlight preferred fills that get picked
-- Clue length analysis
-- clueBox/clueparentbox difference review
-- nina dialog position is weird now
-- linking block does not show up: it's attached to earlu to cur-clue which gets changed later. need to attach it to a more stable parent
-- slowness in "add block"
-- pick previous version not working
-- When the clue has an enum like (4-3), prefer fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
-- Show unches distribution [Instead, done: Show warning in analysis]
-- Reassign clue numbers, preserving clues if possible [Done]
-- Intercept ctrl-q/Q before they reach Exolve [Done]
-- Bulk-save [Done]
-- Check why * after enum disappears when a file with enums hidden is loaded [Done]
-- Is enum hiding working in print/pdf? [Done]
-- Don't use cookie-saved state [Done]
-- track used words [Done]
-- auto-fill [Done]
-- For filled lights, make sure the filled entry is shown in the choices panel (perhaps distinguishing out-of-lexicon entries, preflex entries) [Done]
-- Reset light-fill suggestions shown when you go to a filled light [Done]
-- Add preferred words [Done]
-- When restoring an accidentally mangled enum, go back to what it was (so, (2,3) instead of (5), if (2,3) was in place). [Done]
-- Persist scratchpad contents [Done]
-- write .puz [Done]
-- copy widget html [Done]
-- save w/o solutions [Done]
-- Edit metadata [Done]
-- Specify id for new puzzles [Done]
-- tabular choosers [Done]
-- controls for grid changes [Done]
-- enum change check [Done]
-- clear-all should clear hyphens etc. [unnecessary, now that enum-editing works and fillLight() does the right thing]
-- Open menus only with clicks, not with hovers [Done]
-- Load the most recent puzzle on start-up [Done]
-- When a particular choice leads to purples, move it to deadends [Done]
-- Let users manage local storage used [Done]
-  - Delete specific revisions [Done]
+- [ ] Code docs/cleanups
+  - [ ] Move all styling to CSS
+  - [ ] Make README.md more complete
+- [ ] Option for US dictionary
+- [ ] "Smart-delete" to purge excessive revisions: save revisions and keep just last 5 of each
+- [ ] Stricter grid connectivity checks
+- [x] Improve autofill
+- [x] Highlight preferred fills that get picked
+- [x] Clue length analysis
+- [x] ClueBox/clueparentbox difference review
+- [x] Nina dialog position is weird now
+- [x] Linking block does not show up: it's attached to earlu to cur-clue which gets changed later. need to attach it to a more stable parent
+- [x] Slowness in "add block"
+- [x] Pick previous version not working
+- [x] When the clue has an enum like (4-3), prefer fill choices consistent with that: so, (2-2-3) will also OK, and for (9), (4,5) will also be OK.
+- [x] Show unches distribution [Instead, done: Show warning in analysis]
+- [x] Reassign clue numbers, preserving clues if possible
+- [x] Intercept ctrl-q/Q before they reach Exolve
+- [x] Bulk-save
+- [x] Check why * after enum disappears when a file with enums hidden is loaded
+- [x] Is enum hiding working in print/pdf?
+- [x] Don't use cookie-saved state
+- [x] Track used words
+- [x] Auto-fill
+- [x] For filled lights, make sure the filled entry is shown in the choices panel (perhaps distinguishing out-of-lexicon entries, preflex entries)
+- [x] Reset light-fill suggestions shown when you go to a filled light
+- [x] Add preferred words
+- [x] When restoring an accidentally mangled enum, go back to what it was (so, (2,3) instead of (5), if (2,3) was in place).
+- [x] Persist scratchpad contents
+- [x] Write .puz
+- [x] Copy widget html
+- [x] Save w/o solutions
+- [x] Edit metadata
+- [x] Specify id for new puzzles
+- [x] Tabular choosers
+- [x] Controls for grid changes
+- [x] Enum change check
+- [x] Clear-all should clear hyphens etc. [unnecessary, now that enum-editing works and fillLight() does the right thing]
+- [x] Open menus only with clicks, not with hovers
+- [x] Load the most recent puzzle on start-up
+- [x] When a particular choice leads to purples, move it to deadends
+- [x] Let users manage local storage used
+  - [x] Delete specific revisions
