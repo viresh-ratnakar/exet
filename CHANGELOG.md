@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.86.1 July 1, 2023
+
+- Update the URL for the "Mythic beasts" abbreviations list.
+
 ### Version: Exet v0.86 May 13, 2023
 
 - Major expansion of English wordlist (now 268,740 entries instead of 250,192).

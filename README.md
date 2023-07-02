@@ -624,7 +624,7 @@ top in each tab. These tabs are:
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and cryptic abbreviations. The sources are:
   [Crossword Unclued](https://www.crosswordunclued.com), Wikipedia,
-  [Mythic beasts](http://sphinx.mythic-beasts.com/), and
+  [Mythic beasts (updated)](https://longair.net/mark/random/indicators/), and
   [cryptics.georgeho.org](https://cryptics.georgeho.org/).
   - You can highlight certain words when looking at any of these lists, by
     supplying a keyword and selecting a highlighting option from the menu
