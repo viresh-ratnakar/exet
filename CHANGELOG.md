@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.87 July 15, 2023
+
+- Move the "Tips" menu to the RHS.
+- Move the "asymmetry" setting to Preferences.
+- If there is a preamble, do save it in the Notes section in .puz files.
+
 ### Minor update: Exet v0.86.1 July 1, 2023
 
 - Update the URL for the "Mythic beasts" abbreviations list.

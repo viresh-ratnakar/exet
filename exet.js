@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.86 May 13, 2023
+Current version: v0.87 July 15, 2023
 */
 
 function ExetModals() {
@@ -663,7 +663,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.86 May 7, 2023';
+  this.version = 'v0.87 July 15, 2023';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -1600,14 +1600,6 @@ Exet.prototype.makeExetTab = function() {
           <div class="xet-dropdown-item">
             Edit grid cell:
             <div class="xet-dropdown-submenu">
-              <div style="padding:10px"
-                  title="If you check this, then the next Toggle block/bar ` +
-                  `will not automatically do the same on the symmetric cell">
-                <input id="xet-asymmetry-ok" name="xet-asymmetry-ok"
-                  value="asymmetric" type="checkbox" style="margin:6px 0">
-                </input>
-                <i>Do not force symmetry with "Toggle block/bar"</i>
-              </div>
               <div class="xet-dropdown-subitem"
                   title="Toggle making this cell a block"
                   onclick="exet.handleKeyDown('.')">
@@ -1695,6 +1687,14 @@ Exet.prototype.makeExetTab = function() {
                 <input type="checkbox" id="xet-spellcheck"></input>
                 Spellcheck clues/annos
               </div>
+              <div style="padding:10px"
+                  title="If you check this, then 'Toggle block/bar' ` +
+                  `will not automatically enforce symmetry for this crossword">
+                <input id="xet-asymmetry-ok" name="xet-asymmetry-ok"
+                  value="asymmetric" type="checkbox">
+                </input>
+                <i>Allow asymmetry</i>
+              </div>
             </div>
           </div>
 
@@ -1704,23 +1704,6 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropbtn" title="Click to see analyses of the ` +
             `crossword (grid, grid-fill, clues)">Analysis</div>
         <div class="xet-dropdown-content xet-analysis" id="xet-analysis">
-        </div>
-      </li>
-      <li class="xet-dropdown">
-        <div class="xet-dropbtn"
-            title="Review usage tips">Tips</div>
-        <div class="xet-dropdown-content xet-tips" id="xet-tips">
-          <button id="xet-prev-tip" title="See previous tip"
-              onclick="exet.navTip(-1)"
-              class="xlv-small-button">Prev</button>
-          <button id="xet-random-tip" title="See another tip"
-              onclick="exet.setRandomTip()"
-              class="xlv-small-button">Random</button>
-          <button id="xet-next-tip" title="See next tip"
-              onclick="exet.navTip(1)"
-              class="xlv-small-button">Next</button>
-          <div class="xet-tip" id="xet-tip">
-          </div>
         </div>
       </li>
       <li class="xet-dropdown" style="float:right;">
@@ -1734,6 +1717,24 @@ Exet.prototype.makeExetTab = function() {
               style="height:450px"
               src="about-exet.html">
           </iframe>
+        </div>
+      </li>
+      <li class="xet-dropdown" style="float:right">
+        <div class="xet-dropbtn"
+            title="Review usage tips">Tips</div>
+        <div class="xet-dropdown-content xet-tips" id="xet-tips"
+            style="right:0">
+          <button id="xet-prev-tip" title="See previous tip"
+              onclick="exet.navTip(-1)"
+              class="xlv-small-button">Prev</button>
+          <button id="xet-random-tip" title="See another tip"
+              onclick="exet.setRandomTip()"
+              class="xlv-small-button">Random</button>
+          <button id="xet-next-tip" title="See next tip"
+              onclick="exet.navTip(1)"
+              class="xlv-small-button">Next</button>
+          <div class="xet-tip" id="xet-tip">
+          </div>
         </div>
       </li>
     </ul>
@@ -2027,10 +2028,10 @@ Exet.prototype.makeExetTab = function() {
   });
 
   const preamble = document.getElementById("xet-preamble")
-  const preambleText = document.getElementById("xet-preamble-text")
-  preambleText.value = this.preamble.innerHTML;
-  preambleText.addEventListener('input', e => {
-    const text = preambleText.value.trim()
+  this.preambleText = document.getElementById("xet-preamble-text")
+  this.preambleText.value = this.preamble.innerHTML;
+  this.preambleText.addEventListener('input', e => {
+    const text = exet.preambleText.value.trim()
     this.preamble.innerHTML = text
     this.preamble.style.display = text ? '' : 'none'
     exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
@@ -3718,7 +3719,10 @@ Exet.prototype.getDotPuz = function() {
       clueLens.push(offset - startOffset);
       buffer[offset++] = 0
     }
-    // Empty Notes section:
+    // If the puzzle has a preamble, set it as "Notes"
+    let notesOffset = offset;
+    offset = this.enc8859(this.preambleText.value, buffer, offset);
+    let notesLen = offset - notesOffset;
     buffer[offset++] = 0
 
     let gextOffset = -1
@@ -3754,9 +3758,11 @@ Exet.prototype.getDotPuz = function() {
       cksum = this.dotPuzCksum(
           buffer, copyrightOffset, copyrightLen + 1, cksum);
     }
-
     for (let i = 0; i < orderedClueIndices.length; i++) {
       cksum = this.dotPuzCksum(buffer, clueOffsets[i], clueLens[i], cksum);
+    }
+    if (notesLen > 0) {
+      cksum = this.dotPuzCksum(buffer, notesOffset, notesLen + 1, cksum);
     }
     this.dotPuzShort(buffer, 0x00, cksum);
 

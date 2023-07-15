@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.86 May 13, 2023
+#### Version: Exet v0.87 July 15, 2023
 
 #### Author: Viresh Ratnakar
 
@@ -192,7 +192,6 @@ for details on 3-D crosswords.
   - _Leads to an autofill options panel._
 - Accept autofilled entries (=)
 - Edit grid cell:
-  - \[ \] _(checkbox for asymmetry)_
   - Toggle block (.)
   - Toggle bar-after (|)
   - Toggle bar-under (\_)
@@ -211,13 +210,14 @@ for details on 3-D crosswords.
 - Clear all the lights! (Ctrl-Q)
 - Preferences:
   - \[ \] Spellcheck clues/annos
+  - \[ \] Allow asymmetry
 
 For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
 changes are automatically applied to the other end of the grid. This can be
-turned off by checking the "Do not force symmetry with 'Toggle block/bar'"
-checkbox in the "Edit &rarr; Edit grid cell:" submenu. The chosen setting for
-this toggle will persist for that particular crossword (but will reset to
-the default of enforcing symmetry for a new crossword).
+turned off by checking the "Allow asymmetry" checkbox in the
+"Edit &rarr; Preferences:" submenu. The chosen setting for this toggle will
+persist for that particular crossword (but will reset to the default of
+enforcing symmetry for a new crossword).
 
 "Add automagic blocks" essentially adds some blocks to the grid, while
 maintaining the British chequered format (that has no consecutive unchecked
