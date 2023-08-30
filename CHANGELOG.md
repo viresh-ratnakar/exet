@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.87.1 August 30, 2023
+
+- Hide the new Exolve element, "Jotter"
+
 ### Version: Exet v0.87 July 15, 2023
 
 - Move the "Tips" menu to the RHS.

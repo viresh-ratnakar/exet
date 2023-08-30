@@ -1036,6 +1036,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.hideExolveElement('print');
   this.hideExolveElement('webifi');
   this.hideExolveElement('notes');
+  this.hideExolveElement('jotter');
   this.hideExolveElement('report-bug');
   this.hideExolveElement('exolve-link');
   this.hideExolveElement('postscript');
@@ -2153,48 +2154,48 @@ Exet.prototype.addStat = function(dict, stat, details) {
 }
 
 Exet.prototype.essenceOfAnno = function(s) {
-  let out = ''
+  let out = '';
   for (let c of s) {
     if (c == '*') {
-      out += ' anagram '
+      out += ' anagram ';
     } else if (c == '.' || c == '!' || c == '?' || c == '+' || c == ':') {
-      out += ' '
+      out += ' ';
     } else {
-      out += c
+      out += c;
     }
   }
-  out = out.replace(/ [ ]*/g, ' ').trim()
+  out = out.replace(/ [ ]*/g, ' ').trim();
   // Remove words containing {}
-  out = out.replace(/[^ ]*{[^}]*}[^ ]*/g, ' ')
+  out = out.replace(/[^ ]*{[^}]*}[^ ]*/g, ' ');
   // Remove words containing ()
-  out = out.replace(/[^ ]*\([^)]*\)[^ ]*/g, ' ')
+  out = out.replace(/[^ ]*\([^)]*\)[^ ]*/g, ' ');
   // Remove words containing []
-  out = out.replace(/[^ ]*\[[^\]]*\][^ ]*/g, ' ')
+  out = out.replace(/[^ ]*\[[^\]]*\][^ ]*/g, ' ');
   // Remove parens
-  out = out.replace(/[\[\]}){(]/g, '')
+  out = out.replace(/[\[\]}){(]/g, '');
   // Remove ".."
-  out = out.replace(/"[^"]*"/g, ' ')
+  out = out.replace(/"[^"]*"/g, ' ');
   // Remove '..'
-  out = out.replace(/'[^']*'/g, ' ')
+  out = out.replace(/'[^']*'/g, ' ');
   // Remove words with 2 or more uppercase letters
-  out = out.replace(/[a-zA-Z'-]*[A-Z][a-zA-Z'-]*[A-Z][a-zA-Z'-]*/g, ' ')
+  out = out.replace(/[a-zA-Z'-]*[A-Z][a-zA-Z'-]*[A-Z][a-zA-Z'-]*/g, ' ');
   // Remove words containing <>
-  out = out.replace(/[^ ]*<[^ ]*>[^ ]*/g, ' ')
+  out = out.replace(/[^ ]*<[^ ]*>[^ ]*/g, ' ');
   // Remove words starting with -
-  out = out.replace(/ -[^ ]*/g, ' ')
+  out = out.replace(/ -[^ ]*/g, ' ');
   // Remove single-letter words
-  out = out.replace(/( [A-Za-z])+ /g, ' ')
-  out = out.replace(/^([A-Za-z] )+/g, ' ')
-  out = out.replace(/( [A-Za-z])+$/g, ' ')
+  out = out.replace(/( [A-Za-z])+ /g, ' ');
+  out = out.replace(/^([A-Za-z] )+/g, ' ');
+  out = out.replace(/( [A-Za-z])+$/g, ' ');
 
   if (s.match(/-[^ ]\+/) || s.match(/\+[^ ]-/)) {
-    out += ' substitution'
+    out += ' substitution';
   }
-  out = out.replace(/ [ ]*/g, ' ').trim().toLowerCase()
+  out = out.replace(/ [ ]*/g, ' ').trim().toLowerCase();
   if (!out) {
-    out = 'charade or other'
+    out = 'charade or other';
   }
-  return out
+  return out;
 }
 
 function ExetLightInfo() {
