@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.87.2 September 14, 2023
+
+- Limit the width of the Exolve scratchpad container (to
+  deal with Exolve v1.52).
+
 ### Minor update: Exet v0.87.1 August 30, 2023
 
 - Hide the new Exolve element, "Jotter"

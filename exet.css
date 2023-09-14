@@ -247,6 +247,7 @@
   align-items: flex-start;
 }
 .xet-scratch-pad {
+  max-width: 280px;
   padding: 0 0 6px;
 }
 .xet-choices-box {  
