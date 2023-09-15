@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.87.3 September 15, 2023
+
+- Bug fix: Exolve has renamed resizeCurrClue() to resizeCurrClueAndControls().
+- Prepare for next Exolve release: use currClueInner if available.
+
 ### Minor update: Exet v0.87.2 September 14, 2023
 
 - Limit the width of the Exolve scratchpad container (to

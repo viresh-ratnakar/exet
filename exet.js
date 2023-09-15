@@ -4563,10 +4563,11 @@ Exet.prototype.makeClueEditable = function() {
   this.xetCurrClue.id = 'xet-curr-clue';
   this.xetCurrClue.style.width = this.puz.currClue.style.width;
   this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
-  while (this.puz.currClue.children.length > 0) {
-    this.xetCurrClue.appendChild(this.puz.currClue.children[0]);
+  const currClueInner = this.puz.currClueInner ?? this.puz.currClue;
+  while (currClueInner.children.length > 0) {
+    this.xetCurrClue.appendChild(currClueInner.children[0]);
   }
-  this.puz.currClue.appendChild(this.xetCurrClue);
+  currClueInner.appendChild(this.xetCurrClue);
 
   const currClueText = document.getElementById(
       `${exet.puz.prefix}-curr-clue-text`)
@@ -4767,8 +4768,8 @@ Exet.prototype.makeClueEditable = function() {
   xetClue.addEventListener('keydown', formatShortcut)
   xetAnno.addEventListener('keydown', formatShortcut)
 
-  this.puz.resizeCurrClue()
-  this.reposition()
+  this.puz.resizeCurrClueAndControls();
+  this.reposition();
 }
 
 Exet.prototype.throttledClueChange = function() {
@@ -4871,7 +4872,7 @@ Exet.prototype.handleClueChange = function() {
   theClue.annoSpan.lastElementChild.innerHTML = theClue.anno;
   this.renderClue(theClue);
 
-  this.puz.resizeCurrClue();
+  this.puz.resizeCurrClueAndControls();
   this.reposition();
 
   this.restoreCursor();
