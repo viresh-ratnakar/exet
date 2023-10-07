@@ -1,5 +1,11 @@
 # Changelog
 
+### Version: Exet v0.88 October 7, 2023
+
+- Updated lufz-en-lexicon.js. Somehow, the previous update to it did not
+  pick up some changes in Lufz/English. Specifically, accented characters were
+  present in the Lexicon, and they were creating incorrect anagram suggestions.
+
 ### Minor update: Exet v0.87.3 September 15, 2023
 
 - Bug fix: Exolve has renamed resizeCurrClue() to resizeCurrClueAndControls().
