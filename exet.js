@@ -2400,76 +2400,76 @@ Exet.prototype.updateAnalysis = function(elt) {
 }
 
 Exet.prototype.plotStats = function(stats) {
-  let keys = Object.keys(stats)
-  let numeric = true
-  let totalCount = 0
+  let keys = Object.keys(stats);
+  let numeric = true;
+  let totalCount = 0;
   for (let key of keys) {
     if (isNaN(key)) {
-      numeric = false
+      numeric = false;
     }
-    totalCount += stats[key].count
+    totalCount += stats[key].count;
   }
   if (numeric) {
     keys.sort((a, b) => a - b);
   } else {
     keys.sort((a, b) => stats[b].count - stats[a].count);
   }
-  let min = Number.MAX_VALUE
-  let max = Number.MIN_VALUE
-  let count = 0
-  let distinct = 0
-  let sum = 0
-  let median = 0
-  let medianFound = false
-  let html = '<p>'
-  let maxv = 1
+  let min = Number.MAX_VALUE;
+  let max = Number.MIN_VALUE;
+  let count = 0;
+  let distinct = 0;
+  let sum = 0;
+  let median = 0;
+  let medianFound = false;
+  let html = '<p>';
+  let maxv = 1;
   for (let key of keys) {
-    let v = stats[key].count
-    count += v
-    if (v > 0) distinct++
-    if (v > maxv) maxv = v
+    let v = stats[key].count;
+    count += v;
+    if (v > 0) distinct++;
+    if (v > maxv) maxv = v;
     if (numeric) {
-      key = Number(key)
-      if (key > max) max = key
-      if (key < min) min = key
+      key = Number(key);
+      if (key > max) max = key;
+      if (key < min) min = key;
       sum += (key * v)
       if (!medianFound && count >= (totalCount / 2)) {
-        median = key
-        medianFound = true
+        median = key;
+        medianFound = true;
       }
     }
   }
   if (numeric) {
-    keys = Object.keys(stats)
+    keys = Object.keys(stats);
     keys.sort((a, b) => a - b);
   }
-  html += '<table>'
-  const BARMAX = 150
+  html += '<table class="xet-stats-table">';
+  const BARMAX = 150;
   for (let key of keys) {
-    html += '<tr>'
+    html += '<tr>';
     const ct = stats[key].count;
-    html += `<td style="text-align:right">${ct}</td><td>`
-    html += numeric ? ((ct == 1) ? 'count of' : 'counts of') : '&times;';
+    html += `<td style="text-align:right">${ct}</td><td>`;
+    html += numeric ? 'of' : '&times;';
     html += `</td><td>${key}</td>`;
     html += `<td><div class="xet-plotbar"
-            style="width:${BARMAX * stats[key].count / maxv}px"`
+            style="width:${BARMAX * stats[key].count / maxv}px"`;
     if (stats[key].details) {
-      html += ` title="${stats[key].details}"`
+      html += ` title="${stats[key].details}"`;
     }
-    html += '></div></td>'
-    html += '</tr>'
+    html += '></div></td>';
+    html += '</tr>';
   }
-  html += '</table>'
-  html += '</p>'
-  html += `<p class="xet-indent">Distinct values: ${distinct}`
+  html += '</table>';
+  html += '</p>';
+  html += `<p class="xet-indent">Distinct values: ${distinct}`;
   if (numeric && count > 0) {
     html += `
       <br>Range: ${min} - ${max}
       <br>Average: ${(sum / count).toFixed(1)}
-      <br>Median: ${median}`
+      <br>Median: ${median}`;
   }
   html += '</p>';
-  return html
+  return html;
 }
 
 Exet.prototype.selectAnalysis = function() {

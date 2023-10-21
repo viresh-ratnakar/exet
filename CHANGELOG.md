@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.88.1 October 20, 2023
+
+- Vertically-top-align the text in various "plot stats" tables on the
+  Analysis tab.
+
 ### Version: Exet v0.88 October 7, 2023
 
 - Updated lufz-en-lexicon.js. Somehow, the previous update to it did not

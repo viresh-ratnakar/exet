@@ -478,6 +478,9 @@
 #xet-scratch-pad {
   margin: 0 6px 0 0;
 }
+.xet-stats-table td {
+  vertical-align: top;
+}
 .xet-icon {
   padding: 0;
   height: 25px;
