@@ -807,6 +807,10 @@ Exet.prototype.setPuzzle = function(puz) {
     alert('Nodir clues not yet supported');
     return;
   }
+  if (puz.hasRebusCells) {
+    alert('Rebus cells are not supported');
+    return;
+  }
   if (puz.offNumClueIndices.length > 0) {
     alert('Non-numeric clues not yet supported');
     return;

@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.88.2 November 14, 2023
+
+- Disallow Exolve puzzles that have the `rebus-cells` option set.
+
 ### Minor update: Exet v0.88.1 October 20, 2023
 
 - Vertically-top-align the text in various "plot stats" tables on the
