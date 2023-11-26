@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.88 October 7, 2023
+Current version: v0.89, November 25, 2023
 */
 
 function ExetModals() {
@@ -663,7 +663,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.88 October 7, 2023';
+  this.version = 'v0.89, November 25, 2023';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -1718,8 +1718,7 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropdown-content"
             style="right:0;width:90ch;padding:8px;">
           <div id="xet-outdated-message" style="display:none"></div>
-          <iframe id="xet-about-iframe" class="xet-iframe"
-              style="height:450px"
+          <iframe id="xet-about-iframe" class="xet-about"
               src="about-exet.html">
           </iframe>
         </div>
@@ -2617,7 +2616,7 @@ Exet.prototype.indsTabNav = function() {
   this.loadIframe(this.indsIframe, url, this.indsUrl);
 }
 
-Exet.prototype.makeIndsTab = function(panelH) {
+Exet.prototype.makeIndsTab = function() {
   const inds = [
     {name: "Please select:", url: ""},
     {name: "separator"},
@@ -2665,8 +2664,8 @@ Exet.prototype.makeIndsTab = function(panelH) {
   html += `
   <a href="" target="_blank" id="xet-inds-choice-url"
       class="xet-blue xet-small"></a><br>
-  <iframe id="xet-inds-iframe" class="xet-iframe" src=""
-    style="height:${panelH}px" height="${panelH}"></iframe>
+  <iframe id="xet-inds-iframe" class="xet-iframe xet-section" src="">
+  </iframe>
   `;
   indsTab.content.innerHTML = html;
   this.indsIframe = document.getElementById('xet-inds-iframe');
@@ -2711,7 +2710,7 @@ Exet.prototype.researchTabNav = function() {
   this.loadIframe(this.researchIframe, url, this.researchUrl);
 }
 
-Exet.prototype.makeResearchTab = function(panelH) {
+Exet.prototype.makeResearchTab = function() {
   const researchTab = this.tabs["research"];
   researchTab.choices = exetConfig.researchTools;
   researchTab.currChoice = -1;  /** set by researchTabNav() */
@@ -2733,8 +2732,8 @@ Exet.prototype.makeResearchTab = function(panelH) {
   html = html + `
   <a href="" target="_blank" id="xet-research-choice-url"
       class="xet-blue xet-small"></a><br>
-  <iframe id="xet-research-iframe" class="xet-iframe" src=""
-    style="height:${panelH}px" height="${panelH}"></iframe>
+  <iframe id="xet-research-iframe" class="xet-iframe xet-section" src="">
+  </iframe>
   `;
   researchTab.content.innerHTML = html;
   this.researchIframe = document.getElementById('xet-research-iframe')
@@ -3257,7 +3256,7 @@ Exet.prototype.populateCompanag = function() {
     </div>
   </td>
   <td class="xet-td">
-    <div class="xet-anag-table">
+    <div class="xet-half-section">
       <table class="xet-table-midline">
         <tr>
           <td class="xet-td xet-cah" id="xet-cah-unused-anags">
@@ -3275,7 +3274,7 @@ Exet.prototype.populateCompanag = function() {
         </tr>
       </table>
     </div>
-  </td></tr>`;
+  </td></tr></table>`;
   this.caFodder = document.getElementById('xet-ca-fodder');
   this.caAnagram = document.getElementById('xet-ca-anagram');
   this.caExtra = document.getElementById('xet-ca-extra');
@@ -3291,55 +3290,33 @@ Exet.prototype.populateCompanag = function() {
 }
 
 Exet.prototype.populateFrame = function() {
-  let frameHTML = ''
-  frameHTML = frameHTML + '<div class="xet-tab">'
+  let frameHTML = '';
+  frameHTML = frameHTML + '<div class="xet-tab">';
   for (let id in this.tabs) {
-    let tab = this.tabs[id]
+    let tab = this.tabs[id];
     frameHTML = frameHTML +
-        `<button id="xet-${id}">${tab.display}</button>`
+        `<button id="xet-${id}">${tab.display}</button>`;
   }
-  frameHTML = frameHTML + '</div>'
+  frameHTML = frameHTML + '</div>';
 
-  const panelH = 500
-  const panelInnerH = 450
   for (let id in this.tabs) {
-    let tab = this.tabs[id]
-    frameHTML = frameHTML + `<div class="xet-tabcontent" id="xet-${id}-frame">`
+    let tab = this.tabs[id];
+    frameHTML = frameHTML + `<div class="xet-tab-content" id="xet-${id}-frame">`
     if (tab.sections.length > 0) {
-      // We show the first (presumably main) section in the left column,
-      // and stack up all the other sections in the right column.
-      let numRows = 1
-      let panelW = 900
-      let secondH = panelInnerH
-      if (tab.sections.length > 1) {
-        numRows = tab.sections.length - 1
-        panelW = 440
-      }
-      if (numRows > 1) {
-        secondH = 200
-      }
-      frameHTML = frameHTML + '<div class="xet-section"><table>'
+      console.assert(tab.sections.length <= 2);
+      const sectionClass = tab.sections.length > 1 ? 'xet-half-section' : 'xet-section';
+      frameHTML = frameHTML + `<div id="xet-${id}-sections"><table><tr>`;
       for (let i = 0; i < tab.sections.length; i++) {
-        let section = tab.sections[i]
-        if (i != 1) {
-          frameHTML = frameHTML + '<tr>'
-        }
-        let h = secondH
-        if (i == 0) {
-          frameHTML = frameHTML + `<td class="xet-td" rowspan="${numRows}">`
-          h = panelInnerH
-        } else {
-          frameHTML = frameHTML + '<td class="xet-td">'
-        }
+        let section = tab.sections[i];
+        frameHTML = frameHTML + '<td class="xet-td">';
         const titleHover = section.hover ? `title="${section.hover} "` : '';
         if (section.url) {
           frameHTML = frameHTML + `
             <div ${titleHover}class="xet-bold">${section.title || ''}</div>
             <a href="" target="_blank" id="xet-${id}-url-${i}"
                 class="xet-blue xet-small"></a><br>
-            <iframe class="xet-iframe" style="height:${h}px;width:${panelW}px;"
-               height="${h}" width="${panelW}px" id="xet-${id}-content-${i}">
-            </iframe>`
+            <iframe class="xet-iframe ${sectionClass}" id="xet-${id}-content-${i}">
+            </iframe>`;
         } else {
           let paramHtml = '';
           if (section.id != 'xet-companag') {
@@ -3355,25 +3332,18 @@ Exet.prototype.populateFrame = function() {
           frameHTML = frameHTML + `
             <div ${titleHover}class="xet-bold">${section.title || ''}</div>
             ${paramHtml}
-            <div id="${section.id}"
-              class="xet-panel"
-              style="height:${h}px;width:${panelW}px;">
+            <div id="${section.id}">
             </div>`
         }
-        if (i > 0 && i < tab.sections.length - 1) {
-          frameHTML = frameHTML + '<hr/><br>'
-        }
-        frameHTML = frameHTML + '</td>'
-        if (i > 0 || tab.sections.length == 1) {
-          frameHTML = frameHTML + '</tr>'
-        }
+        frameHTML = frameHTML + '</td>';
       }
       frameHTML = frameHTML + `
+        </tr>
         </table>
-        </div>`
+        </div>`;
     } else {
       frameHTML = frameHTML + `
-        <div class="xet-section" id="xet-${id}-content"></div>`
+        <div id="xet-${id}-content"></div>`
     }
     frameHTML = frameHTML + '</div>'
   }
@@ -3381,21 +3351,21 @@ Exet.prototype.populateFrame = function() {
 
   const ch = document.getElementById('xet-charades')
   ch.innerHTML = `
-    <div id="xet-charades-box" style="margin:16px 0;border:0">
+    <div id="xet-charades-box" class="xet-in-tab-scrollable xet-section">
     </div>
   `
   this.charades = document.getElementById('xet-charades-box')
 
   const eds = document.getElementById('xet-edits');
   eds.innerHTML = `
-    <div id="xet-edits-box" style="margin:16px 0;border:0">
+    <div id="xet-edits-box" class="xet-in-tab-scrollable xet-half-section">
     </div>
   `
   this.edits = document.getElementById('xet-edits-box');
 
   const sd = document.getElementById('xet-sounds');
   sd.innerHTML = `
-    <div id="xet-sounds-box" style="margin:16px 0;border:0">
+    <div id="xet-sounds-box" class="xet-in-tab-scrollable xet-half-section">
     </div>
   `
   this.sounds = document.getElementById('xet-sounds-box')
@@ -3432,9 +3402,9 @@ Exet.prototype.populateFrame = function() {
     }
   }
 
-  this.makeExetTab()
-  this.makeIndsTab(panelInnerH)
-  this.makeResearchTab(panelInnerH)
+  this.makeExetTab();
+  this.makeIndsTab();
+  this.makeResearchTab();
 }
 
 Exet.prototype.fileTitle = function() {
@@ -4354,6 +4324,45 @@ Exet.prototype.updateFormat = function(inClue, text, modText,
   this.handleClueChange();
 }
 
+/**
+ * Resize the RHS, consisting of various iframes and the Exet panel,
+ * maximizing the use of the available height.
+ */
+Exet.prototype.resizeRHS = function() {
+  if (!this.customStyles) {
+    this.customStyles = document.createElement('style');
+    document.body.insertAdjacentElement('afterbegin', this.customStyles);
+  }
+  const windowH = this.puz.getViewportHeight();
+  const extraH = Math.max(0, windowH - 740);
+  const style = `
+    .xet-about,
+    .xet-analysis {
+      height: ${440 + extraH}px;
+    }
+    .xet-in-tab-scrollable {
+      max-height: ${435 + extraH}px;
+    }
+    .xet-high-tall-box {
+      height: ${460 + extraH}px;
+    }
+    .xet-half-section,
+    .xet-section {
+      height: ${450 + extraH}px;
+    }
+    #xet-light-choices-box {
+      height: ${340 + extraH}px;
+    }
+    .xet-mid-tall-box {
+      height: ${325 + extraH}px;
+    }
+    .xet-tab-content {
+      height: ${500 + extraH}px;
+    }
+  `;
+  this.customStyles.innerHTML = style;
+}
+
 Exet.prototype.reposition = function() {
   this.title.className = 'xlv-title'
   this.setter.className = 'xlv-setter'
@@ -4392,6 +4401,8 @@ Exet.prototype.reposition = function() {
       preview.style.width = previewWidth + 'px';
     }
   }
+
+  this.resizeRHS();
 }
 
 Exet.prototype.lastTagOpener = function(s) {

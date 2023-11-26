@@ -1,5 +1,12 @@
 # Changelog
 
+### Version: Exet v0.89, November 25, 2023
+
+- Make the RHS of the UI responsive, adapting to the available height.
+- This is done by making a few containers inside the RHS (such as for the
+  clues, the anagrams, the light choices, etc.) grow to utilize the available
+  space.
+
 ### Minor update: Exet v0.88.2 November 14, 2023
 
 - Disallow Exolve puzzles that have the `rebus-cells` option set.

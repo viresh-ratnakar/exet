@@ -59,7 +59,7 @@
   background-color: white;
   border-bottom: 0;
 }
-.xet-tabcontent {
+.xet-tab-content {
   display: none;
   padding: 6px 12px;
   border: 1px solid #ccc;
@@ -73,24 +73,19 @@
 .xet-td {
   vertical-align: top;
 }
-.xet-iframe {
-  width: 910px;
-  border: 0;
+.xet-panel {
   overflow: auto;
 }
-.xet-panel {
-  width: 910px;
+.xet-half-section,
+.xet-section {
   border: 0;
   overflow: auto;
 }
 .xet-section {
-  border: 0;
+  width: 910px;
 }
-.xet-high-tall-box {
-  height: 460px;
-}
-.xet-mid-tall-box {
-  height: 325px;
+.xet-half-section {
+  width: 440px;
 }
 .xet-draft > td:first-child {
   color: gray;
@@ -250,6 +245,11 @@
   max-width: 280px;
   padding: 0 0 6px;
 }
+.xet-in-tab-scrollable {
+  border: 0;
+  margin: 12px 0 0 0;
+  overflow: auto;
+}
 .xet-choices-box {  
   border: 1px solid gray;
   border-collapse: collapse;
@@ -259,7 +259,6 @@
 }
 #xet-light-choices-box {  
   width: 30ch;
-  height: 340px;
 }
 #xet-light-choices,
 #xet-light-rejects {  
@@ -398,9 +397,12 @@
 .xet-dropdown-item:hover .xet-dropdown-submenu {
   display: block;
 }
+.xet-about {
+  border: 0;
+  width: 100%;
+}
 .xet-analysis {
   width: 700px;
-  height: 440px;
   overflow: auto;
   padding: 6px 6px 6px 16px;
   background-size: 20px 20px;
@@ -660,8 +662,6 @@
 }
 .xet-anag-table {
   min-width: 300px;
-  max-height: 420px;
-  overflow: auto;
 }
 .xet-cah {
   background-color: white;
