@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.89 November 25, 2023
+#### Version: Exet v0.90, December 5, 2023
 
 #### Author: Viresh Ratnakar
 
@@ -741,6 +741,7 @@ properties of crosswords:
   very short or very long.
 - Words (other than very common ones) should not be repeated in clues,
   especially if they are used as cryptic wordplay indicators.
+- Long common substrings in solution entries may not be desirable.
 - The number of long and very long clues should ideally be limited.
 - Wordplay types in cryptic clues should have a good mix of variety.
 - Use of uncommon solution entries should be limited. Clues for
@@ -796,6 +797,11 @@ Here is an illustrative example of the kinds of analyses shown:
 >   - 2	×	wild	
 >     ...
 >     Distinct values: 23
+> - Substrings repeated in solution entries:
+>   - 4	×	INE	
+>   - 2	×	FIELD
+>     ...
+>     Distinct values: 7
 > - Word-lengths of set clues:
 >   - 1	count of	4	
 >   - 6	counts of	5	

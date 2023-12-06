@@ -1,5 +1,10 @@
 # Changelog
 
+### Version: Exet v0.90, December 5, 2023
+
+- In the "Analysis" panel, also show a histogram of duplicated substrings
+  of length 3 or longer in solution entries.
+
 ### Version: Exet v0.89, November 25, 2023
 
 - Make the RHS of the UI responsive, adapting to the available height.

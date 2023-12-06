@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.89, November 25, 2023
+Current version: v0.90, December 5, 2023
 */
 
 function ExetModals() {
@@ -663,7 +663,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.89, November 25, 2023';
+  this.version = 'v0.90, December 5, 2023';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -2206,6 +2206,7 @@ function ExetLightInfo() {
   this.filled = 0
   this.lengths = {}
   this.clueLengths = {}
+  this.substrings = {}
   this.popularities = {}
   this.letters = {}
   for (let c of exetLexicon.letters) {
@@ -2218,100 +2219,152 @@ function ExetLightInfo() {
   this.annotations = {}
 }
 
+Exet.prototype.getSubstrings = function(s) {
+  const letters = exetLexicon.letterString(s);
+  const substrings = new Set;
+  for (let len = 3; len <= letters.length; len++) {
+    const end = letters.length - len;
+    for (let start = 0; start <= end; start++) {
+      substrings.add(letters.substr(start, len));
+    }
+  }
+  return substrings;
+}
+
+/**
+ * Remove "subsumed" substrings from the histogram.
+ */
+Exet.prototype.trimSubsumedSubstrings = function(substrings) {
+  const toDelete = [];
+  const keys = Object.keys(substrings);
+  for (const sub of keys) {
+    let subsumed = false;
+    for (const sup of keys) {
+      if (sup.length <= sub.length ||
+          substrings[sub].count != substrings[sup].count ||
+          sup.indexOf(sub) < 0) {
+        continue;
+      }
+      subsumed = true;
+      break;
+    }
+    if (subsumed) {
+      toDelete.push(sub);
+      continue;
+    }
+  }
+  for (const sub of toDelete) {
+    delete substrings[sub];
+  }
+}
+
 Exet.prototype.getLightInfos = function() {
-  let infos = {
+  const infos = {
     All: new ExetLightInfo(),
     Across: new ExetLightInfo(),
     Down: new ExetLightInfo(),
     Other: new ExetLightInfo(),
-  }
-  let allInfo = infos['All']
-  let aInfo = infos['Across']
-  let dInfo = infos['Down']
-  let oInfo = infos['Other']
-  for (let ci in this.puz.clues) {
-    let theClue = this.puz.clues[ci]
-    let dirInfo = theClue.dir == 'A' ? aInfo : (theClue.dir == 'D' ?
-                                                dInfo : oInfo)
-    allInfo.lights++
-    dirInfo.lights++
+  };
+  const allInfo = infos['All'];
+  const aInfo = infos['Across'];
+  const dInfo = infos['Down'];
+  const oInfo = infos['Other'];
+  for (const ci in this.puz.clues) {
+    const theClue = this.puz.clues[ci];
+    const dirInfo = theClue.dir == 'A' ?
+      aInfo : (theClue.dir == 'D' ?  dInfo : oInfo);
+    allInfo.lights++;
+    dirInfo.lights++;
     if (theClue.parentClueIndex) {
-      allInfo.ischild++
-      dirInfo.ischild++
-      continue
+      allInfo.ischild++;
+      dirInfo.ischild++;
+      continue;
     }
-    let label = theClue.label + theClue.dir.toLowerCase()
+    let label = theClue.label + theClue.dir.toLowerCase();
     if (theClue.solution && theClue.solution.indexOf('?') < 0) {
-      allInfo.filled += 1
-      dirInfo.filled += 1
-      let lexl = exetLexicon.lexicon.length
-      let index = lexl
-      let fillClue = this.fillState.clues[ci]
+      allInfo.filled += 1;
+      dirInfo.filled += 1;
+      const lexl = exetLexicon.lexicon.length;
+      let index = lexl;
       let solText = theClue.solution;
+      const fillClue = this.fillState.clues[ci];
       if (fillClue && fillClue.lChoices.length == 1) {
-        index = fillClue.lChoices[0]
+        index = fillClue.lChoices[0];
         solText = exetLexicon.getLex(index);
       }
-      let pop = 5 * Math.round(20 * (lexl - index) / lexl)
+      let pop = 5 * Math.round(20 * (lexl - index) / lexl);
       label += ': ' + solText;
-      this.addStat(allInfo.popularities, pop, label)
-      this.addStat(dirInfo.popularities, pop, label)
-    }
-    this.addStat(allInfo.lengths, theClue.enumLen, label)
-    this.addStat(dirInfo.lengths, theClue.enumLen, label)
-    let depunctClue = exetLexicon.depunct(theClue.clue)
-    if (depunctClue && !this.isDraftClue(theClue.clue)) {
-      allInfo.set += 1
-      dirInfo.set += 1
-      let words = depunctClue.split(' ')
-      for (let word of words) {
-        this.addStat(allInfo.words, word, label)
-        this.addStat(dirInfo.words, word, label)
+      this.addStat(allInfo.popularities, pop, label);
+      this.addStat(dirInfo.popularities, pop, label);
+      const substrings = this.getSubstrings(solText);
+      for (const substring of substrings) {
+        this.addStat(allInfo.substrings, substring, label);
+        this.addStat(dirInfo.substrings, substring, label);
       }
-      this.addStat(allInfo.clueLengths, words.length, label)
-      this.addStat(dirInfo.clueLengths, words.length, label)
+    }
+    this.addStat(allInfo.lengths, theClue.enumLen, label);
+    this.addStat(dirInfo.lengths, theClue.enumLen, label);
+    let depunctClue = exetLexicon.depunct(theClue.clue);
+    if (depunctClue && !this.isDraftClue(theClue.clue)) {
+      allInfo.set += 1;
+      dirInfo.set += 1;
+      let words = depunctClue.split(' ');
+      for (let word of words) {
+        this.addStat(allInfo.words, word, label);
+        this.addStat(dirInfo.words, word, label);
+      }
+      this.addStat(allInfo.clueLengths, words.length, label);
+      this.addStat(dirInfo.clueLengths, words.length, label);
     }
     if (theClue.anno) {
-      allInfo.annos += 1
-      dirInfo.annos += 1
-      let anno = this.essenceOfAnno(theClue.anno)
+      allInfo.annos += 1;
+      dirInfo.annos += 1;
+      let anno = this.essenceOfAnno(theClue.anno);
       if (anno) {
-        this.addStat(allInfo.annotations, anno, label)
-        this.addStat(dirInfo.annotations, anno, label)
+        this.addStat(allInfo.annotations, anno, label);
+        this.addStat(dirInfo.annotations, anno, label);
       }
     }
   }
-  // In *.words, retain only those that have count > 1
-  for (let key of Object.keys(infos)) {
-    let info = infos[key]
-    for (let word of Object.keys(info.words)) {
-      if (info.words[word].count <= 1) delete info.words[word]
+  // In *.words and *.substrings, retain only those that have count > 1
+  for (const key of Object.keys(infos)) {
+    const info = infos[key]
+    for (const word of Object.keys(info.words)) {
+      if (info.words[word].count <= 1) {
+        delete info.words[word];
+      }
     }
+    for (const substring of Object.keys(info.substrings)) {
+      if (info.substrings[substring].count <= 1) {
+        delete info.substrings[substring];
+      }
+    }
+    this.trimSubsumedSubstrings(info.substrings);
   }
-  let grid = this.puz.grid
-  let w = this.puz.gridWidth
-  let h = this.puz.gridHeight
+  const grid = this.puz.grid;
+  const w = this.puz.gridWidth;
+  const h = this.puz.gridHeight;
   for (let i = 0; i < h; i++) {
     for (let j = 0; j < w; j++) {
-      let gridCell = grid[i][j]
-      if (!gridCell.isLight || gridCell.solution == '?') continue
-      let rowcol = 'row-' + (h - i) + ',' + 'col-' + (j + 1)
-      this.addStat(allInfo.letters, gridCell.solution, rowcol)
+      const gridCell = grid[i][j];
+      if (!gridCell.isLight || gridCell.solution == '?') continue;
+      const rowcol = 'row-' + (h - i) + ',' + 'col-' + (j + 1);
+      this.addStat(allInfo.letters, gridCell.solution, rowcol);
       if (gridCell.acrossClueLabel) {
-        this.addStat(aInfo.letters, gridCell.solution, rowcol)
+        this.addStat(aInfo.letters, gridCell.solution, rowcol);
       }
       if (gridCell.downClueLabel) {
-        this.addStat(dInfo.letters, gridCell.solution, rowcol)
+        this.addStat(dInfo.letters, gridCell.solution, rowcol);
       }
       if (gridCell.z3dClueLabel) {
-        this.addStat(dInfo.letters, gridCell.solution, rowcol)
+        this.addStat(dInfo.letters, gridCell.solution, rowcol);
       }
     }
   }
   if (oInfo.lights == 0) {
-    delete infos['Other']
+    delete infos['Other'];
   }
-  return infos
+  return infos;
 }
 
 Exet.prototype.updateAnalysis = function(elt) {
@@ -2389,8 +2442,10 @@ Exet.prototype.updateAnalysis = function(elt) {
                   this.plotStats(info.popularities, 5)}</div</td>`;
     html += `<td class="xet-td"><b>Letters used</b>:<br>
               ${this.plotStats(info.letters)}</td></tr>`;
-    html += `<tr><td class="xet-td"><b>Words repeated in set clues</b>:<br>${this.plotStats(
-        info.words)}</td>`;
+    html += `<tr><td class="xet-td"><div><b>Words repeated in set clues</b>:<br>${this.plotStats(
+        info.words)}</di>`;
+    html += `<div><b>Substrings repeated in solution entries</b>:<br>${this.plotStats(
+        info.substrings)}</div></td>`;
     html += `<td class="xet-td"><div><b>Word-lengths of set clues</b>:<br>${this.plotStats(
         info.clueLengths)}</div>`;
     html += `<div><b>Annotations provided in clues</b>: ${info.annos} (${(
