@@ -670,3 +670,9 @@
   position: sticky;
   top: 0;
 }
+.xet-through-cut-cell,
+.xet-through-cut:hover {
+  color: red;
+  cursor: pointer;
+  font-weight: bold;
+}

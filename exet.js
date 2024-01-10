@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.90, December 5, 2023
+Current version: v0.91, January 9, 2024
 */
 
 function ExetModals() {
@@ -663,7 +663,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.90, December 5, 2023';
+  this.version = 'v0.91, January 9, 2024';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -2368,46 +2368,71 @@ Exet.prototype.getLightInfos = function() {
 }
 
 Exet.prototype.updateAnalysis = function(elt) {
-  let html = '<p><b>Grid</b></p><p><ul>'
-  const grid = this.puz.grid
-  const w = this.puz.gridWidth
-  const h = this.puz.gridHeight
-  const layers3d = this.puz.layers3d
-  html = html + `<li>${w*h} cells, dimensions: ${w} &times; ${h}</li>`
-  if (!this.gridConnected(grid, w, h, layers3d)) {
-    html += '<li class="xet-red"><i>Does not have all light cells connected</i></li>'
+  const grid = this.puz.grid;
+  const w = this.puz.gridWidth;
+  const h = this.puz.gridHeight;
+  const layers3d = this.puz.layers3d;
+
+  const analysis = new ExetAnalysis(grid, w, h, layers3d);
+
+  let html = '<p><b>Grid</b></p><p><ul>';
+  html = html + `<li>${w*h} cells, dimensions: ${w} &times; ${h}</li>`;
+
+  const isConnected = analysis.isConnected();
+  if (!isConnected) {
+    html += '<li class="xet-red"><i>Does not have all light cells connected</i></li>';
   } else {
-    html += '<li>All light cells are connected</li>'
+    html += '<li>All light cells are connected</li>';
   }
-  if (!this.gridSymmetric(grid, w, h)) {
-    html += '<li class="xet-red"><i>Not symmetric</i></li>'
+  if (!analysis.isSymmetric()) {
+    html += '<li class="xet-red"><i>Not symmetric</i></li>';
   } else {
-    html += '<li>Symmetric</li>'
+    html += '<li>Symmetric</li>';
   }
-  let numBlocks = this.gridNumBlocks(grid, w, h)
+  let numBlocks = analysis.numBlocks();
   if (numBlocks > 0) {
     html += `<li>${numBlocks} (${(numBlocks * 100 /
-          (w * h)).toFixed(2)}%) blocked cells</li>`
+          (w * h)).toFixed(2)}%) blocked cells</li>`;
   } else {
-    html += '<li>No blocked cells</li>'
+    html += '<li>No blocked cells</li>';
   }
-  let numBars = this.gridNumBars(grid, w, h)
+  let numBars = analysis.numBars();
   if (numBars > 0) {
-    html += `<li>${numBars} bars</li>`
+    html += `<li>${numBars} bars</li>`;
   } else {
-    html += '<li>No bars</li>'
+    html += '<li>No bars</li>';
   }
-  if (this.gridUnchequeredOK(grid, w, h, false)) {
-    html += '<li>Every light cell is checked</li>'
-  } else  if (this.gridChequeredOK(grid, w, h, false, false)) {
-    html += '<li>No consecutive unches</li>'
-    if (!this.gridChequeredOK(grid, w, h, false, true)) {
-      html += '<li class="xet-red"><i>Some lights shorter than 9 letters have &gt;50% unches</i></li>'
+  if (analysis.unchequeredOK(false)) {
+    html += '<li>Every light cell is checked</li>';
+  } else  if (analysis.chequeredOK(false, false)) {
+    html += '<li>No consecutive unches</li>';
+    if (!analysis.chequeredOK(false, true)) {
+      html += '<li class="xet-red"><i>Some lights shorter than 9 letters have &gt;50% unches</i></li>';
     }
   } else {
-    html += '<li class="xet-red"><i>Has consecutive unches</i></li>'
+    html += '<li class="xet-red"><i>Has consecutive unches</i></li>';
   }
-  html += '</ul></p>'
+
+  const throughCuts = analysis.minThroughCuts();
+  if (numBars == 0 && isConnected && layers3d == 1) {
+    /** Display through-cut sizes */
+    html += '<li>Smallest "through cuts" found (hover over the lists to see ' +
+            'the squares highlighted in the grid):\n<ul>\n';
+    for (let d = 0; d < 2; d++) {
+      const cells = throughCuts[d];
+      const  orientation = (d == 0) ? 'Vertical' : 'Horizontal';
+      const cellNames = [];
+      for (const cell of cells) {
+        cellNames.push(`r${h - cell[0]}c${cell[1] + 1}`);
+      }
+      html += '<li class="xet-through-cut" id="xet-through-cut-' + d + '">' +
+              orientation + ': (' + cells.length + ' squares): [' +
+              cellNames.join(' ') + ']</li>\n';
+    }
+    html += '</ul></li>\n';
+  }
+
+  html += '</ul></p>';
 
   let lightInfos = this.getLightInfos()
   html += `<p><select name="xet-analysis-select"
@@ -2453,8 +2478,39 @@ Exet.prototype.updateAnalysis = function(elt) {
               ${this.plotStats(info.annotations)}</div></td></tr>`;
     html += '</table></div>';
   }
-  elt.innerHTML = html
-  this.selectAnalysis()
+  elt.innerHTML = html;
+
+  /** Set up highlighting of through cuts */
+  for (let d = 0; d < 2; d++) {
+    const elt = document.getElementById('xet-through-cut-' + d);
+    if (!elt) continue;
+    elt.addEventListener('mouseover', (e) => {
+      for (const cell of throughCuts[d]) {
+        const div = this.puz.makeCellDiv(cell[0], cell[1], 'purple');
+        div.classList.add('xet-through-cut-cell');
+        this.puz.gridParent.appendChild(div);
+        const scissors = this.puz.addCellText(
+            cell[0], cell[1], '&#9988;', 16, 10, false);
+        scissors.classList.add('xet-through-cut-cell');
+      }
+      this.puz.colourGroup.style.display = 'none';
+      this.puz.ninaGroup.style.display = 'none';
+    });
+    elt.addEventListener('mouseout', (e) => {
+      const elts = this.puz.gridParent.getElementsByClassName(
+          'xet-through-cut-cell');
+      const nonLiveList = [];
+      for (let i = 0; i < elts.length; i++) {
+        nonLiveList.push(elts[i]);
+      }
+      for (const elt of nonLiveList) {
+        elt.remove();
+      }
+      this.puz.colourGroup.style.display = '';
+      this.puz.ninaGroup.style.display = '';
+    });
+  }
+  this.selectAnalysis();
 }
 
 Exet.prototype.plotStats = function(stats) {
@@ -4964,289 +5020,6 @@ Exet.prototype.handleClueChange = function() {
   exetRevManager.throttledSaveRev(exetRevManager.REV_CLUE_CHANGE);
 }
 
-Exet.prototype.gridAcrossSpans = function(grid, w, row) {
-  let spans = []
-  let start = -1
-  let len = 0
-  for (let j = 0; j < w; j++) {
-    if (grid[row][j].isLight) {
-      if (start >= 0 && j > 0 && grid[row][j-1].isLight &&
-          !grid[row][j-1].hasBarAfter) {
-        len++
-      } else {
-        if (len > 1) {
-          spans.push([start, len])
-        }
-        start = j
-        len = 1
-      }
-    } else {
-      if (len > 1) {
-        spans.push([start, len])
-      }
-      start = -1
-      len = 0
-    }
-  }
-  if (len > 1) {
-    spans.push([start, len])
-  }
-  return spans;
-}
-
-Exet.prototype.gridDownSpans = function(grid, h, col) {
-  let spans = []
-  let start = -1
-  let len = 0
-  for (let i = 0; i < h; i++) {
-    if (grid[i][col].isLight) {
-      if (start >= 0 && i > 0 && grid[i-1][col].isLight &&
-          !grid[i-1][col].hasBarUnder) {
-        len++
-      } else {
-        if (len > 1) {
-          spans.push([start, len])
-        }
-        start = i
-        len = 1
-      }
-    } else {
-      if (len > 1) {
-        spans.push([start, len])
-      }
-      start = -1
-      len = 0
-    }
-  }
-  if (len > 1) {
-    spans.push([start, len])
-  }
-  return spans;
-}
-
-Exet.prototype.gridSymmetric = function(grid, w, h) {
-  for (let i = 0; i < h; i++) {
-    for (let j = 0; j < w; j++) {
-      let symi = h - 1 - i
-      let symj = w - 1 - j
-      if (grid[i][j].isLight != grid[symi][symj].isLight) {
-        return false
-      }
-      if (!grid[i][j].isLight) continue
-      if (symj > 0 &&
-          grid[i][j].hasBarAfter != grid[symi][symj - 1].hasBarAfter) {
-        return false
-      }
-      if (symi > 0 &&
-          grid[i][j].hasBarUnder != grid[symi - 1][symj].hasBarUnder) {
-        return false
-      }
-    }
-  }
-  return true
-}
-
-Exet.prototype.gridNumBlocks = function(grid, w, h) {
-  let count = 0
-  for (let i = 0; i < h; i++) {
-    for (let j = 0; j < w; j++) {
-      if (!grid[i][j].isLight) {
-        count++
-      }
-    }
-  }
-  return count
-}
-
-Exet.prototype.gridNumBars = function(grid, w, h) {
-  let count = 0
-  for (let i = 0; i < h; i++) {
-    for (let j = 0; j < w; j++) {
-      if (!grid[i][j].isLight) {
-        continue
-      }
-      if (j < w - 1 && grid[i][j].hasBarAfter) {
-        count++
-      }
-      if (i < h - 1 && grid[i][j].hasBarUnder) {
-        count++
-      }
-    }
-  }
-  return count
-}
-
-Exet.prototype.gridChequeredOK = function(
-      grid, w, h, checkSpanLen=true, checkUnchFrac=true) {
-  let crossers = new Array(h)
-  for (let i = 0; i < h; i++) {
-    crossers[i] = new Array(w)
-    for (let j = 0; j < w; j++) {
-      crossers[i][j] = 0
-      if (!grid[i][j].isLight) {
-        continue
-      }
-      if ((j > 0 && grid[i][j-1].isLight && !grid[i][j-1].hasBarAfter) ||
-          (j < w - 1 && grid[i][j+1].isLight && !grid[i][j].hasBarAfter)) {
-        crossers[i][j]++
-      }
-      if ((i > 0 && grid[i-1][j].isLight && !grid[i-1][j].hasBarUnder) ||
-          (i < h - 1 && grid[i+1][j].isLight && !grid[i][j].hasBarUnder)) {
-        crossers[i][j]++
-      }
-      if (crossers[i][j] == 1 &&
-          ((j > 0 && crossers[i][j-1] == 1 && !grid[i][j-1].hasBarAfter) ||
-           (i > 0 && crossers[i-1][j] == 1 && !grid[i-1][j].hasBarUnder))) {
-        return false
-      }
-    }
-  }
-  const minSpan = 4
-  for (let i = 0; i < h; i++) {
-    let spans = this.gridAcrossSpans(grid, w, i)
-    for (let span of spans) {
-      if (checkSpanLen && span[1] < minSpan) {
-        return false
-      }
-      let numChecked = 0
-      let numUnches = 0
-      for (let j = span[0]; j < span[0] + span[1]; j++) {
-        if (crossers[i][j] < 2) numUnches++
-        else numChecked++
-      }
-      if (numUnches > numChecked + 1) {
-        return false
-      }
-      if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
-        return false
-      }
-    }
-  }
-  for (let j = 0; j < w; j++) {
-    let spans = this.gridDownSpans(grid, h, j)
-    for (let span of spans) {
-      if (checkSpanLen && span[1] < minSpan) {
-        return false
-      }
-      let numChecked = 0
-      let numUnches = 0
-      for (let i = span[0]; i < span[0] + span[1]; i++) {
-        if (crossers[i][j] < 2) numUnches++
-        else numChecked++
-      }
-      if (numUnches > numChecked + 1) {
-        return false
-      }
-      if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
-        return false
-      }
-    }
-  }
-  return true
-}
-
-Exet.prototype.gridUnchequeredOK = function(grid, w, h, checkSpanLen=true) {
-  let crossers = new Array(h)
-  for (let i = 0; i < h; i++) {
-    crossers[i] = new Array(w)
-    for (let j = 0; j < w; j++) {
-      crossers[i][j] = 0
-      if (!grid[i][j].isLight) {
-        continue
-      }
-      if ((j > 0 && grid[i][j-1].isLight && !grid[i][j-1].hasBarAfter) ||
-          (j < w - 1 && grid[i][j+1].isLight && !grid[i][j].hasBarAfter)) {
-        crossers[i][j]++
-      }
-      if ((i > 0 && grid[i-1][j].isLight && !grid[i-1][j].hasBarUnder) ||
-          (i < h - 1 && grid[i+1][j].isLight && !grid[i][j].hasBarUnder)) {
-        crossers[i][j]++
-      }
-      if (crossers[i][j] < 2) {
-        return false
-      }
-    }
-  }
-  if (!checkSpanLen) {
-    return true
-  }
-  const minSpan = 3
-  for (let i = 0; i < h; i++) {
-    let spans = this.gridAcrossSpans(grid, w, i)
-    for (let span of spans) {
-      if (span[1] < minSpan) {
-        return false
-      }
-    }
-  }
-  for (let j = 0; j < w; j++) {
-    let spans = this.gridDownSpans(grid, h, j)
-    for (let span of spans) {
-      if (span[1] < minSpan) {
-        return false
-      }
-    }
-  }
-  return true
-}
-
-Exet.prototype.gridConnected = function(grid, w, h, layers3d) {
-  let cells = []
-  let visited = new Array(h)
-  for (let i = 0; i < h; i++) {
-    visited[i] = new Array(w)
-    for (let j = 0; j < w; j++) {
-      visited[i][j] = false
-      if (grid[i][j].isLight) {
-        cells.push([i,j])
-      }
-    }
-  }
-  if (cells.length == 0) return false
-  let reachable = [cells[0]]
-  visited[cells[0][0]][cells[0][1]] = true
-  let x = 0
-  const lh = h / layers3d;
-  while (x < reachable.length) {
-    let r = reachable[x][0]
-    let c = reachable[x][1]
-    x++
-    if (c > 0 && grid[r][c-1].isLight && !grid[r][c-1].hasBarAfter &&
-        !visited[r][c-1]) {
-      visited[r][c-1] = true
-      reachable.push([r,c-1])
-    }
-    if (c < w - 1 && grid[r][c+1].isLight && !grid[r][c].hasBarAfter &&
-        !visited[r][c+1]) {
-      visited[r][c+1] = true
-      reachable.push([r,c+1])
-    }
-    if (r > 0 && grid[r-1][c].isLight && !grid[r-1][c].hasBarUnder &&
-        !visited[r-1][c]) {
-      visited[r-1][c] = true
-      reachable.push([r-1,c])
-    }
-    if (r < h - 1 && grid[r+1][c].isLight && !grid[r][c].hasBarUnder &&
-        !visited[r+1][c]) {
-      visited[r+1][c] = true
-      reachable.push([r+1,c])
-    }
-    if (layers3d > 1) {
-      const prevR = r - lh;
-      if (prevR >= 0 && grid[prevR][c].isLight && !visited[prevR][c]) {
-        visited[prevR][c] = true
-        reachable.push([prevR,c])
-      }
-      const nextR = r + lh;
-      if (nextR < h && grid[nextR][c].isLight && !visited[nextR][c]) {
-        visited[nextR][c] = true
-        reachable.push([nextR,c])
-      }
-    }
-  }
-  return reachable.length == cells.length
-}
-
 // Return < 0 if randomness suggests picking nothing.
 Exet.prototype.randomIndex = function(candidates) {
   if (candidates.length <= 0 || Math.random() > 0.85) return -1
@@ -5257,79 +5030,82 @@ Exet.prototype.randomIndex = function(candidates) {
 }
 
 Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
-  const minSpan = chequered ? 4 : 3
-  let grid = this.puz.grid
-  let w = this.puz.gridWidth
-  let wby2 = Math.ceil(w / 2)
-  let h = this.puz.gridHeight
-  let hby2 = Math.ceil(h / 2)
-  let layers3d = this.puz.layers3d
-  let numCandidates = 0
-  let numChanges = 0
-  let rowcols = []
-  let minwhby2 = Math.min(wby2, hby2)
+  const minSpan = chequered ? 4 : 3;
+  let grid = this.puz.grid;
+  let w = this.puz.gridWidth;
+  let wby2 = Math.ceil(w / 2);
+  let h = this.puz.gridHeight;
+  let hby2 = Math.ceil(h / 2);
+  let layers3d = this.puz.layers3d;
+
+  const analysis = new ExetAnalysis(grid, w, h, layers3d);
+
+  let numCandidates = 0;
+  let numChanges = 0;
+  let rowcols = [];
+  let minwhby2 = Math.min(wby2, hby2);
   for (let x = 0; x < minwhby2; x++) {
-    rowcols.push(["row", x])
-    rowcols.push(["col", x])
+    rowcols.push(["row", x]);
+    rowcols.push(["col", x]);
   }
   for (let i = minwhby2 + 1; i < hby2; i++) {
-    rowcols.push(["row", i])
+    rowcols.push(["row", i]);
   }
   for (let j = minwhby2 + 1; j < wby2; j++) {
-    rowcols.push(["col", j])
+    rowcols.push(["col", j]);
   }
   for (rc of rowcols) {
-    let k1 = rc[1]
-    let isRow = (rc[0] == "row")
-    let symk1 = w - 1 - k1
+    let k1 = rc[1];
+    let isRow = (rc[0] == "row");
+    let symk1 = w - 1 - k1;
     if (isRow) {
-      symk1 = h - 1 - k1
+      symk1 = h - 1 - k1;
     }
-    let spans = isRow ? this.gridAcrossSpans(grid, w, k1) :
-                this.gridDownSpans(grid, h, k1)
-    let candidates = []
+    const spans = isRow ? analysis.acrossSpans(k1) : analysis.downSpans(k1);
+    let candidates = [];
     for (let span of spans) {
       for (let x = minSpan; x < span[1] - minSpan; x++) {
-        let k2 = span[0] + x
-        let symk2 = h - 1 - k2
+        let k2 = span[0] + x;
+        let symk2 = h - 1 - k2;
         if (isRow) {
-          symk2 = w - 1 - k2
+          symk2 = w - 1 - k2;
         }
-        let gridCell = isRow ? grid[k1][k2] : grid[k2][k1]
-        let gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1]
+        const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
+        const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
         if (gridCell.solution != '?' || gridSymCell.solution != '?') {
-          continue
+          continue;
         }
-        gridCell.isLight = false
-        gridSymCell.isLight = false
-        if (this.gridConnected(grid, w, h, layers3d) &&
-            ((chequered && this.gridChequeredOK(grid, w, h)) ||
-             (!chequered && this.gridUnchequeredOK(grid, w, h)))) {
-          candidates.push(k2)
+        gridCell.isLight = false;
+        gridSymCell.isLight = false;
+        if (analysis.isConnected() &&
+            ((chequered && analysis.chequeredOK()) ||
+             (!chequered && analysis.unchequeredOK())) &&
+            analysis.throughCutsBigEnough()) {
+          candidates.push(k2);
         }
-        gridCell.isLight = true
-        gridSymCell.isLight = true
+        gridCell.isLight = true;
+        gridSymCell.isLight = true;
       }
     }
     if (candidates.length == 0) {
-      continue
+      continue;
     }
-    numCandidates += candidates.length
-    let randIndex = this.randomIndex(candidates)
+    numCandidates += candidates.length;
+    let randIndex = this.randomIndex(candidates);
     if (randIndex < 0) {
       // We randomly chose not to make a change
-      continue
+      continue;
     }
-    let k2 = candidates[randIndex]
-    let symk2 = h - 1 - k2
+    let k2 = candidates[randIndex];
+    let symk2 = h - 1 - k2;
     if (isRow) {
-      symk2 = w - 1 - k2
+      symk2 = w - 1 - k2;
     }
-    let gridCell = isRow ? grid[k1][k2] : grid[k2][k1]
-    let gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1]
-    gridCell.isLight = false
-    gridSymCell.isLight = false
-    numChanges += 2
+    const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
+    const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
+    gridCell.isLight = false;
+    gridSymCell.isLight = false;
+    numChanges += 2;
   }
   if (numChanges > 0) {
     this.killInvalidatedClues();
@@ -5337,10 +5113,10 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
     if (showAlerts) {
       if (numCandidates == 0) {
         alert('Add automagic blocks: found no further candidate cells ' +
-              'for turning into blocks')
+              'for turning into blocks');
       } else {
         alert('Add automagic blocks: found some candidate cells for ' +
-              'turning into blocks, but random numbers favoured no changes')
+              'turning into blocks, but random numbers favoured no changes');
       }
     }
   }
@@ -5348,185 +5124,48 @@ Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
 }
 
 Exet.prototype.automagicBlocks = function(showAlerts=true) {
-  const grid = this.puz.grid
-  const w = this.puz.gridWidth
-  const h = this.puz.gridHeight
-  const layers3d = this.puz.layers3d
-  if (this.gridNumBars(grid, w, h) > 0) {
+  const grid = this.puz.grid;
+  const w = this.puz.gridWidth;
+  const h = this.puz.gridHeight;
+  const layers3d = this.puz.layers3d;
+  const analysis = new ExetAnalysis(grid, w, h, layers3d);
+  if (analysis.numBars() > 0) {
     if (showAlerts) {
       alert('Cannot add automagic blocks when the grid has barred cells');
     }
-    return false
+    return false;
   }
   if (this.puz.layers3d > 1) {
     if (showAlerts) {
       alert('Cannot add automagic blocks when the crossword has lights other than across/down');
     }
-    return false
+    return false;
   }
-  if (!this.gridConnected(grid, w, h, layers3d)) {
+  if (!analysis.isConnected()) {
     if (showAlerts) {
       alert('Cannot add automagic blocks when the grid cells are not ' +
             'fully connected');
     }
-    return false
+    return false;
   }
-  if (!this.gridSymmetric(grid, w, h)) {
+  if (!analysis.isSymmetric()) {
     if (showAlerts) {
       alert('Cannot add automagic blocks when the grid is not fully symmetric');
     }
-    return false
+    return false;
   }
-  if (this.gridUnchequeredOK(grid, w, h)) {
-    return this.automagicBlocksInner(false, showAlerts)
-  } else  if (this.gridChequeredOK(grid, w, h)) {
-    return this.automagicBlocksInner(true, showAlerts)
+  if (analysis.unchequeredOK()) {
+    return this.automagicBlocksInner(false, showAlerts);
+  } else  if (analysis.chequeredOK()) {
+    return this.automagicBlocksInner(true, showAlerts);
   } else {
     if (showAlerts) alert('Cannot add automagic blocks to the current grid');
-    return false
+    return false;
   }
-  return false
+  return false;
 }
 
 // --------------- Autofill-related code --------------------------------------
-
-// ExetDher is an implementation of a double heap that stores the top k
-// candidates in terms of descending scores. A min-heap lets us retain
-// the top-k elements, while a max-heap lets us extract the max element.
-// The candidate objects stored in this (via add()) should have a "score" field.
-// Objects stored in this get a property named "dher" attached to them, for
-// storing some book-keping info.
-function ExetDher(lim) {
-  this.maxelts = []
-  this.minelts = []
-  this.lim = lim
-  console.assert(lim > 0, lim);
-}
-ExetDher.prototype.relimit = function(lim) {
-  console.assert(lim > 0, lim);
-  const extra = this.minelts.length - lim;
-  for (let i = 0; i < extra; i++) {
-    this.pop(false, 0)
-  }
-  this.lim = lim
-}
-ExetDher.prototype.size = function() {
-  return this.maxelts.length
-}
-ExetDher.prototype.limit = function() {
-  return this.lim
-}
-ExetDher.prototype.parent = function(idx) {
-  return idx == 0 ? 0 : (idx - 1) >> 1
-}
-ExetDher.prototype.heapifyUp = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts
-  console.assert(idx >= 0 && idx < elts.length, idx, elts.length)
-  while (idx > 0) {
-    let parent = this.parent(idx)
-    if (inMax) {
-      if (elts[parent].score >= elts[idx].score) {
-        return
-      }
-    } else {
-      if (elts[parent].score <= elts[idx].score) {
-        return
-      }
-    }
-    let temp = elts[idx]
-    elts[idx] = elts[parent]
-    elts[parent] = temp
-    elts[idx].dher[inMax] = idx
-    elts[parent].dher[inMax] = parent
-    idx = parent
-  }
-}
-ExetDher.prototype.heapifyDown = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts
-  console.assert(idx >= 0 && idx < elts.length, idx, elts.length)
-  while (idx < elts.length) {
-    let lchild = (idx << 1) + 1
-    if (lchild >= elts.length) return
-    let child = lchild
-    let rchild = lchild + 1
-    if (inMax) {
-      if (rchild < elts.length &&
-          elts[rchild].score > elts[lchild].score) {
-        child = rchild
-      }
-      if (elts[idx].score >= elts[child].score) return
-    } else {
-      if (rchild < elts.length &&
-          elts[rchild].score < elts[lchild].score) {
-        child = rchild
-      }
-      if (elts[idx].score <= elts[child].score) return
-    }
-    let temp = elts[idx]
-    elts[idx] = elts[child]
-    elts[child] = temp
-    elts[idx].dher[inMax] = idx
-    elts[child].dher[inMax] = child
-    idx = child
-  }
-}
-ExetDher.prototype.add = function(candidate) {
-  let num = this.minelts.length
-  if (num == this.lim) {
-    let worst = this.minelts[0]
-    if (candidate.score < worst.score) {
-      return
-    }
-    if (candidate.score == worst.score) {
-      if (Math.random() < 0.5) {
-        return;
-      }
-    }
-    this.pop(false)
-    num--;
-  }
-  candidate.dher = {}
-  candidate.dher[true] = num
-  candidate.dher[false] = num
-  this.maxelts.push(candidate)
-  this.minelts.push(candidate)
-  this.heapifyUp(true, num)
-  this.heapifyUp(false, num)
-}
-ExetDher.prototype.popInner = function(inMax, idx) {
-  let elts = inMax ? this.maxelts : this.minelts;
-  let len = elts.length;
-  console.assert(len > 0, len);
-  let last = elts.pop();
-  if (len == 1 || idx >= len - 1) {
-    return last;
-  }
-  // len > 1 && idx < len - 1
-  let ret = elts[idx];
-  elts[idx] = last;
-  last.dher[inMax] = idx;
-  let parent = this.parent(idx);
-  if (idx > 0 &&
-      ((inMax && last.score > elts[parent].score) ||
-       (!inMax && last.score < elts[parent].score))) {
-    this.heapifyUp(inMax, idx);
-  } else {
-    this.heapifyDown(inMax, idx);
-  }
-  return ret;
-}
-ExetDher.prototype.pop = function(inMax, idx=0) {
-  let elts = inMax ? this.maxelts : this.minelts;
-  if (idx < 0 || idx >= elts.length) return null;
-  const otherIdx = elts[idx].dher[!inMax];
-  this.popInner(!inMax, otherIdx);
-  return this.popInner(inMax, idx);
-}
-ExetDher.prototype.peep = function(inMax, idx=0) {
-  let elts = inMax ? this.maxelts : this.minelts;
-  if (idx < 0 || idx >= elts.length) return null;
-  return elts[idx];
-}
 
 /**
  * Is [r,c] a cell to be counted for a constrained pangram?
@@ -6161,8 +5800,9 @@ Exet.prototype.initAutofill = function() {
       triedHashes: {},
     };
   }
-  this.autofill.doublyChecked = this.gridUnchequeredOK(
-      this.puz.grid, this.puz.gridWidth, this.puz.gridHeight, false);
+  const analysis = new ExetAnalysis(
+      this.puz.grid, this.puz.gridWidth, this.puz.gridHeight, this.puz.layers3d);
+  this.autofill.doublyChecked = analysis.unchequeredOK(false);
   this.autofill.clear = document.getElementById("xet-autofill-clear")
   this.autofill.clear.disabled = true
   this.autofill.clear.addEventListener('click', e => {
@@ -7618,46 +7258,6 @@ Exet.prototype.Set2Trims = function(set1, set2) {
     if (!set2[x]) return true
   }
   return false
-}
-
-// A data structure encapsulating clues and a grid, along with available fill
-// choices. Used for figuring out viability, weeding out non-viable choices,
-// and doing autofill. Note that you can initialize this from exet.puz as well
-// as from another ExetFillState.
-function ExetFillState(obj) {
-  this.gridWidth = obj.gridWidth;
-  this.gridHeight = obj.gridHeight;
-  this.grid = new Array(this.gridHeight);
-  this.viable = obj.viable
-  for (let i = 0; i < this.gridHeight; i++) {
-    this.grid[i] = new Array(this.gridWidth)
-    for (let j = 0; j < this.gridWidth; j++) {
-      let gridCell = obj.grid[i][j]
-      this.grid[i][j] = {}
-      let thisCell = this.grid[i][j]
-      thisCell.isLight = gridCell.isLight
-      if (!thisCell.isLight) continue
-      thisCell.solution = gridCell.solution
-      thisCell.currLetter = gridCell.currLetter
-      thisCell.cChoices = gridCell.cChoices || {}
-      thisCell.viability = gridCell.viability
-    }
-  }
-  this.clues = {}
-  for (let ci in obj.clues) {
-    let theClue = obj.clues[ci]
-    this.clues[ci] = {}
-    let thisClue = this.clues[ci]
-    thisClue.solution = theClue.solution
-    thisClue.parentClueIndex = theClue.parentClueIndex || null;
-    thisClue.childrenClueIndices = theClue.childrenClueIndices || []
-    thisClue.dir = theClue.dir
-    thisClue.index = theClue.index
-    thisClue.cells = theClue.cells
-    thisClue.enumLen = theClue.enumLen
-    thisClue.lChoices = theClue.lChoices || []
-    thisClue.lRejects = theClue.lRejects || []
-  }
 }
 
 /**

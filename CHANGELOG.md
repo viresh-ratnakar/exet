@@ -1,5 +1,20 @@
 # Changelog
 
+### Version: Exet v0.91, January 9, 2024
+
+- Refactor some of the autofill code into exet-autofill.js
+- Refactor "grid analysis" functions into exet-analysis.js
+- Add a "min through cut" analysis: this finds minimal (not guaranteed to be
+  optimal, but usually is) horizontal and vertical "cuts"--light cells that
+  can be turned dark to completely slice the grid into two parts.
+  - Crossword grids with small cut sizes are no ideal. The Analysis
+    panel now reports these cut sizes. The report can be hovered upon
+    to see the cells highlighted on the grid.
+  - When Exet itself is creating grids ("Add automagic blocks"), we now
+    make sure that the cut sizes are not smaller than a fourth of the
+    grid size along each dimension.
+  - For 3d-grids, min through cuts are not implemented for now.
+
 ### Version: Exet v0.90, December 5, 2023
 
 - In the "Analysis" panel, also show a histogram of duplicated substrings
