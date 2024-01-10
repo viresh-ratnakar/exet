@@ -31,6 +31,8 @@ These are all the files needed from this repository:
     - [`exet-brazilian.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-brazilian.html),
     - [`lufz-pt-br-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-pt-br-lexicon.js),
 - [`exet.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.js),
+- [`exet-autofill.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-autofill.js),
+- [`exet-analysis.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-analysis.js),
 - [`exet.css`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.css),
 - [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js),
 - [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
