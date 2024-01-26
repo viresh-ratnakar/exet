@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.91.1 January 25, 2024
+
+- In `depunct()`, replace '/' and '&' with spaces.
+
 ### Version: Exet v0.91, January 9, 2024
 
 - Refactor some of the autofill code into exet-autofill.js

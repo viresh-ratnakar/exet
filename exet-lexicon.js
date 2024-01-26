@@ -169,7 +169,7 @@ function exetLexiconInit() {
       if (c == ' ' || c == '-' || c == "'" ||
           this.letterSet[c.toUpperCase()]) {
         out += c;
-      } else if (c == '—') {
+      } else if (c == '—' || c == '/' || c == '&') {
         out += ' ';
       }
     }
