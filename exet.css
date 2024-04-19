@@ -8,6 +8,47 @@
  * Current version: v0.87 July 15, 2023
  */
 
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+:root { /* Catppuccin Mocha Colours / Google Fonts (Placeholder) */
+  --rosewater: #f5e0dc;
+  --flamingo: #f2cdcd;
+  --pink: #f5c2e7;
+  --mauve: #cba6f7;
+  --red: #f38ba8;
+  --maroon: #eba0ac;
+  --peach: #fab387;
+  --yellow: #f9e2af;
+  --green: #a6e3a1;
+  --teal: #94e2d5;
+  --sky: #89dceb;
+  --sapphire: #74c7ec;
+  --blue: #89b4fa;
+  --lavender: #b4befe;
+  --text: #cdd6f4;
+  --subtext1: #bac2de;
+  --subtext0: #a6adc8;
+  --overlay2: #9399b2;
+  --overlay1: #7f849c;
+  --overlay0: #6c7086;
+  --surface2: #585b70;
+  --surface1: #45475a;
+  --surface0: #313244;
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+
+  --main-font: 'Roboto', sans-serif;
+  --mono-font: 'Roboto Mono', monospace;
+
+  font-family: var(--main-font) !important;
+  color: var(--text) !important;
+}
+
+body {
+  background: var(--base)
+}
+
 [contenteditable="true"]:active,
 [contenteditable="true"]:focus{
   border:none;
@@ -17,9 +58,10 @@
   width: 940px;
   margin: 0 8px;
   box-sizing: border-box;
-  font-family: monospace;
+  font-family: var(--mono-font);
   font-size: 14px;
   position: relative;
+  background-color: var(--base)
 }
 .xet-controls-col {
   padding: 4px;
@@ -30,15 +72,15 @@
 }
 .xet-tab {
   height: 50px;
-  border: 4px solid #ddd;
   border-bottom: 0;
-  background-color: #ddd;
-  border-radius: 10px 10px 0 0;
-  overflow: auto;
+  background-color: var(--base);
+  flex-flow: column wrap;
+  display: flex;
+  justify-content: stretch;
 }
 .xet-tab button {
   font-size: 14px;
-  width: 105px;
+  min-width: 60px;
   height: 100%;
   background-color: inherit;
   float: left;
@@ -46,28 +88,27 @@
   cursor: pointer;
   padding: 2px 4px;
   transition: 0.3s;
+  border: none;
   font-weight: bold;
-  border-radius: 10px 10px 0 0;
-  border: 1px solid silver;
+  font-family: var(--main-font);
+  color: var(--text);
 }
 .xet-tab button:hover {
-  background-color: #f0f0f0;
-  border-bottom: 0;
+  background-color: var(--surface0);
   cursor: pointer;
 }
 .xet-tab button.active {
-  background-color: white;
-  border-bottom: 0;
+  background-color: var(--surface0);
 }
 .xet-tab-content {
   display: none;
   padding: 6px 12px;
-  border: 1px solid #ccc;
+  background-color: var(--surface0);
   border-top: none;
 }
 .xet-iframe-loading {
   float: right;
-  color: red;
+  color: var(--red);
   cursor: wait;
 }
 .xet-td {
@@ -88,37 +129,35 @@
   width: 440px;
 }
 .xet-draft > td:first-child {
-  color: gray;
+  color: var(--subtext0);
 }
 .xet-draft-marker,
 .xet-done-marker {
   font-size: 12px;
-  font-family: monospace;
-  color: gray;
+  font-family: var(--mono-font);
+  color: var(--subtext0);
 }
 .xet-done-marker {
   text-decoration: line-through;
-  text-decoration-color: dodgerblue;
+  text-decoration-color: var(--sapphire);
 }
 .xet-clue-stat {
   cursor: pointer;
-  padding: 2px;
-  border: 1px solid white;
+  padding: 2px 4px 4px 4px;
 }
 .xet-clue-stat:hover {
-  border: 1px solid dodgerblue;
-  background: mistyrose;
+  background: var(--overlay0);
 }
 .xet-anno {
-  font-family: monospace;
+  font-family: var(--mono-font);
   font-size: 14px;
-  color: darkgreen;
+  color: var(--text);
 }
 .xlv-curr-clue-label {
   cursor: pointer;
 }
 .xlv-curr-clue {
-  font-family: monospace;
+  font-family: var(--mono-font);
   font-weight: normal;
   font-size: 14px;
   padding: 2px 2px 4px 2px;
@@ -136,10 +175,9 @@
   z-index: 1;
   top: -28px;
   left: 0;
-  background-color: white;
-  border: 1px solid dodgerblue;
+  border: none;
   padding: 2px 4px 0 4px;
-  color: darkgreen;
+  color: var(--text);
   box-sizing: border-box;
 }
 .xet-blur *,
@@ -156,7 +194,7 @@
 }
 .xet-format-label {
   margin: 0;
-  color: dodgerblue;
+  color: var(--sapphire);
   padding: 4px;
 }
 .xet-format-option .xlv-small-button,
@@ -168,12 +206,12 @@
 }
 .xet-format-option .xlv-small-button > *:not(.xet-format-panel),
 .xet-format-option-active .xlv-small-button > *:not(.xet-format-panel) {
-  color: gray;
+  color: var(--subtext0);
   text-decoration-thickness: 1px;
 }
 .xet-format-option .xlv-small-button:hover > *:not(.xet-format-panel),
 .xet-format-option-active .xlv-small-button:hover > *:not(.xet-format-panel) {
-  color: dodgerblue;
+  color: var(--sapphire);
   text-decoration-thickness: 1.5px;
 }
 #xet-format .xet-format-option-active .xlv-small-button {
@@ -192,11 +230,11 @@
   display: block;
   text-align: left;
   position: absolute;
-  background-color: white;
+  background-color: var(--surface0);
   z-index: 2;
   left: 100%;
   top: 4px;
-  border: 1px solid dodgerblue;
+  border: none;
   box-sizing: border-box;
   color: black;
   display: none;
@@ -207,24 +245,24 @@
   margin: 8px 8px;
 }
 .xet-format-selection {
-  background-color: #3399FF;
+  background-color: var(--sapphire);
   color: white;
 }
 .xet-small-action {
   text-align: right;
-  font-family: monospace;
+  font-family: var(--mono-font);
   font-size: 10px;
   font-style: italic;
 }
 .xet-red {
-  color: red;
+  color: var(--red);
 }
 .xet-blue {
-  color: blue;
+  color: var(--sapphire);
   text-decoration: none;
 }
 .xet-small {
-  font-family: monospace;
+  font-family: var(--mono-font);
   font-size: 10px;
 }
 .xet-bold {
@@ -251,7 +289,7 @@
   overflow: auto;
 }
 .xet-choices-box {  
-  border: 1px solid gray;
+  border: none;
   border-collapse: collapse;
   box-sizing: border-box;
   overflow: auto;
@@ -269,44 +307,42 @@
   margin: 0;
   padding: 0;
   width: 100%;
-  color: #333;
-  border: 1px solid gray;
+  color: var(--text);
+  border: none;
   border-collapse: collapse;
   border-spacing: 0; 
-  font-family: monospace;
+  font-family: var(--mono-font);
   font-size: 12px;
 }
 .xet-choices td, .xet-choices th {
   border: 0;
-  border-right: 1px solid gray;
-  border-left: 1px solid gray;
   padding: 8px;
 }
 .xet-choices th {  
-  background: #DFDFDF;
+  background: var(--surface0);
   font-weight: bold;
 }
 .xet-choices td {  
-  background: #FAFAFA;
+  background: var(--surface1);
   text-align: left;
   cursor: pointer;
 }
-.xet-choices tr:nth-child(even) td { background: #F1F1F1; }   
-.xet-choices tr:nth-child(odd) td { background: #FEFEFE; }  
+.xet-choices tr:nth-child(even) td { background: var(--surface0); }   
+.xet-choices tr:nth-child(odd) td { background: var(--surface1); }  
 .xet-choices:not(.xet-picked) tr:hover td {
-  background: lightgreen;
+  background: var(--overlay0);
 }  
-#xet-light-rejects tr:nth-child(odd) td { background: #f1cfff; }   
-#xet-light-rejects tr:nth-child(even) td { background: #e8c6f6; }  
+#xet-light-rejects tr:nth-child(odd) td { background: color-mix(in srgb, var(--surface1), var(--pink) 25%); }   
+#xet-light-rejects tr:nth-child(even) td { background: color-mix(in srgb, var(--surface0), var(--pink) 25%); }  
 #xet-light-rejects tr:hover td {
-  background: lightblue;
+  background: color-mix(in srgb, var(--overlay0), var(--pink) 25%);
 }  
 .xet-fill-settings {
   width: 300px;
   padding: 8px;
   margin: 0 8px 6px 0;
-  border: 1px solid gray;
-  font-family: monospace;
+  border: none;
+  font-family: var(--mono-font);
   font-size: 12px;
   box-sizing: border-box;
 }
@@ -330,13 +366,12 @@
   margin: 0;
   font-size: 14px;
   font-weight: bold;
-  border-radius: 10px 10px 0 0;
-  border: 1px solid transparent;
+  border: none;
 }
 .xet-dropdown:hover .xet-dropbtn {
-  background-color: #ddd;
+  background-color: var(--surface1);
   cursor: pointer;
-  border: 1px solid gray;
+  border: none;
 }
 .xet-menu li.xet-dropdown {
   display: inline-block;
@@ -345,12 +380,12 @@
 .xet-dropdown-submenu {
   display: none;
   position: absolute;
-  background-color: #f9f9f9;
+  background-color: var(--surface1);
   min-width: 275px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 1;
   margin: 0;
-  border: 1px solid gray;
+  border: none;
 }
 .xet-dropdown-submenu {
   bottom: 0;
@@ -376,22 +411,22 @@
   position: relative;
 }
 .xet-dropdown-content .xet-dropdown-item:nth-child(odd) {
-  background: #F1F1F1;
+  background: var(--surface0);
 }   
 .xet-dropdown-content .xet-dropdown-item:nth-child(even) {
-  background: #FEFEFE;
+  background: var(--surface1);
 }  
 .xet-dropdown-content .xet-dropdown-item:hover {
-  background-color: lightgreen;
+  background-color: var(--overlay0);
   cursor: pointer;
 }
 .xet-dropdown-submenu .xet-dropdown-subitem:nth-child(odd) {
-  background: #F1F1F1; }   
+  background: var(--surface0); }   
 .xet-dropdown-submenu .xet-dropdown-subitem:nth-child(even) {
-  background: #FEFEFE;
+  background: var(--surface1);
 }  
 .xet-dropdown-submenu .xet-dropdown-subitem:hover {
-  background-color: #a1ffa1;
+  background-color: var(--overlay0);
   cursor: pointer;
 }
 .xet-dropdown-item:hover .xet-dropdown-submenu {
@@ -405,16 +440,12 @@
   width: 700px;
   overflow: auto;
   padding: 6px 6px 6px 16px;
-  background-size: 20px 20px;
-  background-image:
-    linear-gradient(to right, gainsboro 1px, transparent 1px),
-    linear-gradient(to bottom, gainsboro 1px, transparent 1px);
 }
 .xet-analysis li {
   margin-top: 14px;
 }
 .xet-plotbar {
-  background: dodgerblue;
+  background: var(--sapphire);
   height: 16px;
   margin: 2px;
 }
@@ -423,15 +454,15 @@
   padding: 4px;
 }
 #xet-tips.xet-tips .xlv-small-button:hover {
-  background-color: lightyellow;
+  background-color: var(--overlay0);
 }
 .xet-tip {
-  background-color: lightyellow;
+  background-color: var(--surface1);
   margin: 0 4px 4px;
   padding: 12px 6px;
   text-align: left;
   width: 420px;
-  border: 1px solid gray;
+  border: none;
 }
 .xet-tips {
   text-align: right;
@@ -453,7 +484,7 @@
   position: absolute;
   z-index: 1;
   background-color: white;
-  border: 1px solid gray;
+  border: none;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   font-size: 12px;
 }
@@ -462,20 +493,22 @@
   color: darkgreen;
 }
 .xet-editable {
-  outline: 1px solid lightgreen;
+  border: solid var(--sapphire);
+  border-width: 0 0 thin 0;
   padding: 4px;
   line-height: 1.8;
 }
 .xet-editable[contenteditable] {
-  outline: 1px solid lightgreen;
+  border: solid var(--sapphire);
+  color: var(--text);
+  border-width: 0 0 thin 0;
 }
 .xet-action {
-  color: dodgerblue;
-  font-weight: normal;
-  font-family: serif;
+  color: var(--sapphire);
+  font-weight: bold;
+  font-family: var(--main-font);
   font-size: 14px;
-  font-style: italic;
-  margin: 4px 0;
+  margin: 4px 8px 4px 0;
 }
 #xet-scratch-pad {
   margin: 0 6px 0 0;
@@ -493,8 +526,8 @@
   overflow: auto;
 }
 .xet-companag-text {
-  color: blue;
-  font-family: monospace;
+  color: var(--sapphire);
+  font-family: var(--mono-font);
   font-size: 12px;
 }
 .xet-table-midline td:nth-child(1) {
@@ -502,7 +535,7 @@
   padding-right: 4px;
 }
 .xet-table-midline td:nth-child(2) {
-  border-left: 1px solid gray;
+  border-left: none;
   padding: 2px 0 2px 6px;
 }
 .xet-table-midline td {
@@ -531,11 +564,11 @@
 @keyframes xet-sweeping {
   from {
     width: 0; height: 0; border-radius: 0;
-    left: 15.5px; top: 15.5px; background: red;
+    left: 15.5px; top: 15.5px; background: var(--red);
   }
   to {
     width: 10px; height: 10px; border-radius: 5px;
-    left: 10.5px; top: 10.5px; background: red;
+    left: 10.5px; top: 10.5px; background: var(--red);
   }
 }
 .xet-sweeping,
@@ -623,7 +656,7 @@
 }
 #xet-outdated-message,
 #xet-outdated {
-  color: red;
+  color: var(--red);
   font-weight: bold;
 }
 #xet-minpop {
@@ -650,13 +683,11 @@
   outline: none;
 }
 .xet-anag-help {
-  color: darkgray;
+  color: var(--subtext0);
   font-size: small;
   max-width: 340px;
 }
-.xet-anag-help:hover {
-  color: black;
-}
+
 .xet-anag-help ul {
   padding-inline-start: 10px;
 }
@@ -664,7 +695,7 @@
   min-width: 300px;
 }
 .xet-cah {
-  background-color: white;
+  background-color: var(--surface0);
   font-weight: bold;
   padding: 0 0 4px 0;
   position: sticky;
@@ -672,7 +703,49 @@
 }
 .xet-through-cut-cell,
 .xet-through-cut:hover {
-  color: red;
+  color: var(--red);
   cursor: pointer;
   font-weight: bold;
+}
+
+input[type="text"] { 
+  background-color: transparent;
+  border: solid var(--sapphire);
+  color: var(--text);
+  border-width: 0 0 thin 0 !important;
+  font-family: var(--mono-font);
+  outline: none !important;
+}
+
+input[type="file"] {
+  background-color: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--mono-font);
+  outline: none !important;
+  border-radius: none;
+}
+
+input[type="checkbox"] {
+  background-color: transparent !important;
+  accent-color: var(--sapphire);
+  border: none !important;
+  outline: none !important;
+}
+
+hr {
+  display: none;
+}
+
+select {
+  font-family: var(--mono-font);
+  font-size: 12px !important;
+  background-color: var(--surface1);
+  outline: none;
+  border: none;
+  color: var(--text)
+}
+
+.xet-draft > td > span {
+  font-family: var(--main-font) !important;
 }

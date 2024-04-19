@@ -1,0 +1,612 @@
+/*
+MIT License
+
+Copyright (c) 2019 Viresh Ratnakar
+
+See the full license notice in exolve-m.js.
+
+Version: Exolve v1.56 November 19, 2023
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+:root { /* Catppuccin Mocha Colours / Google Fonts (Placeholder) */
+  --rosewater: #f5e0dc;
+  --flamingo: #f2cdcd;
+  --pink: #f5c2e7;
+  --mauve: #cba6f7;
+  --red: #f38ba8;
+  --maroon: #eba0ac;
+  --peach: #fab387;
+  --yellow: #f9e2af;
+  --green: #a6e3a1;
+  --teal: #94e2d5;
+  --sky: #89dceb;
+  --sapphire: #74c7ec;
+  --blue: #89b4fa;
+  --lavender: #b4befe;
+  --text: #cdd6f4;
+  --subtext1: #bac2de;
+  --subtext0: #a6adc8;
+  --overlay2: #9399b2;
+  --overlay1: #7f849c;
+  --overlay0: #6c7086;
+  --surface2: #585b70;
+  --surface1: #45475a;
+  --surface0: #313244;
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+
+  --main-font: 'Roboto', sans-serif;
+  --mono-font: 'Roboto Mono', monospace;
+}
+
+@media (max-width: 500px) {
+  body {
+    margin: 4px;
+  }
+}
+.xlv-frame {
+  font-size: 16px;
+  font-family: var(--main-font) !important;
+  font-weight: 400;
+  letter-spacing: normal !important;
+  line-height: normal !important;
+  box-sizing: border-box;
+}
+.xlv-anno-text,
+.xlv-status,
+.xlv-saving,
+.xlv-solution,
+.xlv-answer,
+.xlv-input,
+.xlv-incluefill,
+.xlv-clue-extraction-slot,
+.xlv-scratchpad,
+.xlv-shuffle {
+  font-size: 14px !important;
+  line-height: normal !important;
+  font-family: var(--mono-font) !important;
+}
+.xlv-copyright,
+.xlv-small-print,
+.xlv-small-print *,
+.xlv-metadata,
+.xlv-saving {
+  font-size: x-small !important;
+  line-height: normal !important;
+  font-family: var(--mono-font);
+}
+.xlv-grid-panel {
+  margin: 0;
+}
+.xlv-clues-panel {
+  margin: 0 0 8px 0;
+}
+
+@media (max-width: 325px) {
+  .xlv-wide-box {
+    width: 100%;
+    max-width: 325px;
+  }
+  .xlv-button {
+    font-size: 9px;
+    padding: 4px;
+    border-radius: 4px;
+  }
+  .xlv-anno-text,
+  .xlv-small-print,
+  .xlv-status,
+  .xlv-saving,
+  .xlv-solution,
+  .xlv-answer,
+  .xlv-input,
+  .xlv-incluefill,
+  .xlv-clue-extraction-slot,
+  .xlv-scratchpad,
+  .xlv-shuffle {
+    font-size: 8px !important;
+  }
+  .xlv-saving {
+    font-size: 6px !important;
+  }
+  .xlv-preamble {
+    margin: 8px 0 0;
+  }
+}
+
+@media (min-width: 326px) and (max-width: 500px) {
+  .xlv-wide-box {
+    width: 100%;
+    max-width: 480px;
+  }
+  .xlv-button {
+    font-size: 11px;
+    padding: 5px;
+    border-radius: 8px;
+  }
+  .xlv-preamble {
+    margin: 8px 0 0;
+  }
+}
+
+@media (min-width: 501px) {
+  .xlv-wide-box {
+    width: 480px;
+  }
+  .xlv-button {
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .xlv-grid-panel {
+    margin: 0 12px 0 0;
+  }
+  .xlv-clues-panel {
+    margin: 0 12px 8px 0;
+  }
+  .xlv-preamble {
+    margin: 8px 20px 0;
+  }
+}
+
+.xlv-cell-num {
+  font-family: var(--main-font);
+}
+.xlv-cell-text {
+  font-family: var(--main-font);
+  cursor: text;
+}
+.xlv-cell-circle {
+  fill: rgba(0,0,0,0.0);
+}
+.xlv-frame .xlv-clues-table {
+  border: none !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin: inherit;
+}
+.xlv-frame table,
+.xlv-frame td,
+.xlv-frame tr {
+  background-image: none !important;
+}
+.xlv-frame .xlv-clues-table tr {
+  border: none !important;
+  break-inside: avoid;
+}
+.xlv-frame .xlv-clues-table td {
+  border: none !important;
+  padding: 0 6px 4px 0 !important;
+  vertical-align: top;
+  white-space: normal !important;
+}
+.xlv-frame .xlv-clues-table .xlv-clue-label {
+  background-image: none !important;
+  box-sizing: content-box;
+  font-weight: bold;
+  max-width: 2ch;
+  overflow: visible;
+  text-align: right;
+  word-break: normal;
+  word-wrap: normal;
+  white-space: nowrap !important;
+  font-family: var(--main-font);
+}
+.xlv-invisible {
+  color: transparent;
+  font-weight: bold;
+  text-align: right;
+  word-break: normal;
+  word-wrap: normal;
+}
+.xlv-clue-indent {
+  text-indent: -2ch;
+}
+.xlv-clickable:hover {
+  cursor: pointer;
+}
+.xlv-clues-flex,
+.xlv-grid-and-clues-flex {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  justify-content: space-around;
+}
+.xlv-grid-panel {
+  break-inside: avoid;
+}
+.xlv-flex-col {
+  display: flex;
+  flex-flow: column wrap;
+}
+.xlv-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.5em;
+  margin: 2px 6px 4px;
+}
+.xlv-setter {
+  text-align: center;
+  margin: 4px 0 8px 0;
+}
+.xlv-preamble {
+  padding: 0;
+}
+.xlv-frame .xlv-preamble table {
+  margin: 0;
+  width: auto;
+}
+.xlv-small-print {
+  margin: 4px 0 6px 0 !important;
+}
+.xlv-small-print a {
+  padding: 4px 4px 0 0 !important;
+}
+.xlv-credit {
+  margin: 4px 0 4px 0;
+}
+.xlv-questions,
+.xlv-submit {
+  margin: 4px 0 2px 0;
+}
+.xlv-explanations {
+  padding: 10px 0 2px 0;
+}
+.xlv-metadata {
+  padding: 0 0 4px 0;
+}
+.xlv-errors {
+  font-weight: bold;
+  color: var(--red);
+}
+.xlv-warnings-label {
+  font-weight: normal;
+  font-style: italic;
+  color: var(--yellow);
+  margin: 16px 0 0 0;
+}
+.xlv-warnings {
+  margin: 10px 0;
+}
+.xlv-clear-area {
+  width: 100%;
+  height: 56px;
+}
+.xlv-curr-clue-label {
+  margin: 0 0 0 4px;
+}
+.xlv-curr-clue {
+  font-weight: bold;
+  margin: 0;
+  overflow-y: auto;
+  padding: 0 !important;
+  position: sticky;
+  position: -webkit-sticky;
+  text-align: left;
+  word-wrap: break-word;
+  z-index: 2;
+}
+.xlv-curr-clue-inner {
+  padding: 2px 0 8px 0 !important;
+}
+.xlv-curr-orphan,
+.xlv-curr-clue-label {
+  display: inline;
+  padding: 0;
+  line-height: 0.8;
+}
+.xlv-nobr {
+  white-space: nowrap;
+}
+.xlv-grid-parent-centerer {
+  text-align: center;
+}
+.xlv-grid-parent {
+  position: relative;
+  display: inline-block;
+}
+.xlv-frame .xlv-grid-input-wrapper {
+  position: absolute;
+  border: none;
+  border-width: 0;
+  margin: 0;
+  padding: 0;
+  z-index: 1;
+}
+.xlv-grid-input-rarr {
+  position: absolute;
+  right: 0;
+  top: 20%;
+}
+.xlv-grid-input-larr {
+  position: absolute;
+  left: 0;
+  top: 20%;
+}
+.xlv-grid-input-darr {
+  position: absolute;
+  left: 40%;
+  top: 65%;
+}
+.xlv-grid-input-uarr {
+  position: absolute;
+  left: 40%;
+  top: -20%;
+}
+.xlv-frame .xlv-grid-input,
+.xlv-frame .xlv-grid-input:focus {
+  background: rgba(0,0,0,0.0);
+  border: none;
+  color: rgba(0,0,0,0.0);
+  font-weight: normal;
+  height: 100%;
+  line-height: normal;
+  outline: none;
+  padding: 2px 0 0 0;
+  text-align: center;
+  text-anchor: middle;
+  width: 100%;
+}
+.xlv-controls-etc {
+  padding: 0 0 2px 0;
+}
+.xlv-controls-row {
+  margin: 6px 0 6px 0 !important;
+}
+.xlv-clues-box {
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin: 0;
+}
+.xlv-clues-label {
+  font-weight: bold;
+  font-family: var(--main-font);
+  padding: 0 0 4px 0;
+  break-inside: avoid;
+  break-after: avoid;
+}
+.xlv-nextprev {
+  vertical-align: text-top;
+}
+.xlv-frame hr {
+  margin: 0 0 4px 0;
+}
+.xlv-frame .xlv-button {
+  border: none;
+  display: inline-block;
+  font-family: var(--mono-font);
+  line-height: normal;
+  outline: none;
+  text-align: center;
+  text-decoration: none;
+}
+.xlv-frame:focus {
+  border: none;
+  outline: none;
+}
+.xlv-button:hover {
+  cursor: pointer;
+}
+.xlv-button:disabled {
+  cursor: not-allowed;
+}
+.xlv-frame .xlv-small-button {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: inline-block;
+  font-family: var(--mono-font);
+  font-size: 14px;
+  font-weight: bold;
+  line-height: normal;
+  margin: 0;
+  outline: none;
+  padding: 2px 4px 4px 4px;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: none;
+  background: transparent;
+  color: var(--sapphire)
+}
+.xlv-small-button:hover {
+  cursor: pointer;
+}
+.xlv-small-print .xlv-small-button,
+.xlv-curr-clue .xlv-small-button {
+  font-size: 14px;
+}
+.xlv-coloured-cell {
+  position: absolute;
+  border: none;
+  border-width: 0;
+  outline: none;
+  opacity: 0.25;
+}
+.xlv-status {
+  margin: 2px 0 !important;
+}
+.xlv-saving {
+  color: gray;
+  margin: 4px 0 2px 0 !important;
+}
+.xlv-solution {
+  font-weight: bold;
+}
+.xlv-question {
+  margin: 12px 0 2px 0 !important;
+}
+.xlv-input,
+.xlv-answer {
+  padding: 0 0 4px 0;
+  outline: none !important;
+  background-color: transparent;
+  border: solid var(--sapphire);
+  color: var(--text);
+  border-width: 0 0 thin 0 !important;
+}
+.xlv-clue-extraction-slot {
+  line-height: normal !important;
+  box-sizing: border-box;
+  text-align: center;
+  vertical-align: middle;
+}
+.xlv-clue-extraction-slot,
+.xlv-incluefill {
+  border: none;
+  cursor: text;
+  padding: 0 0 2px 0px;
+  margin: 0 0 0 4px;
+  outline: none;
+  font-weight: bold;
+  border-bottom: solid 2px #c9c9c9;
+  background-color: inherit;
+}
+.xlv-incluefill {
+  margin: 0 4px 0 4px;
+}
+.xlv-storage-list {
+  outline: solid 1px gray;
+  margin: 6px 1px;
+  padding: 0;
+  max-height: 400px;
+  overflow: auto;
+}
+.xlv-storage-list table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
+.xlv-storage-list tr {
+  border: solid 1px gray;
+}
+.xlv-scratchpad {
+  background-color: transparent;
+  border: solid var(--sapphire);
+  color: var(--text) !important;
+  border-width: 0 0 thin 0 !important;
+  font-family: var(--mono-font);
+  outline: none !important;
+}
+.xlv-textarea {
+  box-sizing: border-box;
+  outline: none;
+  width: 100%;
+}
+.xlv-shuffle {
+  cursor: pointer;
+}
+.xlv-postscript {
+  width: 100%;
+}
+.xlv-definition {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+.xlv-blue {
+  color: var(--blue);
+}
+.xlv-red {
+  color: var(--red);
+}
+.xlv-yellow-bg {
+  background-color: var(--yellow);
+}
+.xlv-pink-bg {
+  background-color: var(--pink);
+}
+.xlv-clues-panel:last-child {
+  margin-bottom: 0;
+}
+.xlv-print-settings div {
+  padding: 4px 0 4px 16px;
+  word-wrap: normal;
+}
+.xlv-small-print input {
+  appearance: auto;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+  height: auto;
+  width: auto;
+}
+.xlv-print-settings td {
+  white-space: normal;
+}
+.xlv-qrcode-table {
+  border: 1px solid black !important;
+  float: right;
+  margin: 0 0 4px 4px;
+  padding: 0;
+  width: auto !important;
+}
+.xlv-qrcode-cta {
+  font-family: var(--mono-font);
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+.xlv-qrcode-panel td {
+  padding: 0;
+  vertical-align: middle;
+}
+.xlv-toggleable * {
+  background-color: transparent;
+  color: inherit;
+}
+a.xlv-link:active,
+a.xlv-link:link,
+a.xlv-link:visited {
+  color: inherit !important;
+  outline: none;
+  text-decoration: none;
+}
+a.xlv-link:hover {
+  font-weight: bold;
+}
+.xlv-toggleable {
+  margin-top: 6px !important;
+  border-top: 1px solid gray;
+}
+.xlv-toggleable p {
+  margin: 4px 0;
+}
+.xlv-active-toggler {
+  border-bottom: 2px solid lightgray;
+}
+.xlv-clue-notes {
+  display: inline-block;
+  min-width: 10ch;
+}
+.xlv-notes-contents {
+  border: 1px dotted gray;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px !important;
+  margin: 4px 0 !important;
+}
+.xlv-notes-header {
+  text-align: right;
+}
+.xlv-notes-help {
+  padding: 0 0 0 16px !important;
+  text-align: left;
+}
+@media not print {
+  .xlv-only-print {
+    display: none;
+  }
+}
+
+.xlv-metadata > b {
+  color: var(--text)
+}
+
+.xlv-anno-text > :not(.xlv-solution) {
+  font-style: italic;
+  color: var(--text) !important;
+}

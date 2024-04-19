@@ -1046,8 +1046,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.hideExolveElement('postscript');
 
   this.copyright = document.getElementById(`${this.puz.prefix}-copyright`)
-  this.copyright.innerHTML = `<span class="xet-action">Edit optional
-      copyright notice: Ⓒ &nbsp;</span><span
+  this.copyright.innerHTML = `<span class="xet-action">Copyright Ⓒ &nbsp;</span><span
       class="xet-editable"
       id="xet-copyright" contenteditable=true spellcheck=false
       oninput="exet.updateMetadata()">${this.puz.copyright}</span>`
@@ -1056,8 +1055,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.xetCopyright.title = 'Click to edit copyright'
 
   this.title = document.getElementById(`${this.puz.prefix}-title`)
-  this.title.innerHTML = `<span class="xet-action">Edit optional
-      title:</span><span
+  this.title.innerHTML = `<span class="xet-action">Title</span><span
       class="xet-editable"
       id="xet-title" contenteditable=true spellcheck=false
       oninput="exet.updateMetadata()">${this.puz.title}</span>`
@@ -1066,8 +1064,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.xetTitle.title = 'Click to edit title'
 
   this.setter = document.getElementById(`${this.puz.prefix}-setter`)
-  this.setter.innerHTML = `<span class="xet-action">Edit optional
-      setter(s):</span><span
+  this.setter.innerHTML = `<span class="xet-action">Setter(s)</span><span
       class="xet-editable"
       id="xet-setter" contenteditable=true spellcheck=false
       oninput="exet.updateMetadata()">${this.puz.setter}</span>`
@@ -1101,7 +1098,9 @@ Exet.prototype.setPuzzle = function(puz) {
 
   // Make current cell closer to white (so nina/colour can be seen better
   // when overlapping).
-  this.puz.colorScheme['input'] = '#ffc6c4';
+
+  // Not anymore
+  // this.puz.colorScheme['input'] = '#ffc6c4';
 
   // No special printing from this page.
   this.puz.printAsIs = true;
@@ -3050,7 +3049,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   for (let candidate of candidates) {
     html = html + `
       <tr>
-        <td><span style="color:gray">[${candidate.score.toFixed(1)}]</span></td>
+        <td><span style="color:var(--subtext0)">[${candidate.score.toFixed(1)}]</span></td>
         <td>${candidate.charade}</td>
       </tr>`;
   }
@@ -4697,7 +4696,7 @@ Exet.prototype.makeClueEditable = function() {
 
   const currClueText = document.getElementById(
       `${exet.puz.prefix}-curr-clue-text`)
-  currClueText.innerHTML = `<span class="xet-action">Edit clue: </span><span
+  currClueText.innerHTML = `<span
     id="xet-clue-stat" class="xet-clue-stat"></span><span
     contenteditable="true" class="xet-editable" id="xet-clue"></span>`
   this.currClueIsDraft = this.isDraftClue(theClue.clue)
@@ -4719,8 +4718,7 @@ Exet.prototype.makeClueEditable = function() {
   });
 
   const spacer = document.createElement('span')
-  spacer.innerHTML = `<br><span class="xet-action">Edit
-      optional anno: </span>`
+  spacer.innerHTML = `<br><span class="xet-action">Annotation </span>`
   this.xetCurrClue.appendChild(spacer)
 
   let xetAnno = document.createElement('span')
