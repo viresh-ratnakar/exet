@@ -38,6 +38,7 @@
   --mantle: #181825;
   --crust: #11111b;
 
+  --accent: #81c6ef;
   --main-font: 'Roboto Mono', sans-serif;
   --mono-font: 'Roboto Mono', monospace;
 
@@ -139,7 +140,7 @@ body {
 }
 .xet-done-marker {
   text-decoration: line-through;
-  text-decoration-color: var(--sapphire);
+  text-decoration-color: var(--accent);
 }
 .xet-clue-stat {
   cursor: pointer;
@@ -190,11 +191,10 @@ body {
   top: -28px;
   right: 0;
   z-index: 2;
-  background-color: white;
 }
 .xet-format-label {
   margin: 0;
-  color: var(--sapphire);
+  color: var(--accent);
   padding: 4px;
 }
 .xet-format-option .xlv-small-button,
@@ -211,7 +211,7 @@ body {
 }
 .xet-format-option .xlv-small-button:hover > *:not(.xet-format-panel),
 .xet-format-option-active .xlv-small-button:hover > *:not(.xet-format-panel) {
-  color: var(--sapphire);
+  color: var(--accent);
   text-decoration-thickness: 1.5px;
 }
 #xet-format .xet-format-option-active .xlv-small-button {
@@ -236,7 +236,7 @@ body {
   top: 4px;
   border: none;
   box-sizing: border-box;
-  color: black;
+  color: var(--text);
   display: none;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   width: 280px;
@@ -245,7 +245,7 @@ body {
   margin: 8px 8px;
 }
 .xet-format-selection {
-  background-color: var(--sapphire);
+  background-color: var(--accent);
   color: white;
 }
 .xet-small-action {
@@ -258,7 +258,7 @@ body {
   color: var(--red);
 }
 .xet-blue {
-  color: var(--sapphire);
+  color: var(--accent);
   text-decoration: none;
 }
 .xet-small {
@@ -447,7 +447,7 @@ body {
   margin-top: 14px;
 }
 .xet-plotbar {
-  background: var(--sapphire);
+  background: var(--accent);
   height: 16px;
   margin: 2px;
 }
@@ -494,18 +494,18 @@ body {
   font-weight: bold;
 }
 .xet-editable {
-  border: solid var(--sapphire);
+  border: solid var(--accent);
   border-width: 0 0 thin 0;
   padding: 4px;
   line-height: 1.8;
 }
 .xet-editable[contenteditable] {
-  border: solid var(--sapphire);
+  border: solid var(--accent);
   color: var(--text);
   border-width: 0 0 thin 0;
 }
 .xet-action {
-  color: var(--sapphire);
+  color: var(--accent);
   font-weight: bold;
   font-family: var(--main-font);
   font-size: 14px;
@@ -527,7 +527,7 @@ body {
   overflow: auto;
 }
 .xet-companag-text {
-  color: var(--sapphire);
+  color: var(--accent);
   font-family: var(--mono-font);
   font-size: 12px;
 }
@@ -706,7 +706,7 @@ body {
 
 input[type="text"] { 
   background-color: transparent;
-  border: solid var(--sapphire);
+  border: solid var(--accent);
   color: var(--text);
   border-width: 0 0 thin 0 !important;
   font-family: var(--mono-font);
@@ -724,7 +724,7 @@ input[type="file"] {
 
 input[type="checkbox"] {
   background-color: transparent !important;
-  accent-color: var(--sapphire);
+  accent-color: var(--accent);
   border: none !important;
   outline: none !important;
 }
