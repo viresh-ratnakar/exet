@@ -1,5 +1,7 @@
 # Exet
 
+## Using [Catppuccin theme](https://github.com/catppuccin/catppuccin) by [Catppuccin](https://github.com/catppuccin), licensed under MIT Licence
+
 ## A web app for crossword construction
 
 #### Version: Exet v0.91, January 9, 2024
