@@ -38,7 +38,7 @@ Version: Exolve v1.56 November 19, 2023
   --mantle: #181825;
   --crust: #11111b;
 
-  --main-font: 'Roboto', sans-serif;
+  --main-font: 'Roboto Mono', sans-serif;
   --mono-font: 'Roboto Mono', monospace;
 }
 
@@ -93,7 +93,7 @@ Version: Exolve v1.56 November 19, 2023
   .xlv-button {
     font-size: 9px;
     padding: 4px;
-    border-radius: 4px;
+    border-radius: none;
   }
   .xlv-anno-text,
   .xlv-small-print,
@@ -124,7 +124,6 @@ Version: Exolve v1.56 November 19, 2023
   .xlv-button {
     font-size: 11px;
     padding: 5px;
-    border-radius: 8px;
   }
   .xlv-preamble {
     margin: 8px 0 0;
@@ -138,7 +137,6 @@ Version: Exolve v1.56 November 19, 2023
   .xlv-button {
     font-size: 14px;
     padding: 8px;
-    border-radius: 12px;
   }
   .xlv-grid-panel {
     margin: 0 12px 0 0;
@@ -381,16 +379,20 @@ Version: Exolve v1.56 November 19, 2023
   outline: none;
   text-align: center;
   text-decoration: none;
+  background-color: transparent !important;
+  color: var(--sapphire) !important;
 }
 .xlv-frame:focus {
   border: none;
   outline: none;
 }
 .xlv-button:hover {
+  background-color: var(--overlay0) !important;
   cursor: pointer;
 }
 .xlv-button:disabled {
   cursor: not-allowed;
+  color: var(--subtext0) !important;
 }
 .xlv-frame .xlv-small-button {
   border: none;

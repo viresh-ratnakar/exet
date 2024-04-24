@@ -1779,7 +1779,7 @@ Exet.prototype.makeExetTab = function() {
         `grid-fill, set a minimum popularity, and include/exclude proper nouns"
           class="xet-long-button">
         <button class="xlv-small-button"
-            style="padding:5px 4px;color:chocolate"
+            style="padding:5px 4px;color:var(--red)"
             id="xet-edit-unpreflex">Set fill exclusions</button>
         <span id="xet-unpreflex-size">${Object.keys(
             this.unpreflex).length}</span> set
@@ -7413,7 +7413,7 @@ Exet.prototype.updateViablots = function() {
           cellText.setAttributeNS(null, 'text-anchor', 'middle');
           cellText.setAttributeNS(null, 'editable', 'simple');
           let cellClass = 'xlv-cell-text'
-          cellText.style.fill = 'gray'
+          cellText.style.fill = 'var(--subtext0)'
           cellText.style.fontSize = this.puz.letterSize + 'px'
           cellText.setAttributeNS(null, 'class', cellClass)
           cellText.addEventListener(

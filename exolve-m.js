@@ -269,9 +269,9 @@ function Exolve(puzzleSpec,
     'overwritten-end': '#bb00bb',
     'overwritten-start': '#ff00ff',
     'prefill': 'var(--sapphire)',
-    'separator': 'var(--sapphire)',
+    'separator': 'var(--subtext0)',
     'small-button': 'inherit',
-    'small-button-hover': 'var(--surface2)',
+    'small-button-hover': 'var(--overlay0)',
     'small-button-text': 'var(--sapphire)',
     'solution': 'var(--sapphire)',
     'solved': 'var(--sapphire)',
@@ -283,7 +283,7 @@ function Exolve(puzzleSpec,
     'orphan': '#663300',
     'anno': 'var(--sapphire)',
     'imp-text': 'var(--sapphire)',
-    'small-button-hover': '#330066',
+    'small-button-hover': 'var(--overlay0)',
     'small-button-text': 'var(--sapphire)',
 
   }
@@ -4138,7 +4138,7 @@ Exolve.prototype.applyStyles = function() {
     }
     #${this.prefix}-frame span.xlv-solved,
     #${this.prefix}-frame .xlv-solved td:first-child {
-      color: ${this.colorScheme['solved']};
+      color: var(--subtext0);
     }
     #${this.prefix}-frame .xlv-definition {
       text-decoration-color: ${this.colorScheme['def-underline']};
@@ -5336,7 +5336,7 @@ Exolve.prototype.cnavToInner = function(activeClueIndex, grabFocus = false) {
     if (!theClue.clueTR) {
       continue
     }
-    theClue.clueTR.style.background = colour;
+    theClue.clueTR.style.background = 'var(--surface1)';
     if (this.cluesPanelLines > 0) {
       this.scrollIfNeeded(theClue.clueTR)
     }
