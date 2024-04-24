@@ -591,10 +591,13 @@ body {
 }
 #xet-preflex-input {
   color: var(--text);
+  width: 100%;
 }
 #xet-unpreflex-input {
   color: var(--text);
+  width: 100%;
 }
+
 #xet-preamble,
 #xet-explanations,
 #xet-other-sections {
@@ -642,7 +645,7 @@ body {
   padding: 0 0 6px 0;
   outline: none;
   background-image:
-    repeating-linear-gradient(to bottom, var(--surface0), var(--surface0) 18px, var(--overlay0) 19px);
+    repeating-linear-gradient(to bottom, var(--surface0), var(--surface0) 19px, var(--surface1) 20px, var(--surface1) 38px);
   white-space: break-spaces;
 }
 #xet-unpreflex-editor {

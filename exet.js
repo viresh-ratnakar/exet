@@ -1788,7 +1788,7 @@ Exet.prototype.makeExetTab = function() {
           title="Click anywhere outside this box to dismiss it"
           id="xet-preflex-editor" style="display:none">
         <div>
-          List of preferred words/phrases (up to 100):
+          <b>Preferred Fills (up to 100)</b>
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <div style="height:100ch;width:30ch" id="xet-preflex-input"
@@ -1800,7 +1800,7 @@ Exet.prototype.makeExetTab = function() {
           title="Click anywhere outside this box to dismiss it"
           id="xet-unpreflex-editor" style="display:none">
         <div>
-           List of words/phrases that you do not want as fills:
+          <b>Fill Exclusions (up to 100)</b>
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <textarea rows="100" cols="25" id="xet-unpreflex-input"
@@ -1813,7 +1813,7 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-fill-settings">
           <div>
             <b title="Limit fill suggestions to words/phrases above this ` +
-              `percentile threshold of popularity">Minimum popularity score:</b>
+              `percentile threshold of popularity">Minimum popularity</b>
             <input id="xet-minpop" name="xet-minpop" class="xlv-answer"
               size="4" maxlength="4" type="text"></input> %ile<br>
             <span id="xet-minpop-incl">${Number(
@@ -1822,12 +1822,12 @@ Exet.prototype.makeExetTab = function() {
             <br>
             <br>
             <b title="If checked, this excludes proper nouns from ` +
-                `fill suggestions">No proper nouns:</b>
+                `fill suggestions">No proper nouns</b>
             <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
                 value="no-proper-nouns" type="checkbox">
             </input>
             <b title="If checked, this allows trying reversals of unfilled ` +
-                `lights, when finding fill suggestions">Try reversals:</b>
+                `lights, when finding fill suggestions">Try reversals</b>
             <input id="xet-try-reversals" name="xet-try-reversals"
                 value="try-reversals" type="checkbox">
             </input>
