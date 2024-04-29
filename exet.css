@@ -758,3 +758,8 @@ lt-div {
   font: 14px var(--main-font) !important;
   color: var(--text) !important;
 }
+
+.xet-viablot {
+  fill: var(--red);
+  opacity: 0.25;
+}

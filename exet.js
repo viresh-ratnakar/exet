@@ -1118,7 +1118,7 @@ Exet.prototype.setPuzzle = function(puz) {
         viablot.setAttributeNS(
             null, 'cy', puz.cellTopPos(i, puz.circleR + puz.GRIDLINE +
                                           (puz.cellH/2 - puz.circleR)));
-        viablot.setAttributeNS(null, 'class', 'xlv-cell-circle');
+        viablot.setAttributeNS(null, 'class', 'xet-viablot');
         viablot.style.fill = 'transparent'
         viablot.setAttributeNS(null, 'r', puz.circleR * 0.1);
         gridCell.viablot = viablot
