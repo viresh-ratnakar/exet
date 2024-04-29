@@ -760,6 +760,6 @@ lt-div {
 }
 
 .xet-viablot {
-  fill: var(--red);
-  opacity: 0.25;
+  fill: var(--red) !important;
+  opacity: 0.5;
 }
