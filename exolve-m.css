@@ -8,7 +8,6 @@ See the full license notice in exolve-m.js.
 Version: Exolve v1.56 November 19, 2023
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 @import './exet.css';
 
 @media (max-width: 500px) {
@@ -36,7 +35,7 @@ Version: Exolve v1.56 November 19, 2023
 .xlv-shuffle {
   font-size: 14px !important;
   line-height: normal !important;
-  font-family: var(--mono-font) !important;
+  font-family: var(--main-font) !important;
 }
 .xlv-copyright,
 .xlv-small-print,
@@ -368,7 +367,7 @@ Version: Exolve v1.56 November 19, 2023
   border-radius: 0;
   box-shadow: none;
   display: inline-block;
-  font-family: var(--mono-font);
+  font-family: var(--main-font);
   font-size: 14px;
   font-weight: bold;
   line-height: normal;
@@ -457,7 +456,7 @@ Version: Exolve v1.56 November 19, 2023
   border: solid var(--accent);
   color: var(--text) !important;
   border-width: 0 0 thin 0 !important;
-  font-family: var(--mono-font);
+  font-family: var(--main-font);
   outline: none !important;
 }
 .xlv-textarea {
