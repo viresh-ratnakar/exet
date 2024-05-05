@@ -65,8 +65,10 @@ body {
   background-color: var(--base)
 }
 .xet-controls-col {
-  font-family: var(--main-font);
   padding: 4px;
+}
+.xet-controls-col > * > span {
+  font-family: var(--main-font);
 }
 .xet-frame hr {
   margin-left: 0;
