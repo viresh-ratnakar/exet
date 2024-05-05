@@ -214,14 +214,14 @@ body {
 }
 .xet-format-option .xlv-small-button:hover > *:not(.xet-format-panel),
 .xet-format-option-active .xlv-small-button:hover > *:not(.xet-format-panel) {
-  color: var(--accent);
+  color: var(--subtext0);
   text-decoration-thickness: 1.5px;
 }
 #xet-format .xet-format-option-active .xlv-small-button {
-  background-color: #e1e1e1;
+  background-color: var(--surface1);
 }
 #xet-format .xet-format-option-active .xlv-small-button:hover {
-  background-color: lightsalmon;
+  background-color: var(--overlay0);
 }
 .xet-format-option-active .xlv-small-button:hover .xet-format-panel,
 .xet-format-option .xlv-small-button:hover .xet-format-panel {

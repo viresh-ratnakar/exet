@@ -342,7 +342,8 @@ Version: Exolve v1.56 November 19, 2023
 .xlv-frame .xlv-button {
   border: none;
   display: inline-block;
-  font-family: var(--mono-font);
+  font-family: var(--main-font);
+  font-weight: bold !important;
   line-height: normal;
   outline: none;
   text-align: center;
