@@ -7395,8 +7395,10 @@ Exet.prototype.updateViablots = function() {
       let opacity = dead > 3 ? 0.1 : (dead == 0 ? 0.6 : 0.3)
       viablot.style.fill = (fillStateCell.viability >= 5) ?
         'transparent' :
-        (fillStateCell.viability == 0 ? `rgba(255,0,255,${opacity})` :
-          `rgba(255,0,0,${opacity})`)
+        (fillStateCell.viability == 0 ? `var(--pink)` :
+          `var(--red)`)
+      viablot.style.opacity = (fillStateCell.viability >= 5) ?
+      'transparent' : `${opacity}`
       viablot.setAttributeNS(
           null, 'r', this.puz.circleR * 0.1 * (5 - fillStateCell.viability));
       if (fillStateCell.viability == 0) {
