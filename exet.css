@@ -627,7 +627,7 @@ body {
   height: 25px;
 }
 .xet-colour-nina:hover .xet-colour-nina-radio {
-  background: whitesmoke;
+  background: var(--surface0);
 }
 .xet-colour-sample {
   width: 25px;
@@ -708,9 +708,9 @@ body {
 }
 .xet-through-cut-cell,
 .xet-through-cut:hover {
-  color: var(--accent);
-  cursor: pointer;
+  color: var(--text);
   font-weight: bold;
+  cursor: pointer;
 }
 
 input[type="text"] { 
