@@ -2485,7 +2485,7 @@ Exet.prototype.updateAnalysis = function(elt) {
     if (!elt) continue;
     elt.addEventListener('mouseover', (e) => {
       for (const cell of throughCuts[d]) {
-        const div = this.puz.makeCellDiv(cell[0], cell[1], 'purple');
+        const div = this.puz.makeCellDiv(cell[0], cell[1], 'var(--red)');
         div.classList.add('xet-through-cut-cell');
         this.puz.gridParent.appendChild(div);
         const scissors = this.puz.addCellText(

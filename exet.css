@@ -708,7 +708,7 @@ body {
 }
 .xet-through-cut-cell,
 .xet-through-cut:hover {
-  color: var(--red);
+  color: var(--accent);
   cursor: pointer;
   font-weight: bold;
 }
