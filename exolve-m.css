@@ -350,6 +350,7 @@ Version: Exolve v1.56 November 19, 2023
   text-decoration: none;
   background-color: transparent !important;
   color: var(--accent) !important;
+  width: inherit;
 }
 .xlv-frame:focus {
   border: none;
@@ -379,7 +380,8 @@ Version: Exolve v1.56 November 19, 2023
   text-decoration: none;
   text-shadow: none;
   background: transparent;
-  color: var(--accent)
+  color: var(--accent);
+  width: inherit;
 }
 .xlv-small-button:hover {
   cursor: pointer;
@@ -436,6 +438,20 @@ Version: Exolve v1.56 November 19, 2023
 }
 .xlv-incluefill {
   margin: 0 4px 0 4px;
+}
+.xlv-hint {
+  cursor: pointer;
+  font-weight: normal;
+}
+.xlv-hint-bulb {
+  cursor: pointer;
+  font-weight: normal;
+}
+.xlv-hint-bulb:hover {
+  font-weight: bold;
+}
+.xlv-hint-prefix {
+  font-style: italic;
 }
 .xlv-storage-list {
   outline: solid 1px gray;
