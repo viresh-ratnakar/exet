@@ -4999,7 +4999,9 @@ Exet.prototype.handleClueChange = function() {
 
   this.stripInputLF(currClueAnno);
   theClue.anno = currClueAnno.innerText;
-  theClue.annoSpan.lastElementChild.innerHTML = theClue.anno;
+  if (theClue.annoSpan.lastElementChild) {
+    theClue.annoSpan.lastElementChild.innerHTML = theClue.anno;
+  }
   this.renderClue(theClue);
 
   this.puz.resizeCurrClueAndControls();
@@ -5806,6 +5808,7 @@ Exet.prototype.initAutofill = function() {
   }
   const analysis = new ExetAnalysis(
       this.puz.grid, this.puz.gridWidth, this.puz.gridHeight, this.puz.layers3d);
+  this.autofill.barred = analysis.numBars() > 0;
   this.autofill.doublyChecked = analysis.unchequeredOK(false);
   this.autofill.clear = document.getElementById("xet-autofill-clear")
   this.autofill.clear.disabled = true
@@ -6269,10 +6272,11 @@ Exet.prototype.unlinkClue = function(ci) {
   }
   for (let cci of theClue.childrenClueIndices) {
     const cClue = this.puz.clues[cci];
-    delete cClue.parentClueIndex
+    delete cClue.parentClueIndex;
+    cClue.linkedOffset = 0;
+    cClue.solution = '';
+    cClue.anno = '';
     cClue.clue = this.draftClue(cci);
-    cClue.solution = ''
-    cClue.anno = ''
   }
   theClue.childrenClueIndices = [];
   theClue.displayLabel = theClue.label;
@@ -6346,11 +6350,22 @@ Exet.prototype.addLinkedClue = function() {
     alert(parsed.label + parsed.dirStr + ' is itself a linked clue');
     return
   } 
-  cClue.parentClueIndex = ci
+  const oldParentCells = this.puz.getAllCells(ci);
+  const childCells = this.puz.getAllCells(cci);
+  cClue.parentClueIndex = ci;
   cClue.clue = this.draftClue(cci);
-  cClue.solution = ''
-  cClue.anno = ''
-  theClue.childrenClueIndices.push(cci)
+  cClue.solution = '';
+  cClue.anno = '';
+  cClue.linkedOffset = 0;
+  if (childCells.length > 0 && oldParentCells.length > 0) {
+    const lastParentCell = oldParentCells[oldParentCells.length - 1];
+    const firstChildCell = childCells[0];
+    if (lastParentCell[0] == firstChildCell[0] &&
+        lastParentCell[1] == firstChildCell[1]) {
+      cClue.linkedOffset = 1;
+    }
+  }
+  theClue.childrenClueIndices.push(cci);
   theClue.displayLabel = theClue.displayLabel + ', ' + parsed.label + parsed.dirStr;
   // update enum of clue
   this.maybeAdjustEnum(ci);
@@ -7273,8 +7288,8 @@ Exet.prototype.Set2Trims = function(set1, set2) {
 Exet.prototype.refineLightChoices = function(fillState, limit=0) {
   fillState.preflexUsed = {};
   const dontReuse = {};
-  for (let ci in this.puz.clues) {
-    let theClue = this.puz.clues[ci];
+  for (let ci in fillState.clues) {
+    let theClue = fillState.clues[ci];
     if (theClue.parentClueIndex) {
       continue;
     }
@@ -7511,7 +7526,7 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
           !theClue.solution || theClue.solution.indexOf('?') < 0) {
         continue;
       }
-      let cells = this.puz.getAllCells(ci);;
+      let cells = this.puz.getAllCells(ci);
       let cellChoiceSets = [];
       for (let cell of cells) {
         cellChoiceSets.push({});

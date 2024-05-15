@@ -1,5 +1,14 @@
 # Changelog
 
+### Minor update: Exet v0.91.3 May 15, 2024
+
+- Bug-fixes in corner cases with linked clues: when a linked clue
+  snakes to the beginning, or continues from the last cell, we do
+  not want to double-count the cell. The unlinking part also needed some fixing.
+- Bug-fix: If you tried to set a clue for an entry that was not filled,
+  it was leading to a crash.
+- Add some through-cut documentation to README.
+
 ### Minor update: Exet v0.91.2 May 15, 2024
 
 - Bug-fix: The 'xet-linking' element was getting added multiple times in

@@ -563,6 +563,11 @@ previously linked clues. When you break up a group of linked clues, any existing
 clue text from them will also get deleted. Grid-fill suggestions as well as
 autofill work as you might expect with linked clues.
 
+When you add a linked clue that continues on from the last cell of the
+current clue, then the enum does not double-count that cell. Similarly,
+if you create a "snake" out of linked clues, where the last cell is the
+same as the first cell, then we do not double-count that cell.
+
 #### Resources for clues
 
 When creating a clue for a word or a phrase, setters typically like to
@@ -626,7 +631,8 @@ top in each tab. These tabs are:
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and cryptic abbreviations. The sources are:
   [Crossword Unclued](https://www.crosswordunclued.com), Wikipedia,
-  [Mythic beasts (updated)](https://longair.net/mark/random/indicators/), and
+  [Mythic beasts (updated)](https://longair.net/mark/random/indicators/),
+  [Clue Clinic](http://www.clueclinic.com/index.php/clinical-data/), and
   [cryptics.georgeho.org](https://cryptics.georgeho.org/).
   - You can highlight certain words when looking at any of these lists, by
     supplying a keyword and selecting a highlighting option from the menu
@@ -739,6 +745,14 @@ These analyses are useful to setters to control the following desirable
 properties of crosswords:
 
 - Grids should be connected, symmetric, and free from consecutive unches.
+- The Analysis tab also shows two (vertical and horizontal) "through-cut"
+  sizes for blocked grids. A through cut is a group of light cells that,
+  if turned dark, would split the grid into two (or more parts). Grids
+  that have very small through cut sizes may be harder for solvers, as
+  they may not be able to get footholds into some parts. I like both
+  vertical and horizontal through cut sizes to be at least 4, in 15x15
+  grids. You can see the specific cells highlighted when you hover over
+  a through-cut in the Analysis panel.
 - Solution entry length distributions should not be too skewed towards
   very short or very long.
 - Words (other than very common ones) should not be repeated in clues,
@@ -759,6 +773,9 @@ Here is an illustrative example of the kinds of analyses shown:
 > - 70 (31.11%) blocked cells
 > - No bars
 > - No consecutive unches
+> - Smallest "through cuts" found (hover over the lists to see the squares highlighted in the grid):
+>   - Vertical: (4 squares): \[r13c8 r9c8 r7c8 r3c8\]
+>   - Horizontal: (3 squares): \[r7c4 r8c8 r9c12\]
 > 
 > **All/Across/Down Grid-fill and Clues**
 > 
