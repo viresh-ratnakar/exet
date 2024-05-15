@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.91.2 May 15, 2024
+
+- Bug-fix: The 'xet-linking' element was getting added multiple times in
+  come cases (breaking linking/unlinking clues).
+
 ### Minor update: Exet v0.91.1 January 25, 2024
 
 - In `depunct()`, replace '/' and '&' with spaces.

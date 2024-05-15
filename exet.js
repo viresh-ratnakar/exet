@@ -4746,6 +4746,10 @@ Exet.prototype.makeClueEditable = function() {
     Break linked clues
     `;
   this.linking.style.display = 'none';
+  const oldLinking = document.getElementById('xet-linking')
+  if (oldLinking) {
+    oldLinking.remove()
+  }
   this.puz.currClue.appendChild(this.linking)
   document.getElementById("xet-add-linked").addEventListener(
       'click', this.addLinkedClue.bind(this));
