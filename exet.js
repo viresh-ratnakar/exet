@@ -4740,7 +4740,7 @@ Exet.prototype.makeClueEditable = function() {
       title="Enter a clue number followed by a direction suffix"
           class="xlv-answer" size="8" placeholder="[N][a/d]" type="text"></input>
       as a linked clue.  &nbsp;
-    <button class="xlv-small-button" id="xet-unlink" style="color:red">
+    <button class="xlv-small-button" id="xet-unlink" style="color:var(--red)">
     Break linked clues
     `;
   this.linking.style.display = 'none';
@@ -4796,7 +4796,7 @@ Exet.prototype.makeClueEditable = function() {
     <div class="xet-format-label">
       <span class="xet-format-option" style="display:none" id="xet-format-clear">
         <button class="xlv-small-button">
-          <s style="text-decoration-color:red;text-decoration-thickness:1.5px">
+          <s style="text-decoration-color:var(--red);text-decoration-thickness:1.5px">
             <i><b>T</b></i>
           </s>
           <div class="xet-format-panel" id="xet-format-clear-preview">
