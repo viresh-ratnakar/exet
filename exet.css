@@ -676,6 +676,7 @@ body {
 }
 
 .xet-long-button {
+  font-family: var(--main-font);
   margin: 2px 0;
 }
 .xet-indent {
