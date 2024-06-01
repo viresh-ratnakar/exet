@@ -627,6 +627,50 @@ top in each tab. These tabs are:
 - **Alternations**: Uses [nutrimatic.org](https://nutrimatic.org) to show
   "alternation" and "reversed alternation" wordplays for the entry in the
   current light.
+
+  <details>
+    <summary>
+      <b>Tips on using nutrimatic.org for Hidden/Alternations</b>
+    </summary>
+
+    - Hidden answer and Alternation searches in Exet are simply links
+      to nutrimatic searches. If these searches do not produce results,
+      or if you want to impose additional/different constraints, then
+      you may want to learn how to tweak the search queries (you can
+      edit them directly in the search box shown in Exet). Here's the
+      [relevant documentation on nutrimatic.org](https://nutrimatic.org/2024/usage.html).
+    - The first thing to try is to click (repeatedly) on the "Try harder"
+      link that is shown. In my experience, complex Alternations sometimes
+      show up only after the third or fourth "Try harder" click! The
+      "Try harder" clicks may eventually show an error message, in
+      which case you may want to tweak the query.
+    - Exet composes the most generic search queries for nutrimatic, by
+      default. For example, for the entry CREATED, for finding a hidden
+      answer possibility, Exet crafts this query:
+
+      > [`https://nutrimatic.org/?q=A*"Ac"reate"dA"A*`](https://nutrimatic.org/?q=A*"Ac"reate"dA"A*)
+
+      The query uses `"Ac"` to indicate that we want something that has
+      some letter before the `c`, and with no intervening space. This yields
+      no results, as the constraints prove too computationally expensive
+      for nutrimatic. But you can help nutrimatic by guessing that there
+      may be possibilities where the `at` in the middle is split out as
+      a single word, with something preceding it (ending in `cre`) and
+      something following it (beginning with `ed`). The following query
+      does show possibilities (after a few "Try harder" clicks!) such as
+      `massacre at Edinburgh`:
+
+      > [`https://nutrimatic.org/?q="AA*cre at edAA*"`](https://nutrimatic.org/2024/?q=%22AA%2Acre%20at%20edAA%2A%22)
+
+    - For alternations, the default is to search for "every-second-letter"
+      possibilities. But if you want to search for "every-third-letter"
+      possbilities (say), then you can modify the query to be somthing
+      like this:
+
+      > [`https://nutrimatic.org/2024/?q=cAArAAeAAaAAtAAeAAd`](https://nutrimatic.org/2024/?q=cAArAAeAAaAAtAAeAAd)
+
+  </details>
+
 - **Lists**: This is not specific to the current light. This tab provides
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and cryptic abbreviations. The sources are:

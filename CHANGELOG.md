@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.91.4 June 1, 2024
+
+- Documentation update: add tips on using nutrimatic for Hidden/Alternations.
+
 ### Minor update: Exet v0.91.3 May 15, 2024
 
 - Bug-fixes in corner cases with linked clues: when a linked clue
