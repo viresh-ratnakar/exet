@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.91, January 9, 2024
+#### Version: Exet v0.92, June 6, 2024
 
 #### Author: Viresh Ratnakar
 
@@ -74,6 +74,8 @@ I'll add support for more languages over time.
 I welcome [bug reports and feature
 requests](https://github.com/viresh-ratnakar/exet/issues/new).
 You may contact me via email too, at [viresh@exet.app](mailto:viresh@exet.app).
+There's also a discussion group for the community:
+["Exolve-Exet-Etc"](https://groups.google.com/g/exolve-exet-etc).
 
 If you use Exet and like it, please consider posting links to it and/or writing
 reviews, to help spread the word.
@@ -203,13 +205,14 @@ for details on 3-D crosswords.
   - Toggle nina ($)
   - Toggle colouring (^)
   - Clear all markings!
+- Clear current light (Ctrl-q)
+- Clear all the lights! (Ctrl-Q)
+- Reverse current light
 - Add/edit special sections:
   - Preamble
   - Explanations
   - Questions
   - Other Exolve sections
-- Reverse current light
-- Clear all the lights! (Ctrl-Q)
 - Preferences:
   - \[ \] Spellcheck clues/annos
   - \[ \] Allow asymmetry
@@ -425,6 +428,27 @@ finds one, or until there is failure.
 - If you monitor Autofill's progress and you can see that it is not making
   progress, you may want to pause, clear, and re-try (a smaller beam size
   might have made it fail faster in situations like this).
+
+#### Web sources
+
+The "Web sources" button is shown in the grid-fill choices area (only for
+supported languages for which we have readily available web sources). This
+lets you see additional fill choices from some web sources (currently only
+for English). This may be a last-resort option to complete a grid-fill, when
+no word/phrase from the lexicon fits. You have to use your own judgment to
+decide whether a word or phrase obtained from a web source is usable, as
+these matches may not necessarily be dictionary entries or common phrases.
+
+For English, the web sources made available are Nutrimatic, Onelook, and Qat.
+My personal experience is that Nutrimatic can sometimes find
+common-enough-to-be-fair-in-crosswords phrases that are missing from the
+lexicon.
+
+After clicking on the "Web sources" button, you can dismiss the panel that
+appears by clicking anywhere outside it. Pressing the Escape key should also
+dismiss it most of the time (but some sites such as Onelook may grab input
+focus, in which case the Escape key may not work: just click anywhere outside
+the box if the Escape key does not work).
 
 ### Providing the clues
 

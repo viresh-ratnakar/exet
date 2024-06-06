@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.91, January 9, 2024
+Current version: v0.92, June 6, 2024
 */
 
 function ExetModals() {
@@ -663,7 +663,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.91, January 9, 2024';
+  this.version = 'v0.92, June 6, 2024';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -1653,6 +1653,20 @@ Exet.prototype.makeExetTab = function() {
             </div>
           </div>
 
+          <div class="xet-dropdown-item" onclick="exet.puz.clearCurr()">
+             Clear current light (Ctrl-q)
+          </div>
+
+          <div class="xet-dropdown-item" onclick="exet.puz.clearAll()">
+             Clear all the lights! (Ctrl-Q)
+          </div>
+
+          <div class="xet-dropdown-item"
+               title="Reverse the orientation of the currently active light. If it's part of a linked group of clues, the linked group will get broken up."
+               onclick="exet.reverseLight()">
+             Reverse current light
+          </div>
+
           <div class="xet-dropdown-item">
             Add/edit special sections:
             <div class="xet-dropdown-submenu">
@@ -1673,16 +1687,6 @@ Exet.prototype.makeExetTab = function() {
                Other Exolve sections
               </div>
             </div>
-          </div>
-
-          <div class="xet-dropdown-item"
-               title="Reverse the orientation of the currently active light. If it's part of a linked group of clues, the linked group will get broken up."
-               onclick="exet.reverseLight()">
-             Reverse current light
-          </div>
-
-          <div class="xet-dropdown-item" onclick="exet.puz.clearAll()">
-             Clear all the lights! (Ctrl-Q)
           </div>
 
           <div class="xet-dropdown-item">
@@ -1751,13 +1755,18 @@ Exet.prototype.makeExetTab = function() {
 
   <div class="xet-controls-row xet-panel xet-high-tall-box">
     <div class="xet-controls-col" style="position:relative">
-      <div>
+      <div class="xet-fills-heading">
         <span style="font-weight:bold" title="Please note that any lexicon ` +
             `in use by this software is inevitably likely to have some ` +
-            `errors and omissions.">Choose grid-fill</span>
+            `errors and omissions.">Choose grid-fill:</span>
         <button class="xlv-small-button" style="padding:5px 4px"
-            title="Keyboard shortcut: Ctrl-q"
-            onclick="exet.puz.clearCurr()">Clear light</button>
+            title="Click to see grid-fill possibilities from web sources of words and phrases"
+            id="xet-show-web-fills">Web sources
+          <div class="xet-web-fills-panel"
+              title="Click anywhere outside this box to dismiss it"
+              id="xet-web-fills-panel" style="display:none">
+          </div>
+        </button>
       </div>
       <div class="xet-choices-box" id="xet-light-choices-box">
         <table id="xet-light-choices"
@@ -1914,12 +1923,22 @@ Exet.prototype.makeExetTab = function() {
   this.tip = document.getElementById("xet-tip")
   this.setRandomTip();
 
-  this.lChoices = document.getElementById("xet-light-choices")
-  this.lRejects = document.getElementById("xet-light-rejects")
-  this.preflexUsed = document.getElementById("xet-preflex-used")
-  this.preflexSize = document.getElementById("xet-preflex-size")
-  this.preflexEditor = document.getElementById("xet-preflex-editor")
-  this.preflexInput = document.getElementById("xet-preflex-input")
+  this.lChoices = document.getElementById("xet-light-choices");
+  this.lRejects = document.getElementById("xet-light-rejects");
+  this.preflexUsed = document.getElementById("xet-preflex-used");
+  this.preflexSize = document.getElementById("xet-preflex-size");
+  this.preflexEditor = document.getElementById("xet-preflex-editor");
+  this.preflexInput = document.getElementById("xet-preflex-input");
+  this.webFillsPanel = document.getElementById("xet-web-fills-panel");
+  this.showWebFillsButton = document.getElementById("xet-show-web-fills");
+  if (!exetConfig.webFills || exetConfig.webFills.length == 0) {
+    this.showWebFillsButton.style.display = 'none';
+  } else {
+    this.showWebFillsButton.addEventListener('click', e=> {
+      exet.showWebFills();
+      e.stopPropagation()
+    });
+  }
   /* populate with existing preflex */
   let preflexText = '';
   for (let p of this.preflex) {
@@ -1931,7 +1950,7 @@ Exet.prototype.makeExetTab = function() {
     exet.updatePreflex();
     exetModals.showModal(exet.preflexEditor)
     e.stopPropagation()
-  })
+  });
   this.unpreflexSize = document.getElementById("xet-unpreflex-size")
   this.unpreflexEditor = document.getElementById("xet-unpreflex-editor")
   this.unpreflexInput = document.getElementById("xet-unpreflex-input")
@@ -1939,7 +1958,7 @@ Exet.prototype.makeExetTab = function() {
   document.getElementById("xet-edit-unpreflex").addEventListener('click', e=> {
     exetModals.showModal(exet.unpreflexEditor)
     e.stopPropagation()
-  })
+  });
   this.minpopInclSpan = document.getElementById("xet-minpop-incl")
   this.minpopInput = document.getElementById("xet-minpop")
   this.minpopInput.value = this.minpop
@@ -2852,6 +2871,86 @@ Exet.prototype.makeResearchTab = function() {
   this.researchUrl = document.getElementById('xet-research-choice-url')
 }
 
+Exet.prototype.makeWebFillsPanel = function() {
+  const webFills = exetConfig.webFills;
+  if (!webFills || webFills.length == 0) {
+    return;
+  }
+  const names = [];
+  let html = `
+    <div>
+      <b>Web grid-fill source:</b> <select id="xet-web-fills-menu"></select>
+      <div class="xet-web-fills-caveat">
+        Caveat: Some web sources are more likely to include weird
+        fill choices that would generally be considered unacceptable.
+      </div>
+    </div>
+    <br>
+    <div id="xet-web-fills-content">
+  `;
+  for (const wf of webFills) {
+    names.push(wf.name);
+    html += `
+      <div id="xet-web-fill-${wf.id}-frame" style="display:none">
+        <a href="" target="_blank" id="xet-web-fill-${wf.id}-url"
+          class="xet-blue xet-small"></a><br>
+        <iframe class="xet-web-fills-iframe" id="xet-web-fill-${wf.id}-content">
+        </iframe>
+      </div>
+    `;
+  }
+  html += '<div>';
+  this.webFillsPanel.innerHTML = html;
+  this.showWebFillsButton.title += ': ' + names.join(', ');
+
+  this.webFillsMenu = document.getElementById('xet-web-fills-menu');
+  this.webFillsChoice = 0;
+  let index = 0;
+
+  for (const wf of webFills) {
+    wf.frame = document.getElementById(`xet-web-fill-${wf.id}-frame`)
+    wf.content = document.getElementById(`xet-web-fill-${wf.id}-content`)
+    wf.urldisp = document.getElementById(`xet-web-fill-${wf.id}-url`)
+    if (typeof wf.maker == 'string') {
+      wf.maker = this.getNamedMaker(wf.maker);
+    }
+    this.webFillsMenu.insertAdjacentHTML('beforeend', `
+        <option value="${index}">${wf.name}</option>`);
+    index++;
+  }
+  this.webFillsMenu.addEventListener(
+      'change', this.webFillsMenuSelect.bind(this));
+}
+
+Exet.prototype.webFillsMenuSelect = function() {
+  const webFills = exetConfig.webFills;
+  const newChoice = this.webFillsMenu.value;
+  if (newChoice != this.webFillsChoice) {
+    const wf = webFills[this.webFillsChoice];
+    wf.frame.style.display = 'none';
+    this.webFillsChoice = newChoice;
+  }
+  const wf = webFills[this.webFillsChoice];
+  wf.frame.style.display = '';
+  let theClue = this.currClue();
+  const words = theClue ? theClue.solution : '';
+  const wordParam = wf.maker.call(this, words);
+  if (!wf.param || wf.param != wordParam) {
+    wf.param = wordParam;
+    const url = wf.url + wordParam;
+    this.loadIframe(wf.content, url, wf.urldisp);
+  }
+}
+
+Exet.prototype.showWebFills = function() {
+  const webFills = exetConfig.webFills;
+  if (!webFills || webFills.length == 0) {
+    return;
+  }
+  this.webFillsMenuSelect();
+  exetModals.showModal(exet.webFillsPanel)
+}
+
 /**
  * Returns an array of all possible splits of the sequence of letters in
  * fodder into k parts. Each split is an array of length k, with each
@@ -3516,6 +3615,7 @@ Exet.prototype.populateFrame = function() {
   this.makeExetTab();
   this.makeIndsTab();
   this.makeResearchTab();
+  this.makeWebFillsPanel();
 }
 
 Exet.prototype.fileTitle = function() {
@@ -4001,6 +4101,21 @@ Exet.prototype.nutrRevHiddenParam = function(s) {
          '"' + sL[last] + 'A"A*';
 }
 
+/** Nutrimatic-specific maker for finding grid-fills */
+Exet.prototype.nutrFillParam = function(s) {
+  return s.toLowerCase().replace(/\?/g, 'A');
+}
+
+/** Qat-specific maker for finding grid-fills */
+Exet.prototype.qatFillParam = function(s) {
+  return s.toLowerCase().replace(/\?/g, '.');
+}
+
+/** Onelook-specific maker for finding grid-fills */
+Exet.prototype.onelookFillParam = function(s) {
+  return s.toLowerCase();
+}
+
 Exet.prototype.getNamedMaker = function(name) {
   if (!name) {
     return this.makeCAParam;
@@ -4012,6 +4127,12 @@ Exet.prototype.getNamedMaker = function(name) {
     return this.nutrAlternationParam;
   } else if (name == 'Nutrimatic-RevAlternation') {
     return this.nutrRevAlternationParam;
+  } else if (name == 'Nutrimatic-Fill') {
+    return this.nutrFillParam;
+  } else if (name == 'Qat-Fill') {
+    return this.qatFillParam;
+  } else if (name == 'Onelook-Fill') {
+    return this.onelookFillParam;
   } else {
     console.log('Unknown parameter function maker name: ' + name);
     return this.makeCAParam;

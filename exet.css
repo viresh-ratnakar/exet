@@ -300,7 +300,10 @@
 #xet-light-rejects tr:nth-child(even) td { background: #e8c6f6; }  
 #xet-light-rejects tr:hover td {
   background: lightblue;
-}  
+}
+.xet-fills-heading {
+  min-height: 22px;
+}
 .xet-fill-settings {
   width: 300px;
   padding: 8px;
@@ -591,16 +594,42 @@
   width: 25px;
   height: 25px;
 }
+.xet-web-fills-caveat {
+  font-size: x-small;
+  font-style: italic;
+  font-weight: normal;
+  color: gray;
+}
+.xet-web-fills-caveat:hover {
+  color: black;
+}
+.xet-web-fills-iframe {
+  border: 0;
+  overflow: auto;
+  height: 440px;
+  width: 840px;
+}
+.xet-web-fills-panel,
 .xet-text-editor {
   position: absolute;
   left: 0;
-  top: 0;
   padding: 8px;
   z-index: 2;
-  background-color: white;
   border: 1px solid green;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   font-size: 12px;
+}
+#xet-frame .xet-fills-heading .xlv-small-button:hover {
+  background-color: lavender;
+}
+.xet-web-fills-panel {
+  background-color: lavender;
+  text-align: left;
+  top: 30px;
+}
+.xet-text-editor {
+  background-color: white;
+  top: 0;
 }
 .xet-text-editor .xet-choices-box div,
 .xet-text-editor .xet-choices-box textarea {

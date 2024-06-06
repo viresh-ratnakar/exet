@@ -1,5 +1,29 @@
 # Changelog
 
+### Version: Exet v0.92, June 6, 2024
+
+- Remove the "Clear light" button. Add it as a choice in the Edit menu.
+  This creates space frothe "Web sources" button.
+- Add a "Web sources" button to find additional grid-fill possibilities.
+  - This button replaces the 'Clear light' button. Clearing the current
+    light is now a choice in the Edit menu (just above "Clear all the
+    lights!). The keyboard shortcut for it (Ctrl-q) is probably the
+    more convenient way to clear the current light.
+  - The extra sources are added via a configurable list of entries in
+    `exetConfig.webFills` in `exet.html`. I've used Nutrimatic, Onelook,
+    and Qat as the web sources.
+  - Clicking on the `Web sources` button brings up a modal panel under it,
+    which shows the matching results in an iframe. Note that these
+    sources are cross-domain sources, so Exet can't directly access
+    their data, so you have to manually enter into the grid a choice that
+    you find there and deem acceptable. But given that using web sources
+    would be a rare last-resort, this should be OK.
+  - The button and the modal panel have a distinctive background color
+    (lavender), to underscore the fact that these are not normal lexicon
+    results. A caveat is also shown.
+- Add a link to the Exlve-Exet-Etc Google Group to README,md as well as
+  about-exet.html.
+
 ### Minor update: Exet v0.91.4 June 1, 2024
 
 - Documentation update: add tips on using nutrimatic for Hidden/Alternations.

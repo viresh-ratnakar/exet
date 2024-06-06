@@ -10,10 +10,10 @@ Copyright (c) 2020 Viresh Ratnakar
 
 See the full license notice in exet.js.
 
-Current version: v0.91, January 9, 2024
+Current version: v0.92, June 6, 2024
 -->
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.54"/>
-<link rel="stylesheet" type="text/css" href="exet.css?v0.91"/>
+<link rel="stylesheet" type="text/css" href="exet.css?v0.92"/>
 
 <script>
 /**
@@ -73,6 +73,26 @@ exetConfig = {
       ]
     },
   ],
+  webFills: [
+    {
+      id: "nutrimatic",
+      name: "Nutrimatic",
+      url: "https://nutrimatic.org/?q=",
+      maker: "Nutrimatic-Fill",
+    },
+    {
+      id: "onelook",
+      name: "Onelook",
+      url: "https://onelook.com/?ssbp=1&w=",
+      maker: "Onelook-Fill",
+    },
+    {
+      id: "qat",
+      name: "Qat",
+      url: "https://www.quinapalus.com/cgi-bin/qat?ent=Search&dict=7&pat=",
+      maker: "Qat-Fill",
+    },
+  ],
   listsLinks: [
     {name: "Crossword Unclued's anagram indicators",
      url: "https://www.crosswordunclued.com/2008/09/anagram-indicators.html"},
@@ -119,17 +139,20 @@ exetConfig = {
      url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22insertion%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
     {name: "Reversal indicators from cryptics.georgeho.org",
      url: "https://cryptics.georgeho.org/data?sql=select+rowid%2C+wordplay%2C+indicator%2C+clue_rowids+from+indicators+where+%22wordplay%22+%3D+%22reversal%22+order+by+rowid+limit+1000%0D%0A&_hide_sql=1"},
+    {name: "separator"},
+    {name: "All indicator pages on clueclinic.com",
+     url: "http://www.clueclinic.com/index.php/clinical-data/"},
   ],
 };
 </script>
 
 <script src="exolve-m.js?v1.54"></script>
 <script src="exolve-from-puz.js?v1.54"></script>
-<script defer src="lufz-en-lexicon.js?v0.91"></script>
-<script src="exet-lexicon.js?v0.91"></script>
-<script src="exet-analysis.js?v0.91"></script>
-<script src="exet-autofill.js?v0.91"></script>
-<script src="exet.js?v0.91"></script>
+<script defer src="lufz-en-lexicon.js?v0.92"></script>
+<script src="exet-lexicon.js?v0.92"></script>
+<script src="exet-analysis.js?v0.92"></script>
+<script src="exet-autofill.js?v0.92"></script>
+<script src="exet.js?v0.92"></script>
 
 <title>Exet: Create a crossword</title>
 
