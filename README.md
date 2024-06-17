@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.92, June 6, 2024
+#### Version: Exet v0.93, June 17, 2024
 
 #### Author: Viresh Ratnakar
 
@@ -628,23 +628,45 @@ for the entry in the currently selected light. However, you can generate wordpla
 candidates for any other word or phrase, by editing the input field(s) near the
 top in each tab. These tabs are:
 
-- **Charades**: Shows candidate charade wordplays, including anagrams,
-  reversals, and containers, sorted in decreasing order of the average length
-  of wordplay components.
-- **Edits, Sounds**: Shows candidate wordplays for deletion, insertion,
-  substitution, sorted in increasing order of a kind of edit distance (sum
-  of lengths of deletions, insertions, substitutions, with the length of a
-  substitution being the max of the plus and minus term lengths). Also shows
-  homophones and Spoonerisms (derived using the Carnegie Mellon Pronouncing
-  Dictionary—see their copyright notice at the end of this document).
-- **Anagrams**: Shows anagrams of the current entry ("fodder"). There is an
-  interactive slot for drafting an anagram too—you can use that to also craft
-  composite/extended anagrams, as it automatically updates anagrams of any
-  letters from the fodder that have not yet been used in the draft, as well
-  as anagrams of any extra letters in the draft that are not present in the
-  fodder. The suggested anagrams include multi-word anagrams. Additionally,
-  shows anagrams that are Wikipedia phrases, using
-  [nutrimatic.org](https://nutrimatic.org).
+- **Anagrams/()**: Shows anagrams and containments for the current entry
+  ("fodder").
+  - For anagrams, there is an interactive slot for drafting a
+    tentative anagram—you can use that to craft composite/extended anagrams,
+    as the software automatically updates anagrams of any unused letters from
+    the fodder that have not yet been used in the draft, as well
+    as anagrams of any extra letters in the draft that are not present in the
+    fodder. The suggested anagrams include multi-word anagrams. Since each
+    single letter is included as a word in the lexicon, the list of anagrams
+    shown also includes anagrams of the fodder with just one letter left
+    out.
+  - Anagrams components that are present intact as subtrings in the fodder
+    are shown in green. This means that single-letter parts are also shown
+    in green.
+  - Anagram components are marked with `*` (anagram) or `<<` (reversal) or
+    nothing, as appropriate, depending upon how they are seen in the fodder.
+  - Containments (A around B) are shown in a tabular form showing all
+    anagrams of A and B. The anagram colouring/annotating scheme described
+    above is used here too.
+- **Charades/-**: Shows candidate charades and anagrammed deletions.
+    - Anagrammed deletions (`*(A - B*)`) are shown together above charades
+      (for convenience: you can easily scroll past them if needed). Anagrammed
+      deletions include the common special case where the anagrammed part has
+      one extra letter than the fodder. Anagrammed deletions are sorted to
+      show shorter deletions first.
+    - Charades are listed in decreasing order of the average length of
+      components.
+    - We try to avoid duplicating what's already covered by
+      anagrams/containments, so these are generally not included in charades.
+    - The anagram colouring/annotating scheme described above is used here too.
+- **Edits, Sounds**:
+  - Shows candidate wordplays for deletion, insertion,
+    substitution (direct, not anagrammed), sorted in increasing order of a
+    kind of edit distance (sum of lengths of deletions, insertions,
+    substitutions, with the length of a substitution being the max of the plus
+    and minus term lengths).
+  - Also shows homophones and Spoonerisms (derived using the Carnegie Mellon
+    Pronouncing Dictionary—see their copyright notice at the end of this
+    document).
 - **Hidden**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay possibilities for the
   entry in the current light. Setters can tweak the wordplay as they choose.

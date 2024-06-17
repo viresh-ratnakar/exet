@@ -219,6 +219,12 @@
 .xet-red {
   color: red;
 }
+.xet-green {
+  color: green;
+}
+.xet-darkgreen {
+  color: darkgreen;
+}
 .xet-blue {
   color: blue;
   text-decoration: none;
@@ -249,6 +255,9 @@
   border: 0;
   margin: 12px 0 0 0;
   overflow: auto;
+}
+.xet-gray-bordered-rows td {  
+  border-bottom: 1px solid gray;
 }
 .xet-choices-box {  
   border: 1px solid gray;
@@ -491,7 +500,7 @@
   height: 25px;
   width: 25px;
 }
-.xet-companag {
+.xet-scrollable {
   padding: 0 0 8px 0;
   overflow: auto;
 }
@@ -500,13 +509,16 @@
   font-family: monospace;
   font-size: 12px;
 }
+.xet-section td {
+  padding: 0 8px 0 8px;
+}
 .xet-table-midline td:nth-child(1) {
   padding: 2px 4px 2px 0;
   padding-right: 4px;
 }
-.xet-table-midline td:nth-child(2) {
+.xet-table-midline td:not(:first-child) {
   border-left: 1px solid gray;
-  padding: 2px 0 2px 6px;
+  padding: 2px 4px 2px 6px;
 }
 .xet-table-midline td {
   padding-top: 4px;
@@ -679,18 +691,18 @@
   outline: none;
 }
 .xet-anag-help {
-  color: darkgray;
+  box-sizing: border-box;
+  color: blue;
+  max-width: 150px;
   font-size: small;
-  max-width: 340px;
+  outline: 1px gray;
 }
-.xet-anag-help:hover {
-  color: black;
+.xet-anag-help summary {
+  outline: none;
+  text-align: right;
 }
 .xet-anag-help ul {
   padding-inline-start: 10px;
-}
-.xet-anag-table {
-  min-width: 300px;
 }
 .xet-cah {
   background-color: white;

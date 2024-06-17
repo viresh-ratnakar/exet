@@ -1,5 +1,36 @@
 # Changelog
 
+### Version: Exet v0.93, June 17, 2024
+
+- This version mainly reorganizes the wordplay tabs a bit, adding some
+  new functionality.
+- Anagram displays now use a common scheme (implemented in
+  `ExetLexicon.displayAnagrams()`):
+  - Single-letter parts and longer parts that are present intact as
+    substrings in the fodder are coloured green.
+  - Parts are annotated with `*` (anagram) or `<<` (reversal) or
+    nothing, based upon how they appear in the fodder.
+  - Enclosing parenthesis are used when needed.
+- We add Containments to the Anagrams tab (renaming it as `Anagrams/()`).
+  Earlier, containments were buried in the Charades tab, but this
+  promotion now recognizes their higher status.
+- We add "Anagrammed deletions" to the Charades tab (renaming it
+  as `Charades/-`).
+  - These are wordplays of the form `*(A - B*)`. This includes the
+    special case of forming an anagram with one extra letter than
+    the given fodder.
+  - Anagrammed deletions are shown together, above charades, in the same
+    table. You can easily scroll past them if needed.
+  - Anagrammed deletions are implemented using
+    `ExetLexicon.getSupersetAnagrams()`. Similar to `getSubsetAnagrams()`,
+    this implementaion also uses "salient letter keys" to identify candidates.
+  - In charades, we try to not show anagrams/containments that are already
+    shown in the `Anagrams/()` tab.
+- Add gray border to the Charades/- tab rows, to make them easier to read,
+  especially for rows that wrap over.
+- Add "press escape to restore" to the Anagrams tab's fodder input area too.
+  Simplify the presentation of composite anagrams.
+
 ### Version: Exet v0.92, June 6, 2024
 
 - Remove the "Clear light" button. Add it as a choice in the Edit menu.

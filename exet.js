@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.92, June 6, 2024
+Current version: v0.93, June 17, 2024
 */
 
 function ExetModals() {
@@ -663,7 +663,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.92, June 6, 2024';
+  this.version = 'v0.93, June 17, 2024';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -978,25 +978,28 @@ Exet.prototype.setPuzzle = function(puz) {
     },
     {
       id: "wordplay1",
-      display: "Anagrams",
-      hover: "Anagrams, composite anagrams",
+      display: "Anagrams/()",
+      hover: "Anagrams, composite anagrams, containments",
       sections: [
         {id: "xet-companag", maker: this.makeCAParam,
-         title: "Anagrams and composite/extended anagrams",
-         hover: "You can unblur the detailed help text by hovering your cursor over it",},
+         title: "Anagrams, composite/extended anagrams",},
+        {id: "xet-containments", maker: this.makeCharadeParam,
+         title: "Containments"},
       ],
     },
     {
       id: "wordplay2",
-      display: "Charades",
-      hover: "Charades, including anagrams, reversals, containers",
-      sections: [{id: "xet-charades", maker: this.makeCharadeParam,
-                  title: "Charades, including anagrams, reversals, containers"}],
+      display: "Charades/-",
+      hover: "Charades, anagrammed deletions",
+      sections: [
+        {id: "xet-charades", maker: this.makeCharadeParam,
+         title: "Charades, anagrammed deletions"},
+      ],
     },
     {
       id: "wordplay3",
       display: "Edits, Sounds",
-      hover: "Edits (deletions, insertions, and substitutions), " +
+      hover: "Edits (small substitutions, insertions, deletions), " +
              "Homophones, Spoonerisms",
       sections: [
         {id: "xet-edits", maker: this.makeCharadeParam,
@@ -3033,18 +3036,55 @@ Exet.prototype.updateCharades = function(fodder) {
   if (this.throttledCharadeTimer) {
     clearTimeout(this.throttledCharadeTimer);
   }
-  this.throttledCharadeTimer = null
-  this.charadeCandidates = []
-  this.charadeParts = 1;
+  this.throttledCharadeTimer = null;
+  this.charadeCandidates = [];
+  this.charadeParts = 2;  /* 1-part is already seen in Anagrams */
   this.charadeSplits = null;
   this.charadeSplitIndex = 0;
+  this.charadeDeletionsAdded = false;
   this.charadeFodder = exetLexicon.lettersOf(fodder);
-  this.charadeMax = Math.min(this.charadeFodder.length, 4)
-  this.updateCharadesPartial()
+  this.charadeMax = Math.min(this.charadeFodder.length, 4);
+  this.updateCharadesPartial();
+}
+
+Exet.prototype.addDeletionCharades = function() {
+  const wordsMinuses = exetLexicon.getSupersetAnagrams(this.charadeFodder, 100, 6, 2);
+  const words = [];
+  const minuses = [];
+  const scores = [];
+  for (const wm of wordsMinuses) {
+    const word = exetLexicon.lexicon[wm[0]];
+    words.push(word);
+    const dispDiffAnags = exetLexicon.displayAnagrams(wm[1], wm[2]);
+    let diffAnagsStr = dispDiffAnags.join(', ');
+    if (dispDiffAnags.length > 1) {
+      diffAnagsStr = '<span class="xet-blue">[</span>' + diffAnagsStr +
+                     '<span class="xet-blue">]</span>';
+    }
+    minuses.push(diffAnagsStr);
+    /**
+     * High score to put all deletions on top of other charades, for
+     * convenience. Shorter deletions are shown first.
+     */
+    scores.push(100 - wm[1].length);
+  }
+  for (let i = 0; i < words.length; i++) {
+    const charadeStruct = {
+      charade: '<span class="xet-blue">*</span>(' + words[i] +
+               ' <span class="xet-blue">minus</span> ' +
+               minuses[i] + ')',
+      score: scores[i],
+    }
+    this.charadeCandidates.push(charadeStruct);
+  }
+  this.charadeDeletionsAdded = true;
 }
 
 Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   let startTS = Date.now()
+  if (!this.charadeDeletionsAdded) {
+    this.addDeletionCharades();
+  }
   while (this.charadeParts <= this.charadeMax) {
     if (!this.charadeSplits) {
       this.charadeSplits = this.getAllSplits(
@@ -3057,25 +3097,12 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
       for (let part of split) {
         let possible = '';
         let score = 0;
-        let choices = exetLexicon.getAnagrams(part, 6, false);
+        const choices = exetLexicon.displayAnagrams(
+            part, exetLexicon.getAnagrams(part, 6, false));
         if (choices.length > 0) {
+          possible = choices.join(', ');
           const partLetters = exetLexicon.lettersOf(part);
           score = partLetters.length;
-          let rpart = '';
-          if (partLetters.length > 1) {
-            rpart = partLetters.slice().reverse().join('');
-          }
-          for (let choice of choices) {
-            if (possible) possible = possible + ', ';
-            let key = exetLexicon.letterString(choice);
-            if (key == part) {
-              possible = possible + choice;
-            } else if (key == rpart) {
-              possible = possible + choice + '<span class="xet-blue"><<</span>';
-            } else {
-              possible = possible + choice + '<span class="xet-blue">*</span>';
-            }
-          }
           if (choices.length > 1) {
             possible = '<span class="xet-blue">[</span>' + possible +
                        '<span class="xet-blue">]</span>';
@@ -3087,8 +3114,16 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
         continue;
       }
       this.pushCharadeCandidate(viable);
+      /**
+       * The Containments tab already shows full containments.
+       * Here, we show containments that begin after the beginning or
+       * end before the ending.
+       */
       for (let c1 = 0; c1 < this.charadeParts - 2; c1++) {
         for (let c2 = c1 + 2; c2 < this.charadeParts; c2++) {
+          if (c1 == 0 && c2 == (this.charadeParts - 1)) {
+            continue;
+          }
           // Everything else must be viable
           let ok = true;
           for (let i = 0; i < this.charadeParts; i++) {
@@ -3101,23 +3136,11 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
             continue;
           }
           const container = split[c1] + (split[c2]);
-          const choices = exetLexicon.getAnagrams(container, 5, true)
+          const choices = exetLexicon.displayAnagrams(
+              container, exetLexicon.getAnagrams(container, 5, true));
           if (choices.length > 0) {
+            let possible = choices.join(', ');
             const containerParts = exetLexicon.lettersOf(container);
-            let rcontainer = containerParts.slice().reverse().join('');
-            let possible = '';
-            for (let choice of choices) {
-              if (possible) possible = possible + ', ';
-              let key = exetLexicon.letterString(choice);
-              if (key == container) {
-                possible = possible + choice;
-              } else if (key == rcontainer) {
-                possible = possible + choice +
-                           '<span class="xet-blue"><<</span>';
-              } else {
-                possible = possible + choice + '<span class="xet-blue">*</span>';
-              }
-            }
             if (choices.length > 1) {
               possible = '<span class="xet-blue">[</span>' + possible +
                          '<span class="xet-blue">]</span>';
@@ -3145,11 +3168,10 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
     }
   }
   let candidates = this.charadeCandidates.sort((a, b) => b.score - a.score);
-  let html = '<table class="xet-wordplay-choices">'
+  let html = '<table class="xet-wordplay-choices xet-gray-bordered-rows">'
   for (let candidate of candidates) {
     html = html + `
       <tr>
-        <td><span style="color:gray">[${candidate.score.toFixed(1)}]</span></td>
         <td>${candidate.charade}</td>
       </tr>`;
   }
@@ -3342,161 +3364,142 @@ Exet.prototype.updateSounds = function(fodder) {
 }
 
 Exet.prototype.updateCA = function() {
-  const fodder = exetLexicon.lcLettersOf(this.caFodder.value).sort();
-  const anagram = exetLexicon.lcLettersOf(this.caAnagram.value).sort();
-  let f = 0;
-  let a = 0;
-  const extra = [];
-  const unused = [];
-  while (f < fodder.length && a < anagram.length) {
-    if (fodder[f] == anagram[a]) {
-      f++;
-      a++;
-    } else if (fodder[f] < anagram[a]) {
-      unused.push(fodder[f++]);
-    } else {
-      extra.push(anagram[a++]);
-    }
-  }
-  while (f < fodder.length) {
-    unused.push(fodder[f++]);
-  }
-  while (a < anagram.length) {
-    extra.push(anagram[a++]);
-  }
-  extraS = extra.join('');
+  const fodderLetters = exetLexicon.lettersOf(this.caFodder.value);
+  const fodderHist = exetLexicon.letterHist(fodderLetters);
+  const anagramLetters = exetLexicon.lettersOf(this.caAnagram.value);
+  const anagramHist = exetLexicon.letterHist(anagramLetters);
 
-  const emptyDraft = anagram.length == 0;
-  if (emptyDraft) {
-    this.cahExtra.style.visibility = 'hidden';
-    this.cahUnused.style.visibility = 'hidden';
-    this.caExtra.style.visibility = 'hidden';
-    this.caUnused.style.visibility = 'hidden';
-    this.cahExtraAnags.style.visibility = 'hidden';
-    this.cahUnusedAnags.title = 'Anagrams of Fodder';
-    this.caExtraAnags.style.display = 'none';
-  } else {
-    this.cahExtra.style.visibility = 'visible';
-    this.cahUnused.style.visibility = 'visible';
-    this.caExtra.style.visibility = 'visible';
-    this.caUnused.style.visibility = 'visible';
-    this.cahExtraAnags.style.visibility = 'visible';
-    this.cahUnusedAnags.title = 'Anagrams of Fodder, excluding letters in Draft';
-    this.caExtraAnags.style.display = '';
-  }
+  const faHist = exetLexicon.letterHistSub(fodderHist, anagramHist, false);
+  const afHist = exetLexicon.letterHistSub(anagramHist, fodderHist, false);
 
-  this.caExtra.innerText = extraS;
+  const unused = exetLexicon.lettersXHist(fodderLetters, faHist);
+  const unusedS = unused.join('');
+  const extra = exetLexicon.lettersXHist(anagramLetters, afHist);
+  const extraS = extra.join('');
+
   let html = '<table>\n';
   let maxAnags = extra.length < 8 ? 400 : (extra.length < 10 ? 200 : 100);
-  let extraAnags = exetLexicon.getAnagrams(extraS, maxAnags);
-  for (let choice of extraAnags) {
-    html = html + `
+  const extraAnags = exetLexicon.displayAnagrams(
+      extraS, exetLexicon.getAnagrams(extraS, maxAnags));
+  for (const choice of extraAnags) {
+    html += `
       <tr><td>${choice}</td></tr>`;
   }
   html += '\n</table>';
   this.caExtraAnags.innerHTML = html;
 
-  unusedS = unused.join('');
-  this.caUnused.innerText = unusedS;
   html = '<table>\n';
   maxAnags = unused.length < 8 ? 400 : (unused.length < 10 ? 200 : 100);
-  let unusedAnags = exetLexicon.getAnagrams(unusedS, maxAnags);
-  for (let choice of unusedAnags) {
-    html = html + `
+  const unusedAnags = exetLexicon.displayAnagrams(
+      unusedS, exetLexicon.getAnagrams(unusedS, maxAnags));
+  for (const choice of unusedAnags) {
+    html += `
       <tr><td>${choice}</td></tr>`;
   }
   html += '\n</table>';
   this.caUnusedAnags.innerHTML = html;
 }
 
+Exet.prototype.updateContainments = function(fodder) {
+  const fodderLetters = exetLexicon.lettersOf(fodder);
+  const splits = this.getAllSplits(fodderLetters, 3);
+  /* Sort the splits to bring more even balance up top */
+  splits.sort((a, b) =>
+      Math.abs(a[0].length + a[2].length - a[1].length) -
+      Math.abs(b[0].length + b[2].length - b[1].length));
+
+  const results = [];
+  let html = `
+    <table class="xet-wordplay-choices xet-table-midline">
+  `;
+  let num = 0;
+  for (const split of splits) {
+    const outer = split[0] + split[2];
+    const outerAnagrams = exetLexicon.displayAnagrams(
+        outer, exetLexicon.getAnagrams(outer, 10 + outer.length, true));
+    if (outerAnagrams.length == 0) continue;
+    const inner = split[1];
+    const innerAnagrams = exetLexicon.displayAnagrams(
+        inner, exetLexicon.getAnagrams(inner, 10 + inner.length, true));
+    if (innerAnagrams.length == 0) continue;
+
+    if (num > 0) {
+      html += '\n<tr><td colspan="3"><hr></td></tr>';
+    }
+    num++;
+    const min = Math.min(outerAnagrams.length, innerAnagrams.length);
+    const max = Math.max(outerAnagrams.length, innerAnagrams.length);
+    for (let i = 0; i < min; i++) {
+      html += `
+        <tr><td>${outerAnagrams[i]}</td>
+        <td>${(i == 0) ? '<span class="xet-blue">around</span>' : ''}</td>
+        <td>${innerAnagrams[i]}</td></tr>`;
+    }
+    for (let i = min; i < outerAnagrams.length; i++) {
+      html += `
+        <tr><td>${outerAnagrams[i]}</td><td></td><td></td></tr>`;
+    }
+    for (let i = min; i < innerAnagrams.length; i++) {
+      html += `
+        <tr><td></td><td></td><td>${innerAnagrams[i]}</td></tr>`;
+    }
+  }
+  html += '</table>';
+  this.containments.innerHTML = html;
+}
+
 Exet.prototype.populateCompanag = function() {
-  const ca = document.getElementById('xet-companag');
-  ca.className = 'xet-companag';
+  const ca = document.getElementById('xet-companag-box');
   ca.innerHTML = `
-  <table width="100%">
-  <tr><td class="xet-td">
+  <div>
     <table class="xet-table-midline">
       <tr>
-        <td class="xet-td xet-cah">Fodder:</td>
-        <td class="xet-td xet-cah">Anagram draft:</td>
-      </tr>
-      <tr>
-        <td class="xet-td"><input type="text"
-           class="xlv-answer xet-companag-text" id='xet-ca-fodder'></input></td>
-        <td class="xet-td"><input type="text"
-          title="Enter a phrase that's only roughly an anagram of ` +
+        <td></td>
+        <td class="xet-td xet-cah">Draft anagram:
+          <br>
+          <input type="text"
+            title="Enter a phrase that's only roughly an anagram of ` +
             `some of the letters in the fodder"
-          class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input></td>
+          class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input>
+        </td>
       </tr>
       <tr>
-        <td></td><td></td>
-      </tr>
-      <tr>
-        <td class="xet-td xet-cah" id="xet-cah-extra">Extras (Draft minus Fodder)</td>
-        <td class="xet-td xet-cah" id="xet-cah-unused">Fodder (minus Draft)</td>
-      </tr>
-      <tr>
-        <td class="xet-td xet-companag-text"
-            id='xet-ca-extra'></td>
-        <td class="xet-td xet-companag-text"
-            id='xet-ca-unused'></td>
+        <td class="xet-td">
+          <div id="xet-ca-unused-anags"></div>
+        </td>
+        <td class="xet-td" >
+          <div>
+            <div id="xet-ca-extra-anags">
+            </div>
+            <div class="xet-anag-help">
+              <details>
+                <summary>Help</summary>
+                <ul>
+                <li>When the "Draft anagram" field is left blank, you can
+                see anagrams of the fodder in the first column.
+                </li>
+                <li>
+                If you enter something in the "Draft anagram" field, then
+                anagrams of fodder <i>excluding</i> the letters in
+                "Draft anagram" are shown in the first column.
+                </li>
+                <li>
+                Anagrams of any extra letters in "Draft anagram" (that are
+                not there in the fodder) are shown in this second column.
+                </li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </td>
       </tr>
     </table>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <div class="xet-anag-help">
-    <ul>
-    <li>When the "Anagram draft" field is left blank, you can
-    see anagrams of whatever is entered in the "Fodder" field.
-    </li>
-    <li>
-    If you enter something in the "Anagram draft" field, then
-    anagrams of "Fodder" <i>excluding</i> the letters in "Draft"
-    are shown under the "Fodder*" heading.
-    </li>
-    <li>
-    Anagrams of any extra letters in Draft (that are not there in
-    Fodder) are shown under the "Extras*" heading.
-    </li>
-    </ul>
-    </div>
-  </td>
-  <td class="xet-td">
-    <div class="xet-half-section">
-      <table class="xet-table-midline">
-        <tr>
-          <td class="xet-td xet-cah" id="xet-cah-unused-anags">
-            Fodder*
-          </td>
-          <td class="xet-td xet-cah" id="xet-cah-extra-anags">
-            Extras*
-          </td>
-        </tr>
-        <tr>
-          <td class="xet-td" id="xet-ca-unused-anags">
-          </td>
-          <td class="xet-td" id="xet-ca-extra-anags">
-          </td>
-        </tr>
-      </table>
-    </div>
-  </td></tr></table>`;
-  this.caFodder = document.getElementById('xet-ca-fodder');
+  </div>`;
+  this.caFodder = document.getElementById('xet-companag-param');
   this.caAnagram = document.getElementById('xet-ca-anagram');
-  this.caExtra = document.getElementById('xet-ca-extra');
-  this.caUnused = document.getElementById('xet-ca-unused');
-  this.cahExtra = document.getElementById('xet-cah-extra');
-  this.cahUnused = document.getElementById('xet-cah-unused');
-  this.caFodder.addEventListener('input', this.updateCA.bind(this));
   this.caAnagram.addEventListener('input', this.updateCA.bind(this));
   this.caExtraAnags = document.getElementById('xet-ca-extra-anags');
   this.caUnusedAnags = document.getElementById('xet-ca-unused-anags');
-  this.cahExtraAnags = document.getElementById('xet-cah-extra-anags');
-  this.cahUnusedAnags = document.getElementById('xet-cah-unused-anags');
 }
 
 Exet.prototype.populateFrame = function() {
@@ -3515,7 +3518,7 @@ Exet.prototype.populateFrame = function() {
     if (tab.sections.length > 0) {
       console.assert(tab.sections.length <= 2);
       const sectionClass = tab.sections.length > 1 ? 'xet-half-section' : 'xet-section';
-      frameHTML = frameHTML + `<div id="xet-${id}-sections"><table><tr>`;
+      frameHTML += `<div id="xet-${id}-sections"><table class="xet-sections"><tr>`;
       for (let i = 0; i < tab.sections.length; i++) {
         let section = tab.sections[i];
         frameHTML = frameHTML + '<td class="xet-td">';
@@ -3528,9 +3531,7 @@ Exet.prototype.populateFrame = function() {
             <iframe class="xet-iframe ${sectionClass}" id="xet-${id}-content-${i}">
             </iframe>`;
         } else {
-          let paramHtml = '';
-          if (section.id != 'xet-companag') {
-            paramHtml = `
+          const paramHtml = `
             <br>
             <input id="${section.id}-param" class="xlv-answer"
               size="32" type="text"
@@ -3538,11 +3539,13 @@ Exet.prototype.populateFrame = function() {
               placeholder="Press <Esc> to reset from grid">
             </input>
             `;
-          }
           frameHTML = frameHTML + `
             <div ${titleHover}class="xet-bold">${section.title || ''}</div>
             ${paramHtml}
             <div id="${section.id}">
+              <div id="${section.id}-box"
+                class="xet-in-tab-scrollable ${sectionClass}">
+              </div>
             </div>`
         }
         frameHTML = frameHTML + '</td>';
@@ -3559,26 +3562,10 @@ Exet.prototype.populateFrame = function() {
   }
   this.frame.innerHTML = frameHTML
 
-  const ch = document.getElementById('xet-charades')
-  ch.innerHTML = `
-    <div id="xet-charades-box" class="xet-in-tab-scrollable xet-section">
-    </div>
-  `
   this.charades = document.getElementById('xet-charades-box')
-
-  const eds = document.getElementById('xet-edits');
-  eds.innerHTML = `
-    <div id="xet-edits-box" class="xet-in-tab-scrollable xet-half-section">
-    </div>
-  `
   this.edits = document.getElementById('xet-edits-box');
-
-  const sd = document.getElementById('xet-sounds');
-  sd.innerHTML = `
-    <div id="xet-sounds-box" class="xet-in-tab-scrollable xet-half-section">
-    </div>
-  `
   this.sounds = document.getElementById('xet-sounds-box')
+  this.containments = document.getElementById('xet-containments-box')
 
   this.populateCompanag()
 
@@ -3602,6 +3589,7 @@ Exet.prototype.populateFrame = function() {
               }
             });
           }
+          section.content = document.getElementById(`${section.id}-box`)
           continue;
         }
         section.content = document.getElementById(`xet-${id}-content-${i}`)
@@ -4213,7 +4201,9 @@ Exet.prototype.handleTabClick = function(id) {
       }
       continue;
     }
+    let newLight = true;
     if (section.param == wordParam) {
+      newLight = false;
       if (section.paramInput && section.paramInput.value != wordParam) {
         wordParam = section.paramInput.value;
       } else {
@@ -4232,9 +4222,12 @@ Exet.prototype.handleTabClick = function(id) {
       this.updateEdits(wordParam);
     } else if (section.id == 'xet-sounds') {
       this.updateSounds(wordParam);
+    } else if (section.id == 'xet-containments') {
+      this.updateContainments(wordParam);
     } else if (section.id == 'xet-companag') {
-      this.caFodder.value = wordParam;
-      this.caAnagram.value = '';
+      if (newLight) {
+        this.caAnagram.value = '';
+      }
       this.updateCA();
     }
   }

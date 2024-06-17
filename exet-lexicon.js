@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.92, June 6, 2024
+Current version: v0.93, June 17, 2024
 */
 
 /**
@@ -376,6 +376,128 @@ function exetLexiconInit() {
   }
   
   /**
+   * Dedupes the given list of anagrams, and returns it along with
+   * "decorations":
+   * - Each single letter is colored green
+   * - Each substring is colored dark-green
+   * - Each reversed substring is colored dark-green and suffixed with <<
+   *   unless the whole anagram is a reversal
+   * - The whole anagram is suffixed with << or * (or nothing if in-sequence)
+   * - The whole anagram is wrapped in () before suffixing, if it has
+   *   multiple parts
+   * - Passing phrase as '' will just colour single letters, and will only
+   *   do parenthesis-wrapping if needed, and will only append the anagram
+   *   marker, *.
+   */
+  exetLexicon.displayAnagrams = function(phrase, anagrams) {
+    const NONE = 0;
+    const SINGLE = 1;
+    const STRAIGHT = 2;
+    const REVERSED = 3;
+    const seen = new Set;
+    const display = [];
+    const letters = this.lettersOf(phrase);
+    const phraseStr = letters.join('');
+    letters.reverse();
+    const phraseRevStr = letters.join('');
+    for (const anagram of anagrams) {
+      if (seen.has(anagram)) {
+        continue;
+      }
+      seen.add(anagram);
+
+      const parts = anagram.split(' ');
+
+      const displayTags = [];
+      let noNones = (phraseStr.length > 0);
+      const partStrs = [];
+      const partRevStrs = [];
+      for (const part of parts) {
+        const partLetters = this.lettersOf(part);
+        if (partLetters.length == 1) {
+          displayTags.push(SINGLE);
+          partStrs.push(partLetters[0]);
+          partRevStrs.push(partLetters[0]);
+          continue;
+        }
+        const partStr = partLetters.join('');
+        let tag = NONE;
+        if (phraseStr.indexOf(partStr) >= 0) {
+          tag = STRAIGHT;
+        } else if (phraseRevStr.indexOf(partStr) >= 0) {
+          tag = REVERSED;
+        }
+        if (tag == NONE) {
+          noNones = false;
+        } else if (noNones) {
+          partStrs.push(partStr);
+          partLetters.reverse();
+          partRevStrs.push(partLetters.join(''));
+        }
+        displayTags.push(tag);
+      }
+
+      let op = '*';
+      let charadeCombo = 0;
+      if (noNones) {
+        /**
+         * Check if all the parts can be strung together as-is or reversed to
+         * form phrase
+         */
+        console.assert(
+            parts.length == partStrs.length && parts.length == partRevStrs.length,
+            parts, partStrs, partRevStrs);
+        const partCombos = 1 << parts.length;
+        for (let combo = 0; combo < partCombos; combo++) {
+          const charade = [];
+          for (let i = 0; i < parts.length; i++) {
+            if (combo & (1 << i)) charade.push(partRevStrs[i]);
+            else charade.push(partStrs[i]);
+          }
+          if (combo == partCombos - 1 && phraseRevStr.length > 1) {
+            const revCharade = charade.slice();
+            revCharade.reverse();
+            if (revCharade.join('') == phraseStr) {
+              op = '<<';
+              charadeCombo = combo;
+              break;
+            }
+          }
+          if (charade.join('') == phraseStr) {
+            op = '';
+            charadeCombo = combo;
+            break;
+          }
+        }
+      } else if (!phrase) {
+        const anagramLetters = this.lettersOf(anagram);
+        if (anagramLetters.length == 1) {
+          op = '';
+        }
+      }
+
+      for (let i = 0; i < parts.length; i++) {
+        if (displayTags[i] == NONE) continue;
+        const cls = (displayTags[i] == SINGLE) ? 'xet-green' : 'xet-darkgreen';
+        parts[i] = `<span class="${cls}">${parts[i]}</span>`;
+        if (op == '' && parts.length > 1 && (charadeCombo & (1 << i))) {
+          parts[i] += '<span class="xet-blue"><<</span>';
+        }
+      }
+
+      let joined = parts.join(' ');
+      if (op != '' && parts.length > 1) {
+        joined = '(' + joined + ')';
+      }
+      if (op) {
+        joined += `<span class="xet-blue">${op}</span>`;
+      }
+      display.push(joined);
+    }
+    return display;
+  }
+
+  /**
    * Multi-word anagrams of phrases.
    *
    * Simply using the letter-histogram as the key doesn't work, as we cannot
@@ -457,19 +579,40 @@ function exetLexiconInit() {
     }
     return hist;
   }
+
+
+  /* Intersect letters with histogram. */
+  exetLexicon.lettersXHist = function(letters, hist) {
+    const result = [];
+    for (const l of letters) {
+      const idx = this.letterIndex[l];
+      if (hist[idx] > 0) {
+        result.push(l);
+        hist[idx]--;
+      }
+    }
+    return result;
+  }
   
   /**
+   * Returns h1-h2.
+   * If h2 is not a strict subset of h1, then:
+   *   if strict=true, returns null
+   *   otherwise zeros out the returned hist where h2 is bigger than h1.
    * Returns null if h2 is not a strict subset of h1. Otherwise returns h1-h2.
    */
-  exetLexicon.letterHistSub = function(h1, h2) {
+  exetLexicon.letterHistSub = function(h1, h2, strict=true) {
     const ret = h1.slice();
     let allZeros = true;
     for (let i = 0; i < h1.length; i++) {
       ret[i] = ret[i] - h2[i];
-      if (ret[i] < 0) return null;
+      if (ret[i] < 0) {
+        if (strict) return null;
+        ret[i] = 0;
+      }
       if (ret[i] > 0) allZeros = false;
     }
-    if (allZeros) return null;
+    if (allZeros && strict) return null;
     return ret;
   }
   
@@ -621,6 +764,78 @@ function exetLexiconInit() {
   /**
    * End of code for multi-word anagrams.
    */
+
+  /**
+   * Get anagrams of words that contain all "letters"
+   * letters: ordered array of phrase letters
+   * limit: max results (set to 100 if passed as 0 or negative)
+   * minusLimit: max number of anagrams of the subtracted part
+   * maxSupFactor: starting word must be no longer than this times len(letters)
+   * @return: array of triples [word, subtraction, subtractionAnagrams (array)]
+   */
+  exetLexicon.getSupersetAnagrams = function(letters, limit, minusLimit, maxSupFactor) {
+    const lettersStr = letters.join('');
+    const slk = this.slKey(letters);
+    const slkMins = slk.slice();
+    const slkMaxes = slk.slice();
+    let product = 1;
+    const bound = limit > 0 ? limit : 100;
+    while (product < bound) {
+      for (let i = 0; i < 8 && product < bound; i++) {
+        const oldNum = slkMaxes[i] - slkMins[i] + 1;
+        product = product * (oldNum + 1) / oldNum;
+        if (product < bound) {
+          slkMaxes[i]++;
+        }
+      }
+    }
+    const fullHist = this.letterHist(letters);
+    const subkey = [0,0,0,0,0,0,0,0];
+    const anagrams = [];
+  
+    let num = 0;
+    // Vary the more common letters in the inner loops.
+    for (let i7 = slkMins[7]; i7 <= slkMaxes[7]; i7++) {
+      subkey[7] = i7;
+      for (let i6 = slkMins[6]; i6 <= slkMaxes[6]; i6++) {
+        subkey[6] = i6;
+        for (let i5 = slkMins[5]; i5 <= slkMaxes[5]; i5++) {
+          subkey[5] = i5;
+          for (let i4 = slkMins[4]; i4 <= slkMaxes[4]; i4++) {
+            subkey[4] = i4;
+            for (let i3 = slkMins[3]; i3 <= slkMaxes[3]; i3++) {
+              subkey[3] = i3;
+              for (let i2 = slkMins[2]; i2 <= slkMaxes[2]; i2++) {
+                subkey[2] = i2;
+                for (let i1 = slkMins[1]; i1 <= slkMaxes[1]; i1++) {
+                  subkey[1] = i1;
+                  for (let i0 = slkMins[0]; i0 <= slkMaxes[0]; i0++) {
+                    subkey[0] = i0;
+                    const wordIndices = this.slkIndex[subkey];
+                    if (!wordIndices) continue;
+                    for (let wordIndex of wordIndices) {
+                      const supLetters = this.lettersOf(this.lexicon[wordIndex]);
+                      if (supLetters.join('').indexOf(lettersStr) >= 0) {
+                        /* phrase is a substring, skip. */
+                        continue;
+                      }
+                      if (supLetters.length > letters.length * maxSupFactor) {
+                        continue;
+                      }
+                      const supWordHist = this.letterHist(supLetters);
+                      const diffHist = this.letterHistSub(supWordHist, fullHist);
+                      if (!diffHist) continue;
+                      const diffStr = this.lettersXHist(supLetters, diffHist).join('');
+                      const diffAnags = this.getAnagrams(diffStr, minusLimit);
+                      if (diffAnags.length == 0) continue;
+                      anagrams.push([wordIndex, diffStr, diffAnags]);
+                      num += diffAnags.length;
+                      if (num > limit) {
+                        break;
+                      }
+    } } } } } } } } }
+    return anagrams;
+  }
 
   exetLexicon.containsPhone = function(index, phone_str) {
     const phones = this.phones[index];
