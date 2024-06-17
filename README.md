@@ -655,6 +655,8 @@ top in each tab. These tabs are:
       show shorter deletions first.
     - Charades are listed in decreasing order of the average length of
       components.
+    - For short fodders, you'll find more anagrammed deletions than charades,
+      and the for long fodders, you'll find more charades. 
     - We try to avoid duplicating what's already covered by
       anagrams/containments, so these are generally not included in charades.
     - The anagram colouring/annotating scheme described above is used here too.

@@ -790,28 +790,28 @@ function exetLexiconInit() {
       }
     }
     const fullHist = this.letterHist(letters);
-    const subkey = [0,0,0,0,0,0,0,0];
+    const supkey = [0,0,0,0,0,0,0,0];
     const anagrams = [];
   
     let num = 0;
     // Vary the more common letters in the inner loops.
     for (let i7 = slkMins[7]; i7 <= slkMaxes[7]; i7++) {
-      subkey[7] = i7;
+      supkey[7] = i7;
       for (let i6 = slkMins[6]; i6 <= slkMaxes[6]; i6++) {
-        subkey[6] = i6;
+        supkey[6] = i6;
         for (let i5 = slkMins[5]; i5 <= slkMaxes[5]; i5++) {
-          subkey[5] = i5;
+          supkey[5] = i5;
           for (let i4 = slkMins[4]; i4 <= slkMaxes[4]; i4++) {
-            subkey[4] = i4;
+            supkey[4] = i4;
             for (let i3 = slkMins[3]; i3 <= slkMaxes[3]; i3++) {
-              subkey[3] = i3;
+              supkey[3] = i3;
               for (let i2 = slkMins[2]; i2 <= slkMaxes[2]; i2++) {
-                subkey[2] = i2;
+                supkey[2] = i2;
                 for (let i1 = slkMins[1]; i1 <= slkMaxes[1]; i1++) {
-                  subkey[1] = i1;
+                  supkey[1] = i1;
                   for (let i0 = slkMins[0]; i0 <= slkMaxes[0]; i0++) {
-                    subkey[0] = i0;
-                    const wordIndices = this.slkIndex[subkey];
+                    supkey[0] = i0;
+                    const wordIndices = this.slkIndex[supkey];
                     if (!wordIndices) continue;
                     for (let wordIndex of wordIndices) {
                       const supLetters = this.lettersOf(this.lexicon[wordIndex]);

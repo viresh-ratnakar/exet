@@ -3048,7 +3048,8 @@ Exet.prototype.updateCharades = function(fodder) {
 }
 
 Exet.prototype.addDeletionCharades = function() {
-  const wordsMinuses = exetLexicon.getSupersetAnagrams(this.charadeFodder, 100, 6, 2);
+  const wordsMinuses = exetLexicon.getSupersetAnagrams(
+      this.charadeFodder, 1000, 6, 2);
   const words = [];
   const minuses = [];
   const scores = [];

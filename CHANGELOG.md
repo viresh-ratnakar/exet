@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.93.1 June 17, 2024
+
+- Increase the number of anagrammed deletions we look for, from 100 to 1000.
+  At 100, we sometimes miss catching even all possible single-letter deletions.
+
 ### Version: Exet v0.93, June 17, 2024
 
 - This version mainly reorganizes the wordplay tabs a bit, adding some
