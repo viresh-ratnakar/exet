@@ -3377,6 +3377,8 @@ Exet.prototype.updateCA = function() {
   const unusedS = unused.join('');
   const extra = exetLexicon.lettersXHist(anagramLetters, afHist);
   const extraS = extra.join('');
+  this.caUnused.innerText = unusedS;
+  this.caExtra.innerText = extraS;
 
   let html = '<table>\n';
   let maxAnags = extra.length < 8 ? 400 : (extra.length < 10 ? 200 : 100);
@@ -3455,7 +3457,7 @@ Exet.prototype.populateCompanag = function() {
   <div>
     <table class="xet-table-midline">
       <tr>
-        <td></td>
+        <td><div style="min-width:100px"></div></td>
         <td class="xet-td xet-cah">Draft anagram:
           <br>
           <input type="text"
@@ -3463,6 +3465,10 @@ Exet.prototype.populateCompanag = function() {
             `some of the letters in the fodder"
           class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input>
         </td>
+      </tr>
+        <td class="xet-td"><u><span id="xet-ca-unused"></span></u></td>
+        <td class="xet-td"><u><span id="xet-ca-extra"></span></u></td>
+      <tr>
       </tr>
       <tr>
         <td class="xet-td">
@@ -3499,8 +3505,10 @@ Exet.prototype.populateCompanag = function() {
   this.caFodder = document.getElementById('xet-companag-param');
   this.caAnagram = document.getElementById('xet-ca-anagram');
   this.caAnagram.addEventListener('input', this.updateCA.bind(this));
-  this.caExtraAnags = document.getElementById('xet-ca-extra-anags');
+  this.caUnused = document.getElementById('xet-ca-unused');
   this.caUnusedAnags = document.getElementById('xet-ca-unused-anags');
+  this.caExtraAnags = document.getElementById('xet-ca-extra-anags');
+  this.caExtra = document.getElementById('xet-ca-extra');
 }
 
 Exet.prototype.populateFrame = function() {

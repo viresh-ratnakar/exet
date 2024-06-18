@@ -1,5 +1,13 @@
 # Changelog
 
+### Minor update: Exet v0.93.2 June 18, 2024
+
+- Add a top row in both columns in the anagrams table (unused fodder,
+  extra in draft) to show the letters getting anagrammed. This is useful
+  to avoid confusion when there *are* letters left, but they do not form any
+  anagrams.
+- Add a min-width to the anagrams column.
+
 ### Minor update: Exet v0.93.1 June 17, 2024
 
 - Increase the number of anagrammed deletions we look for, from 100 to 1000.
