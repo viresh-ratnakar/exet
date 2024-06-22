@@ -261,13 +261,13 @@ body {
   color: var(--red);
 }
 .xet-green {
-  color: var(--green);
+  color: var(--accent);
 }
 .xet-darkgreen {
-  color: var(--green);
+  color: var(--accent);
 }
 .xet-blue {
-  color: var(--blue);
+  color: var(--accent);
   text-decoration: none;
 }
 .xet-small {
