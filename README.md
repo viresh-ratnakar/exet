@@ -4,7 +4,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.91, January 9, 2024
+#### Version: Exet v0.93, June 17, 2024
 
 #### Author: Viresh Ratnakar
 
@@ -76,6 +76,8 @@ I'll add support for more languages over time.
 I welcome [bug reports and feature
 requests](https://github.com/viresh-ratnakar/exet/issues/new).
 You may contact me via email too, at [viresh@exet.app](mailto:viresh@exet.app).
+There's also a discussion group for the community:
+["Exolve-Exet-Etc"](https://groups.google.com/g/exolve-exet-etc).
 
 If you use Exet and like it, please consider posting links to it and/or writing
 reviews, to help spread the word.
@@ -205,13 +207,14 @@ for details on 3-D crosswords.
   - Toggle nina ($)
   - Toggle colouring (^)
   - Clear all markings!
+- Clear current light (Ctrl-q)
+- Clear all the lights! (Ctrl-Q)
+- Reverse current light
 - Add/edit special sections:
   - Preamble
   - Explanations
   - Questions
   - Other Exolve sections
-- Reverse current light
-- Clear all the lights! (Ctrl-Q)
 - Preferences:
   - \[ \] Spellcheck clues/annos
   - \[ \] Allow asymmetry
@@ -428,6 +431,27 @@ finds one, or until there is failure.
   progress, you may want to pause, clear, and re-try (a smaller beam size
   might have made it fail faster in situations like this).
 
+#### Web sources
+
+The "Web sources" button is shown in the grid-fill choices area (only for
+supported languages for which we have readily available web sources). This
+lets you see additional fill choices from some web sources (currently only
+for English). This may be a last-resort option to complete a grid-fill, when
+no word/phrase from the lexicon fits. You have to use your own judgment to
+decide whether a word or phrase obtained from a web source is usable, as
+these matches may not necessarily be dictionary entries or common phrases.
+
+For English, the web sources made available are Nutrimatic, Onelook, and Qat.
+My personal experience is that Nutrimatic can sometimes find
+common-enough-to-be-fair-in-crosswords phrases that are missing from the
+lexicon.
+
+After clicking on the "Web sources" button, you can dismiss the panel that
+appears by clicking anywhere outside it. Pressing the Escape key should also
+dismiss it most of the time (but some sites such as Onelook may grab input
+focus, in which case the Escape key may not work: just click anywhere outside
+the box if the Escape key does not work).
+
 ### Providing the clues
 
 The clue for the entry in the current light is shown above the grid and can be
@@ -565,6 +589,11 @@ previously linked clues. When you break up a group of linked clues, any existing
 clue text from them will also get deleted. Grid-fill suggestions as well as
 autofill work as you might expect with linked clues.
 
+When you add a linked clue that continues on from the last cell of the
+current clue, then the enum does not double-count that cell. Similarly,
+if you create a "snake" out of linked clues, where the last cell is the
+same as the first cell, then we do not double-count that cell.
+
 #### Resources for clues
 
 When creating a clue for a word or a phrase, setters typically like to
@@ -601,34 +630,103 @@ for the entry in the currently selected light. However, you can generate wordpla
 candidates for any other word or phrase, by editing the input field(s) near the
 top in each tab. These tabs are:
 
-- **Charades**: Shows candidate charade wordplays, including anagrams,
-  reversals, and containers, sorted in decreasing order of the average length
-  of wordplay components.
-- **Edits, Sounds**: Shows candidate wordplays for deletion, insertion,
-  substitution, sorted in increasing order of a kind of edit distance (sum
-  of lengths of deletions, insertions, substitutions, with the length of a
-  substitution being the max of the plus and minus term lengths). Also shows
-  homophones and Spoonerisms (derived using the Carnegie Mellon Pronouncing
-  Dictionary—see their copyright notice at the end of this document).
-- **Anagrams**: Shows anagrams of the current entry ("fodder"). There is an
-  interactive slot for drafting an anagram too—you can use that to also craft
-  composite/extended anagrams, as it automatically updates anagrams of any
-  letters from the fodder that have not yet been used in the draft, as well
-  as anagrams of any extra letters in the draft that are not present in the
-  fodder. The suggested anagrams include multi-word anagrams. Additionally,
-  shows anagrams that are Wikipedia phrases, using
-  [nutrimatic.org](https://nutrimatic.org).
+- **Anagrams/()**: Shows anagrams and containments for the current entry
+  ("fodder").
+  - For anagrams, there is an interactive slot for drafting a
+    tentative anagram—you can use that to craft composite/extended anagrams,
+    as the software automatically updates anagrams of any unused letters from
+    the fodder that have not yet been used in the draft, as well
+    as anagrams of any extra letters in the draft that are not present in the
+    fodder. The suggested anagrams include multi-word anagrams. Since each
+    single letter is included as a word in the lexicon, the list of anagrams
+    shown also includes anagrams of the fodder with just one letter left
+    out.
+  - Anagrams components that are present intact as subtrings in the fodder
+    are shown in green. This means that single-letter parts are also shown
+    in green.
+  - Anagram components are marked with `*` (anagram) or `<<` (reversal) or
+    nothing, as appropriate, depending upon how they are seen in the fodder.
+  - Containments (A around B) are shown in a tabular form showing all
+    anagrams of A and B. The anagram colouring/annotating scheme described
+    above is used here too.
+- **Charades/-**: Shows candidate charades and anagrammed deletions.
+    - Anagrammed deletions (`*(A - B*)`) are shown together above charades
+      (for convenience: you can easily scroll past them if needed). Anagrammed
+      deletions include the common special case where the anagrammed part has
+      one extra letter than the fodder. Anagrammed deletions are sorted to
+      show shorter deletions first.
+    - Charades are listed in decreasing order of the average length of
+      components.
+    - For short fodders, you'll find more anagrammed deletions than charades,
+      and the for long fodders, you'll find more charades. 
+    - We try to avoid duplicating what's already covered by
+      anagrams/containments, so these are generally not included in charades.
+    - The anagram colouring/annotating scheme described above is used here too.
+- **Edits, Sounds**:
+  - Shows candidate wordplays for deletion, insertion,
+    substitution (direct, not anagrammed), sorted in increasing order of a
+    kind of edit distance (sum of lengths of deletions, insertions,
+    substitutions, with the length of a substitution being the max of the plus
+    and minus term lengths).
+  - Also shows homophones and Spoonerisms (derived using the Carnegie Mellon
+    Pronouncing Dictionary—see their copyright notice at the end of this
+    document).
 - **Hidden**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay possibilities for the
   entry in the current light. Setters can tweak the wordplay as they choose.
 - **Alternations**: Uses [nutrimatic.org](https://nutrimatic.org) to show
   "alternation" and "reversed alternation" wordplays for the entry in the
   current light.
+
+  <details>
+    <summary>
+      <b>Tips on using nutrimatic.org for Hidden/Alternations</b>
+    </summary>
+
+    - Hidden answer and Alternation searches in Exet are simply links
+      to nutrimatic searches. If these searches do not produce results,
+      or if you want to impose additional/different constraints, then
+      you may want to learn how to tweak the search queries (you can
+      edit them directly in the search box shown in Exet). Here's the
+      [relevant documentation on nutrimatic.org](https://nutrimatic.org/2024/usage.html).
+    - The first thing to try is to click (repeatedly) on the "Try harder"
+      link that is shown. In my experience, complex Alternations sometimes
+      show up only after the third or fourth "Try harder" click! The
+      "Try harder" clicks may eventually show an error message, in
+      which case you may want to tweak the query.
+    - Exet composes the most generic search queries for nutrimatic, by
+      default. For example, for the entry CREATED, for finding a hidden
+      answer possibility, Exet crafts this query:
+
+      > [`https://nutrimatic.org/?q=A*"Ac"reate"dA"A*`](https://nutrimatic.org/?q=A*"Ac"reate"dA"A*)
+
+      The query uses `"Ac"` to indicate that we want something that has
+      some letter before the `c`, and with no intervening space. This yields
+      no results, as the constraints prove too computationally expensive
+      for nutrimatic. But you can help nutrimatic by guessing that there
+      may be possibilities where the `at` in the middle is split out as
+      a single word, with something preceding it (ending in `cre`) and
+      something following it (beginning with `ed`). The following query
+      does show possibilities (after a few "Try harder" clicks!) such as
+      `massacre at Edinburgh`:
+
+      > [`https://nutrimatic.org/?q="AA*cre at edAA*"`](https://nutrimatic.org/2024/?q=%22AA%2Acre%20at%20edAA%2A%22)
+
+    - For alternations, the default is to search for "every-second-letter"
+      possibilities. But if you want to search for "every-third-letter"
+      possbilities (say), then you can modify the query to be somthing
+      like this:
+
+      > [`https://nutrimatic.org/2024/?q=cAArAAeAAaAAtAAeAAd`](https://nutrimatic.org/2024/?q=cAArAAeAAaAAtAAeAAd)
+
+  </details>
+
 - **Lists**: This is not specific to the current light. This tab provides
   convenient links to curated lists of wordplay indicators (for wordplays of
   various types) and cryptic abbreviations. The sources are:
   [Crossword Unclued](https://www.crosswordunclued.com), Wikipedia,
-  [Mythic beasts (updated)](https://longair.net/mark/random/indicators/), and
+  [Mythic beasts (updated)](https://longair.net/mark/random/indicators/),
+  [Clue Clinic](http://www.clueclinic.com/index.php/clinical-data/), and
   [cryptics.georgeho.org](https://cryptics.georgeho.org/).
   - You can highlight certain words when looking at any of these lists, by
     supplying a keyword and selecting a highlighting option from the menu
@@ -741,6 +839,14 @@ These analyses are useful to setters to control the following desirable
 properties of crosswords:
 
 - Grids should be connected, symmetric, and free from consecutive unches.
+- The Analysis tab also shows two (vertical and horizontal) "through-cut"
+  sizes for blocked grids. A through cut is a group of light cells that,
+  if turned dark, would split the grid into two (or more parts). Grids
+  that have very small through cut sizes may be harder for solvers, as
+  they may not be able to get footholds into some parts. I like both
+  vertical and horizontal through cut sizes to be at least 4, in 15x15
+  grids. You can see the specific cells highlighted when you hover over
+  a through-cut in the Analysis panel.
 - Solution entry length distributions should not be too skewed towards
   very short or very long.
 - Words (other than very common ones) should not be repeated in clues,
@@ -761,6 +867,9 @@ Here is an illustrative example of the kinds of analyses shown:
 > - 70 (31.11%) blocked cells
 > - No bars
 > - No consecutive unches
+> - Smallest "through cuts" found (hover over the lists to see the squares highlighted in the grid):
+>   - Vertical: (4 squares): \[r13c8 r9c8 r7c8 r3c8\]
+>   - Horizontal: (3 squares): \[r7c4 r8c8 r9c12\]
 > 
 > **All/Across/Down Grid-fill and Clues**
 > 

@@ -260,8 +260,14 @@ body {
 .xet-red {
   color: var(--red);
 }
+.xet-green {
+  color: var(--green);
+}
+.xet-darkgreen {
+  color: var(--green);
+}
 .xet-blue {
-  color: var(--accent);
+  color: var(--blue);
   text-decoration: none;
 }
 .xet-small {
@@ -291,6 +297,9 @@ body {
   border: 0;
   margin: 12px 0 0 0;
   overflow: auto;
+}
+.xet-gray-bordered-rows td {  
+  border-bottom: 1px solid gray;
 }
 .xet-choices-box {  
   border: none;
@@ -340,7 +349,10 @@ body {
 #xet-light-rejects tr:nth-child(even) td { background: color-mix(in srgb, var(--surface0), var(--pink) 25%); }  
 #xet-light-rejects tr:hover td {
   background: color-mix(in srgb, var(--overlay0), var(--pink) 25%);
-}  
+}
+.xet-fills-heading {
+  min-height: 22px;
+}
 .xet-fill-settings {
   width: 300px;
   padding: 8px;
@@ -527,7 +539,7 @@ body {
   height: 25px;
   width: 25px;
 }
-.xet-companag {
+.xet-scrollable {
   padding: 0 0 8px 0;
   overflow: auto;
 }
@@ -536,11 +548,14 @@ body {
   font-family: var(--mono-font);
   font-size: 12px;
 }
+.xet-section td {
+  padding: 0 8px 0 8px;
+}
 .xet-table-midline td:nth-child(1) {
   padding: 2px 4px 2px 0;
   padding-right: 4px;
 }
-.xet-table-midline td:nth-child(2) {
+.xet-table-midline td:not(:first-child) {
   border-left: none;
   padding: 2px 0 2px 6px;
 }
@@ -633,16 +648,43 @@ body {
   width: 25px;
   height: 25px;
 }
+.xet-web-fills-caveat {
+  font-size: x-small;
+  font-style: italic;
+  font-weight: normal;
+  color: gray;
+}
+.xet-web-fills-caveat:hover {
+  color: black;
+}
+.xet-web-fills-iframe {
+  border: 0;
+  overflow: auto;
+  height: 440px;
+  width: 840px;
+}
+.xet-web-fills-panel,
 .xet-text-editor {
   position: absolute;
   left: 0;
-  top: 0;
   padding: 8px;
   z-index: 2;
   background-color: var(--surface0);
   border: none;
   box-shadow: 0px 0px 16px 0px rgba(0,0,0,0.2);
-  font-size: 14px;
+  font-size: 12px;
+}
+#xet-frame .xet-fills-heading .xlv-small-button:hover {
+  background-color: lavender;
+}
+.xet-web-fills-panel {
+  background-color: lavender;
+  text-align: left;
+  top: 30px;
+}
+.xet-text-editor {
+  background-color: white;
+  top: 0;
 }
 .xet-text-editor .xet-choices-box div,
 .xet-text-editor .xet-choices-box textarea {
@@ -688,16 +730,18 @@ body {
   outline: none;
 }
 .xet-anag-help {
-  color: var(--subtext0);
+  box-sizing: border-box;
+  color: var(--accent);
+  max-width: 150px;
   font-size: small;
-  max-width: 340px;
+  outline: 1px var(--overlay0);
 }
-
+.xet-anag-help summary {
+  outline: none;
+  text-align: right;
+}
 .xet-anag-help ul {
   padding-inline-start: 10px;
-}
-.xet-anag-table {
-  min-width: 300px;
 }
 .xet-cah {
   font-family: var(--main-font);
