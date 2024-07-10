@@ -161,13 +161,17 @@ function exetLexiconInit() {
    * Remove all punctuation, normalize spaces, only retain
    * letters and dashes and quotes and spaces. Return in
    * lower case. Applied to clue texts, preferred/disallowed entries.
+   * @param {=boolean} forDeduping: true if dashes and quotes should be turned
+   *     into spaces.
    */
-  exetLexicon.depunct = function(s) {
+  exetLexicon.depunct = function(s, forDeduping=false) {
     let out = '';
-    const parts = this.partsOf(s);
+    const parts = this.partsOf(s.replace(/\s+/g, ' '));
     for (let c of parts) {
-      if (c == ' ' || c == '-' || c == "'" ||
-          this.letterSet[c.toUpperCase()]) {
+      if (forDeduping && (c == '-' || c == "'")) {
+        out += ' ';
+      } else if (c == ' ' || c == '-' || c == "'" ||
+                 this.letterSet[c.toUpperCase()]) {
         out += c;
       } else if (c == '—' || c == '/' || c == '&') {
         out += ' ';

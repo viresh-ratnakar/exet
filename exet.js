@@ -2326,7 +2326,7 @@ Exet.prototype.getLightInfos = function() {
     }
     this.addStat(allInfo.lengths, theClue.enumLen, label);
     this.addStat(dirInfo.lengths, theClue.enumLen, label);
-    let depunctClue = exetLexicon.depunct(theClue.clue);
+    let depunctClue = exetLexicon.depunct(theClue.clue, true /* forDeduping */);
     if (depunctClue && !this.isDraftClue(theClue.clue)) {
       allInfo.set += 1;
       dirInfo.set += 1;

@@ -1,5 +1,12 @@
 # Changelog
 
+### Minor update: Exet v0.93.3 July 10, 2024
+
+- When trying to find duplicate words across clues, also ignore quotes and
+  hyphens.
+- Bug-fix: depunct() needs to be prepared to see whitespace other than
+  regular space.
+
 ### Minor update: Exet v0.93.2 June 18, 2024
 
 - Add a top row in both columns in the anagrams table (unused fodder,
