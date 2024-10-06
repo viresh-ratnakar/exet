@@ -1,5 +1,19 @@
 # Changelog
 
+### Version: Exet v0.94, October 6, 2024
+
+- Update the English lexicon to Lufz v0.08:
+  - This adds around 850 new words.
+  - The lexicon now includes an efficient datastructure to find words with
+    common stemmed forms.
+- Add an option (on be default), to avoid suggesting fill choices (or using
+  them in autofill) that share a stem with any existing entry.
+- When reporting word duplication across clues in the Analaysis page, count
+  words with the same stemmed forms as duplicates.
+- Make autofill quit if it reaches a step greater than 3 times the number of
+  cells. This is because there are some rare cases in which autofill will
+  start looping.
+
 ### Minor update: Exet v0.93.3 July 10, 2024
 
 - When trying to find duplicate words across clues, also ignore quotes and

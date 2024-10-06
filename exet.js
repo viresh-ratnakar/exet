@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.93, June 17, 2024
+Current version: v0.94, October 6, 2024
 */
 
 function ExetModals() {
@@ -65,37 +65,40 @@ ExetModals.prototype.hide = function() {
 }
 
 function ExetRevManager() {
-  this.REV_LOADED_FROM_FILE = 1
-  this.REV_CREATED_BLANK = 2
-  this.REV_CREATED_AUTOBLOCK = 3
-  this.REV_JUMPED_TO_REV = 10
-  this.REV_GRID_CHANGE = 20
-  this.REV_LIGHT_REVERSAL = 24
-  this.REV_AUTOFILL_GRIDFILL_CHANGE = 28
-  this.REV_GRIDFILL_CHANGE = 30
-  this.REV_ENUM_CHANGE = 40
-  this.REV_CLUE_CHANGE = 50
-  this.REV_METADATA_CHANGE = 60
-  this.REV_PREFLEX_CHANGE = 70
-  this.REV_OPTIONS_CHANGE = 80
+  this.REV_LOADED_FROM_FILE = 1;
+  this.REV_CREATED_BLANK = 2;
+  this.REV_CREATED_AUTOBLOCK = 3;
+  this.REV_JUMPED_TO_REV = 10;
+  this.REV_GRID_CHANGE = 20;
+  this.REV_LIGHT_REVERSAL = 24;
+  this.REV_AUTOFILL_GRIDFILL_CHANGE = 28;
+  this.REV_GRIDFILL_CHANGE = 30;
+  this.REV_ENUM_CHANGE = 40;
+  this.REV_CLUE_CHANGE = 50;
+  this.REV_METADATA_CHANGE = 60;
+  this.REV_FILL_OPTIONS_CHANGE = 65;
+  this.REV_PREFLEX_CHANGE = 70;
+  this.REV_OPTIONS_CHANGE = 80;
 
-  this.revMsgs = {}
-  this.revMsgs[this.REV_LOADED_FROM_FILE] = "Loaded from a file"
-  this.revMsgs[this.REV_CREATED_BLANK] = "Created a blank grid"
+  this.revMsgs = {};
+  this.revMsgs[this.REV_LOADED_FROM_FILE] = "Loaded from a file";
+  this.revMsgs[this.REV_CREATED_BLANK] = "Created a blank grid";
   this.revMsgs[this.REV_CREATED_AUTOBLOCK] = "Created a blank grid " +
-      "with automagic blocks"
-  this.revMsgs[this.REV_JUMPED_TO_REV] = "Jumped to a previous revision"
-  this.revMsgs[this.REV_GRID_CHANGE] = "Grid change"
-  this.revMsgs[this.REV_LIGHT_REVERSAL] = "Light reversal"
+      "with automagic blocks";
+  this.revMsgs[this.REV_JUMPED_TO_REV] = "Jumped to a previous revision";
+  this.revMsgs[this.REV_GRID_CHANGE] = "Grid change";
+  this.revMsgs[this.REV_LIGHT_REVERSAL] = "Light reversal";
   this.revMsgs[this.REV_AUTOFILL_GRIDFILL_CHANGE] = "Autofilled grid-fill " +
-      "change"
-  this.revMsgs[this.REV_GRIDFILL_CHANGE] = "Grid-fill change"
-  this.revMsgs[this.REV_ENUM_CHANGE] = "Enum change"
-  this.revMsgs[this.REV_CLUE_CHANGE] = "Clue or anno change"
-  this.revMsgs[this.REV_METADATA_CHANGE] = "Metadata change"
+      "change";
+  this.revMsgs[this.REV_GRIDFILL_CHANGE] = "Grid-fill change";
+  this.revMsgs[this.REV_ENUM_CHANGE] = "Enum change";
+  this.revMsgs[this.REV_CLUE_CHANGE] = "Clue or anno change";
+  this.revMsgs[this.REV_METADATA_CHANGE] = "Metadata change";
+  this.revMsgs[this.REV_FILL_OPTIONS_CHANGE] = "Change in options " +
+      "for suggested fills";
   this.revMsgs[this.REV_PREFLEX_CHANGE] = "Change in the list of or options " +
-      "for preferred words"
-  this.revMsgs[this.REV_OPTIONS_CHANGE] = "Crossword options change"
+      "for preferred words";
+  this.revMsgs[this.REV_OPTIONS_CHANGE] = "Crossword options change";
 
   /* State for throttled revision-saving */
   this.throttleRevTimer = null;
@@ -451,20 +454,20 @@ ExetRevManager.prototype.saveLocal = function(k, v) {
 
 ExetRevManager.prototype.saveRev = function(revType, details="") {
   if (!exet || !exet.puz || !exet.puz.id) {
-    console.log('Cannot save revision when there is no puzzle!')
-    return
+    console.log('Cannot save revision when there is no puzzle!');
+    return;
   }
-  let stored = window.localStorage.getItem(exet.puz.id)
+  let stored = window.localStorage.getItem(exet.puz.id);
   if (!stored) {
     stored = {
       id: exet.puz.id,
       maxRevNum: 0,
       revs: []
-    }
+    };
   } else {
-    stored = JSON.parse(stored)
+    stored = JSON.parse(stored);
   }
-  let exolve = exet.getExolve()
+  let exolve = exet.getExolve();
   if (stored.revs.length > 0) {
     let lastRev = stored.revs[stored.revs.length - 1]
     if (lastRev.exolve == exolve &&
@@ -475,29 +478,31 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
         lastRev.unpreflex &&
         JSON.stringify(lastRev.unpreflex) == JSON.stringify(exet.unpreflex) &&
         lastRev.noProperNouns == exet.noProperNouns &&
+        lastRev.noStemDupes == exet.noStemDupes &&
         lastRev.tryReversals == exet.tryReversals &&
         lastRev.minpop == exet.minpop &&
         lastRev.asymOK == exet.asymOK) {
-      return
+      return;
     }
   }
   stored.maxRevNum++;
   let exetRev = new ExetRev(exet.puz.id, (exet.puz.title ? exet.puz.title : ''),
-                            stored.maxRevNum, revType, Date.now(), details)
-  exetRev.maxRevNum = stored.maxRevNum
-  exetRev.prefix = exet.prefix
-  exetRev.suffix = exet.suffix
-  exetRev.exolve = exolve
-  exetRev.scratchPad = exet.puz.scratchPad.value
-  exetRev.navState = [exet.puz.currDir, exet.puz.currRow, exet.puz.currCol]
-  exetRev.preflex = exet.preflex
-  exetRev.unpreflex = exet.unpreflex
-  exetRev.noProperNouns = exet.noProperNouns
-  exetRev.asymOK = exet.asymOK
-  exetRev.tryReversals = exet.tryReversals
-  exetRev.minpop = exet.minpop
-  stored.revs.push(exetRev)
-  this.saveLocal(exet.puz.id, JSON.stringify(stored))
+                            stored.maxRevNum, revType, Date.now(), details);
+  exetRev.maxRevNum = stored.maxRevNum;
+  exetRev.prefix = exet.prefix;
+  exetRev.suffix = exet.suffix;
+  exetRev.exolve = exolve;
+  exetRev.scratchPad = exet.puz.scratchPad.value;
+  exetRev.navState = [exet.puz.currDir, exet.puz.currRow, exet.puz.currCol];
+  exetRev.preflex = exet.preflex;
+  exetRev.unpreflex = exet.unpreflex;
+  exetRev.noProperNouns = exet.noProperNouns;
+  exetRev.noStemDupes = exet.noStemDupes;
+  exetRev.asymOK = exet.asymOK;
+  exetRev.tryReversals = exet.tryReversals;
+  exetRev.minpop = exet.minpop;
+  stored.revs.push(exetRev);
+  this.saveLocal(exet.puz.id, JSON.stringify(stored));
 };
 
 ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
@@ -663,7 +668,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.93, June 17, 2024';
+  this.version = 'v0.94, October 6, 2024';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -672,6 +677,7 @@ function Exet() {
   this.preflexInUse = {};
   this.unpreflex = {};
   this.noProperNouns = false;
+  this.noStemDupes = exetLexicon.hasOwnProperty('stems');
   this.asymOK = false;
   this.tryReversals = false;
   this.DEFAULT_MINPOP = exetConfig.defaultPopularity;
@@ -1550,10 +1556,15 @@ Exet.prototype.makeExetTab = function() {
                     `of undesired fills by clicking on the 'Set fill ` +
                     `exclusions' button. You can restrict fills by a ` +
                     `popularity cutoff, and allow/disallow proper ` +
-                    `nouns and reversals from the Exet tab.">
+                    `nouns, stem-dupes, and reversals from the Exet tab.">
                   Proper nouns: <span
                     id="xet-autofill-proper-nouns">${this.noProperNouns ?
                           "disallowed" : "allowed"}</span>&nbsp;
+                  <div style="padding:4px"></div>
+                  Stem dupes: <span
+                    id="xet-autofill-stem-dupes">${this.noStemDupes ?
+                          "disallowed" : "allowed"}</span>&nbsp;
+                  <div style="padding:4px"></div>
                   Undesired fills: <span
                       id="xet-autofill-unpreflex-total">${Object.keys(
                           this.unpreflex).length}</span>
@@ -1833,17 +1844,37 @@ Exet.prototype.makeExetTab = function() {
                 this.indexMinPop - 1).toLocaleString()}</span> out of
             ${Number(exetLexicon.startLen - 1).toLocaleString()} words/phrases
             <br>
-            <br>
-            <b title="If checked, this excludes proper nouns from ` +
-                `fill suggestions">No proper nouns:</b>
-            <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
-                value="no-proper-nouns" type="checkbox">
-            </input>
-            <b title="If checked, this allows trying reversals of unfilled ` +
-                `lights, when finding fill suggestions">Try reversals:</b>
-            <input id="xet-try-reversals" name="xet-try-reversals"
-                value="try-reversals" type="checkbox">
-            </input>
+            <table>
+            <tr>
+              <td>
+                <b title="If checked, this excludes proper nouns from ` +
+                    `fill suggestions">No proper nouns:</b>
+                <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
+                    value="no-proper-nouns" type="checkbox">
+                </input>
+              </td>
+              <td>
+                <b title="If checked, this allows trying reversals of unfilled ` +
+                    `lights, when finding fill suggestions">Try reversals:</b>
+                <input id="xet-try-reversals" name="xet-try-reversals"
+                    value="try-reversals" type="checkbox">
+                </input>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <b title="If checked, this excludes word choices that have ` +
+                    `the same stemmed forms as any other entries (e.g., if ` +
+                    `SWIM is picked, then SWIMS will not be considered)">` +
+                    `No stem-dupes:</b>
+                <input id="xet-no-stem-dupes" name="xet-no-stem-dupes"
+                    value="no-stem-dupes" type="checkbox">
+                </input>
+              </td>
+              <td>
+              </td>
+            </tr>
+            </table>
           </div>
         </div>
         <div id="xet-scratch-pad" class="xet-scratch-pad">
@@ -1951,38 +1982,50 @@ Exet.prototype.makeExetTab = function() {
   this.preflexInput.innerHTML = preflexText.trim();
   document.getElementById("xet-edit-preflex").addEventListener('click', e=> {
     exet.updatePreflex();
-    exetModals.showModal(exet.preflexEditor)
-    e.stopPropagation()
+    exetModals.showModal(exet.preflexEditor);
+    e.stopPropagation();
   });
-  this.unpreflexSize = document.getElementById("xet-unpreflex-size")
-  this.unpreflexEditor = document.getElementById("xet-unpreflex-editor")
-  this.unpreflexInput = document.getElementById("xet-unpreflex-input")
-  this.renderUnpreflex()
+  this.unpreflexSize = document.getElementById("xet-unpreflex-size");
+  this.unpreflexEditor = document.getElementById("xet-unpreflex-editor");
+  this.unpreflexInput = document.getElementById("xet-unpreflex-input");
+  this.renderUnpreflex();
   document.getElementById("xet-edit-unpreflex").addEventListener('click', e=> {
-    exetModals.showModal(exet.unpreflexEditor)
-    e.stopPropagation()
+    exetModals.showModal(exet.unpreflexEditor);
+    e.stopPropagation();
   });
-  this.minpopInclSpan = document.getElementById("xet-minpop-incl")
-  this.minpopInput = document.getElementById("xet-minpop")
-  this.minpopInput.value = this.minpop
+  this.minpopInclSpan = document.getElementById("xet-minpop-incl");
+  this.minpopInput = document.getElementById("xet-minpop");
+  this.minpopInput.value = this.minpop;
   this.minpopInput.addEventListener('change', e => {
     if (isNaN(this.minpopInput.value) ||
         this.minpopInput.value < 0 || this.minpopInput.value >= 100) {
-      this.minpopInput.value = this.minpop
-      return
+      this.minpopInput.value = this.minpop;
+      return;
     }
-    this.setMinPop(this.minpopInput.value)
-    this.minpopInclSpan.innerText = Number(this.indexMinPop - 1).toLocaleString()
-    this.resetViability()
-    exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
-  })
-  this.noProperNounsInput = document.getElementById("xet-no-proper-nouns")
-  this.noProperNounsInput.checked = this.noProperNouns
+    this.setMinPop(this.minpopInput.value);
+    this.minpopInclSpan.innerText = Number(this.indexMinPop - 1).toLocaleString();
+    this.resetViability();
+    exetRevManager.throttledSaveRev(exetRevManager.REV_FILL_OPTIONS_CHANGE);
+  });
+  this.noProperNounsInput = document.getElementById("xet-no-proper-nouns");
+  this.noProperNounsInput.checked = this.noProperNouns;
   this.noProperNounsInput.addEventListener('change', e => {
-    this.noProperNouns = this.noProperNounsInput.checked
-    this.resetViability()
-    exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE)
-  })
+    this.noProperNouns = this.noProperNounsInput.checked;
+    this.resetViability();
+    exetRevManager.throttledSaveRev(exetRevManager.REV_FILL_OPTIONS_CHANGE);
+  });
+  this.noStemDupesInput = document.getElementById("xet-no-stem-dupes");
+  this.noStemDupesInput.checked = this.noStemDupes;
+  if (exetLexicon.hasOwnProperty('stems')) {
+    this.noStemDupesInput.addEventListener('change', e => {
+      this.noStemDupes = this.noStemDupesInput.checked;
+      this.resetViability();
+      exetRevManager.throttledSaveRev(exetRevManager.REV_FILL_OPTIONS_CHANGE);
+    });
+  } else {
+    this.noStemDupesInput.disabled = true;
+    this.noStemDupesInput.title = 'We do not yet have stemming data for this language';
+  }
   if (exetLexicon.script != 'Latin') {
     this.noProperNounsInput.disabled = true;
     this.noProperNounsInput.title = 'Proper-noun filtering is only available for Latin currently';
@@ -2330,10 +2373,12 @@ Exet.prototype.getLightInfos = function() {
     if (depunctClue && !this.isDraftClue(theClue.clue)) {
       allInfo.set += 1;
       dirInfo.set += 1;
+      const labelAndClue = label + ' [' + depunctClue + ']';
       let words = depunctClue.split(' ');
       for (let word of words) {
-        this.addStat(allInfo.words, word, label);
-        this.addStat(dirInfo.words, word, label);
+        const stem = exetLexicon.stem(word).toLowerCase();
+        this.addStat(allInfo.words, stem, labelAndClue);
+        this.addStat(dirInfo.words, stem, labelAndClue);
       }
       this.addStat(allInfo.clueLengths, words.length, label);
       this.addStat(dirInfo.clueLengths, words.length, label);
@@ -2489,7 +2534,7 @@ Exet.prototype.updateAnalysis = function(elt) {
                   this.plotStats(info.popularities, 5)}</div</td>`;
     html += `<td class="xet-td"><b>Letters used</b>:<br>
               ${this.plotStats(info.letters)}</td></tr>`;
-    html += `<tr><td class="xet-td"><div><b>Words repeated in set clues</b>:<br>${this.plotStats(
+    html += `<tr><td class="xet-td"><div><b>Word stems repeated in set clues</b>:<br>${this.plotStats(
         info.words)}</di>`;
     html += `<div><b>Substrings repeated in solution entries</b>:<br>${this.plotStats(
         info.substrings)}</div></td>`;
@@ -5748,6 +5793,8 @@ Exet.prototype.updateAutofillPreflex = function() {
       this.indexMinPop - 1).toLocaleString()
   this.autofill.properNounsSpan.innerText = this.noProperNouns ?
       "disallowed" : "allowed"
+  this.autofill.stemDupesSpan.innerText = this.noStemDupes ?
+      "disallowed" : "allowed"
   this.autofill.tryReversalsSpan.innerText = this.tryReversals ?
       "allowed" : "disallowed"
 }
@@ -5914,6 +5961,7 @@ Exet.prototype.initAutofill = function() {
       beamWidth: 64,
       beam: new ExetDher(64),
       step: 0,
+      numCells: this.puz.gridWidth * this.puz.gridHeight,
       running: false,
       throttledTimer: null,
       lag: 200,
@@ -6023,43 +6071,45 @@ Exet.prototype.initAutofill = function() {
     }
   });
 
-  this.autofill.stepSpan = document.getElementById('xet-autofill-step')
-  this.autofill.stepSpan.innerText = this.autofill.step
+  this.autofill.stepSpan = document.getElementById('xet-autofill-step');
+  this.autofill.stepSpan.innerText = this.autofill.step;
 
-  this.autofill.statusSpan = document.getElementById('xet-autofill-status')
-  this.autofill.statusSpan.innerHTML = this.autofill.status
+  this.autofill.statusSpan = document.getElementById('xet-autofill-status');
+  this.autofill.statusSpan.innerHTML = this.autofill.status;
 
-  this.autofill.timeSpan = document.getElementById('xet-autofill-time')
-  this.autofill.speedSpan = document.getElementById('xet-autofill-speed')
+  this.autofill.timeSpan = document.getElementById('xet-autofill-time');
+  this.autofill.speedSpan = document.getElementById('xet-autofill-speed');
 
-  this.autofill.currBeamSpan = document.getElementById('xet-autofill-curr-beam')
-  this.autofill.currBeamSpan.innerText = this.autofill.beam.limit()
+  this.autofill.currBeamSpan = document.getElementById('xet-autofill-curr-beam');
+  this.autofill.currBeamSpan.innerText = this.autofill.beam.limit();
 
-  this.autofill.scoreSpan = document.getElementById('xet-autofill-score')
-  this.autofill.scoreVSpan = document.getElementById('xet-autofill-score-v')
-  this.autofill.scorePSpan = document.getElementById('xet-autofill-score-p')
-  this.autofill.scoreFSpan = document.getElementById('xet-autofill-score-f')
+  this.autofill.scoreSpan = document.getElementById('xet-autofill-score');
+  this.autofill.scoreVSpan = document.getElementById('xet-autofill-score-v');
+  this.autofill.scorePSpan = document.getElementById('xet-autofill-score-p');
+  this.autofill.scoreFSpan = document.getElementById('xet-autofill-score-f');
 
-  this.autofill.reversalsSpan = document.getElementById('xet-autofill-reversals')
+  this.autofill.reversalsSpan = document.getElementById('xet-autofill-reversals');
 
   this.autofill.preflexTotalSpan = document.getElementById(
-      'xet-autofill-preflex-total')
+      'xet-autofill-preflex-total');
   this.autofill.preflexUsedSpan = document.getElementById(
-      'xet-autofill-preflex-used')
+      'xet-autofill-preflex-used');
   this.autofill.unpreflexTotalSpan = document.getElementById(
-      'xet-autofill-unpreflex-total')
-  this.autofill.minpopSpan = document.getElementById('xet-autofill-minpop')
+      'xet-autofill-unpreflex-total');
+  this.autofill.minpopSpan = document.getElementById('xet-autofill-minpop');
   this.autofill.indexMinPopSpan = document.getElementById(
-      'xet-autofill-index-minpop')
+      'xet-autofill-index-minpop');
   this.autofill.properNounsSpan = document.getElementById(
-      'xet-autofill-proper-nouns')
+      'xet-autofill-proper-nouns');
+  this.autofill.stemDupesSpan = document.getElementById(
+      'xet-autofill-stem-dupes');
   this.autofill.tryReversalsSpan = document.getElementById(
-      'xet-autofill-try-reversals')
-  this.autofill.pangramSpan = document.getElementById('xet-autofill-letters')
+      'xet-autofill-try-reversals');
+  this.autofill.pangramSpan = document.getElementById('xet-autofill-letters');
   this.autofill.pangramConstrSpan = document.getElementById(
-      'xet-autofill-pangram-cletters')
-  this.autofill.pangramConstrSpan.style.display = 'none'
-  this.autofill.isPangram = document.getElementById('xet-is-pangram')
+      'xet-autofill-pangram-cletters');
+  this.autofill.pangramConstrSpan.style.display = 'none';
+  this.autofill.isPangram = document.getElementById('xet-is-pangram');
 
   this.refreshAutofill();
 }
@@ -6068,6 +6118,11 @@ Exet.prototype.refreshAutofill = function() {
   this.autofill.pangramConstrSpan.style.display =
       this.autofill.pangramAll ? 'none' : '';
   this.autofill.isPangram.style.display = 'none';
+
+  if (this.autofill.step > (this.autofill.numCells * 3)) {
+    console.log('Autofill seems to be stuck in a loop, quitting it.');
+    return null;
+  }
 
   const candidate = this.autofill.beam.peep(true);
   if (!candidate) {
@@ -7426,7 +7481,14 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
     if (choices.length > 0) {
       let p = choices[0];
       console.assert(p > 0, p);
-      dontReuse[p] = true;
+      if (this.noStemDupes) {
+        const stemGroup = exetLexicon.stemGroup(p);
+        for (const sp of stemGroup) {
+          dontReuse[sp] = true;
+        }
+      } else {
+        dontReuse[p] = true;
+      }
       if (this.preflexSet[p]) {
         fillState.preflexUsed[p] = true;
       }
