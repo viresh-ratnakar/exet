@@ -7457,6 +7457,17 @@ Exet.prototype.Set2Trims = function(set1, set2) {
   return false
 }
 
+Exet.prototype.addToDontReuse = function(p, dontReuse) {
+  if (this.noStemDupes) {
+    const stemGroup = exetLexicon.stemGroup(p);
+    for (const sp of stemGroup) {
+      dontReuse[sp] = true;
+    }
+  } else {
+    dontReuse[p] = true;
+  }
+}
+
 /**
  * Looking at limit (all if 0) fill choices for each light, determine
  * additional constraints on letter choices for unfilled cells. Apply
@@ -7481,14 +7492,7 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
     if (choices.length > 0) {
       let p = choices[0];
       console.assert(p > 0, p);
-      if (this.noStemDupes) {
-        const stemGroup = exetLexicon.stemGroup(p);
-        for (const sp of stemGroup) {
-          dontReuse[sp] = true;
-        }
-      } else {
-        dontReuse[p] = true;
-      }
+      this.addToDontReuse(p, dontReuse);
       if (this.preflexSet[p]) {
         fillState.preflexUsed[p] = true;
       }
@@ -7555,7 +7559,7 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
     if (isForced) {
       for (let x of theClue.lChoices) {
         const p = Math.abs(x);
-        dontReuse[p] = true;
+        this.addToDontReuse(p, dontReuse);
         if (this.preflexSet[p]) fillState.preflexUsed[p] = true;
       }
     }
@@ -7991,7 +7995,7 @@ Exet.prototype.resetViability = function() {
     if (choices.length > 0) {
       let p = choices[0];
       console.assert(p > 0, p);
-      dontReuse[p] = true;
+      this.addToDontReuse(p, dontReuse);
       if (this.preflexSet[p]) {
         this.preflexInUse[p] = true;
         numPreflexUsed++;

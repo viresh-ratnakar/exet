@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.94.1 October 7, 2024
+
+- Bug-fix: had missed a couple of places where dontReuse is augmented.
+  Hence, stem-dupe-avoidance was not happening sometimes.
+
 ### Version: Exet v0.94, October 6, 2024
 
 - Update the English lexicon to Lufz v0.08:
