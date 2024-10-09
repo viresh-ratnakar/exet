@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.94.2 October 9, 2024
+
+- Augment stem overrides with all (hopefuly) irregular verb forms.
+  These would now get stemmed correctly (eg: 'swam'->'swim').
+
 ### Minor update: Exet v0.94.1 October 7, 2024
 
 - Bug-fix: had missed a couple of places where dontReuse is augmented.
