@@ -1,5 +1,14 @@
 # Changelog
 
+### Minor update: Exet v0.94.3 October 10, 2024
+
+- Autofill-tweak: detect a pattern of death (that occurs non-trivially
+  often) and fail early. The pattern is that you have an unfilled cell,
+  and both its crossing lights have all other letters filled in identically.
+- Add hover text to explain that in the Analysis of clues that shows
+  common word stems, what's shown is the most popular word form, for each
+  stem.
+
 ### Minor update: Exet v0.94.2 October 9, 2024
 
 - Augment stem overrides with all (hopefuly) irregular verb forms.

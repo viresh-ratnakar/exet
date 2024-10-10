@@ -2534,7 +2534,9 @@ Exet.prototype.updateAnalysis = function(elt) {
                   this.plotStats(info.popularities, 5)}</div</td>`;
     html += `<td class="xet-td"><b>Letters used</b>:<br>
               ${this.plotStats(info.letters)}</td></tr>`;
-    html += `<tr><td class="xet-td"><div><b>Word stems repeated in set clues</b>:<br>${this.plotStats(
+    html += `<tr><td class="xet-td"><div
+               title="The most popular word form is shown for the words that have a common stem"><b>Word
+               stems repeated in set clues</b>:<br>${this.plotStats(
         info.words)}</di>`;
     html += `<div><b>Substrings repeated in solution entries</b>:<br>${this.plotStats(
         info.substrings)}</div></td>`;
@@ -5602,13 +5604,45 @@ Exet.prototype.hashCandidate = function(candidate) {
   let fills = '';
   for (let i = 0; i < candidate.gridHeight; i++) {
     for (let j = 0; j < candidate.gridWidth; j++) {
-      let gridCell = candidate.grid[i][j];
+      const gridCell = candidate.grid[i][j];
       if (!gridCell.isLight) continue;
       fills += gridCell.currLetter || '?';
     }
   }
   candidate.fills = fills;
   return exetLexicon.javaHash(fills);
+}
+
+Exet.prototype.hasPatternOfDeath = function(candidate) {
+  for (let i = 0; i < candidate.gridHeight; i++) {
+    for (let j = 0; j < candidate.gridWidth; j++) {
+      const gridCell = candidate.grid[i][j];
+      if (!gridCell.isLight) continue;
+      if (gridCell.currLetter != '?') continue;
+      const puzCell = this.puz.grid[i][j];
+      if (!puzCell.acrossClueLabel || !puzCell.downClueLabel) continue;
+      const aci = this.puz.getDirClueIndex('A', puzCell.acrossClueLabel);
+      const dci = this.puz.getDirClueIndex('D', puzCell.downClueLabel);
+      console.assert(aci && dci, aci, dci);
+      const ac = candidate.clues[aci];
+      const dc = candidate.clues[dci];
+      if (ac.solution != dc.solution) {
+        continue;
+      }
+      const loc = ac.solution.indexOf('?');
+      console.assert(loc >= 0, ac.solution);
+      if (ac.solution.substr(0, loc).indexOf('?') >= 0 ||
+          ac.solution.substr(loc + 1).indexOf('?') >= 0) {
+        continue;
+      }
+      /* Across and down solutions are identical, and have the
+       * current cell as the only unfilled cell. This is not
+       * fillable!
+       */
+      return true;
+    }
+  }
+  return false;
 }
 
 Exet.prototype.maybeAddAutofillCandidate = function(candidate) {
@@ -5618,6 +5652,9 @@ Exet.prototype.maybeAddAutofillCandidate = function(candidate) {
     return false;
   }
   this.autofill.triedHashes[h] = true;
+  if (this.hasPatternOfDeath(candidate)) {
+    return false;
+  }
   this.autofill.beam.add(candidate);
   return true;
 }
