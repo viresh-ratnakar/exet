@@ -1,5 +1,13 @@
 # Changelog
 
+### Minor update: Exet v0.94.4 October 15, 2024
+
+- Bug-fix: the "pattern of death" detection implemented in v0.94.3 was
+  buggy: it used only already committed solution letters. It should have
+  used current letters from the candidate, now does.
+- Bug-fix: set numCells correctly (for autofill-taking-too-long detection)
+  for 3d crosswords too.
+
 ### Minor update: Exet v0.94.3 October 10, 2024
 
 - Autofill-tweak: detect a pattern of death (that occurs non-trivially

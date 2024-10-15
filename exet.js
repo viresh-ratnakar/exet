@@ -5613,6 +5613,16 @@ Exet.prototype.hashCandidate = function(candidate) {
   return exetLexicon.javaHash(fills);
 }
 
+Exet.prototype.getCurrEntry = function(candidate, ci) {
+  const cells = this.puz.getAllCells(ci);
+  let entry = '';
+  for (const cell of cells) {
+    const gridCell = candidate.grid[cell[0]][cell[1]];
+    entry += gridCell.currLetter;
+  }
+  return entry;
+}
+
 Exet.prototype.hasPatternOfDeath = function(candidate) {
   for (let i = 0; i < candidate.gridHeight; i++) {
     for (let j = 0; j < candidate.gridWidth; j++) {
@@ -5629,10 +5639,15 @@ Exet.prototype.hasPatternOfDeath = function(candidate) {
       if (ac.solution != dc.solution) {
         continue;
       }
-      const loc = ac.solution.indexOf('?');
-      console.assert(loc >= 0, ac.solution);
-      if (ac.solution.substr(0, loc).indexOf('?') >= 0 ||
-          ac.solution.substr(loc + 1).indexOf('?') >= 0) {
+      const acEntry = this.getCurrEntry(candidate, aci);
+      const dcEntry = this.getCurrEntry(candidate, dci);
+      if (acEntry != dcEntry) {
+        continue;
+      }
+      const loc = acEntry.indexOf('?');
+      console.assert(loc >= 0, acEntry);
+      if (acEntry.substr(0, loc).indexOf('?') >= 0 ||
+          acEntry.substr(loc + 1).indexOf('?') >= 0) {
         continue;
       }
       /* Across and down solutions are identical, and have the
@@ -5998,7 +6013,7 @@ Exet.prototype.initAutofill = function() {
       beamWidth: 64,
       beam: new ExetDher(64),
       step: 0,
-      numCells: this.puz.gridWidth * this.puz.gridHeight,
+      numCells: this.puz.gridWidth * this.puz.gridHeight * this.puz.layers3d,
       running: false,
       throttledTimer: null,
       lag: 200,
