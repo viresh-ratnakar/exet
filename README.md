@@ -619,7 +619,7 @@ word/phrase in the current light:
   iframes, so these links open in new tabs.
 
 In addition, the "Research" tab lets you search
-[cryptics.georgeho.org](https://cryptics.georgeho.org/), which is an excellent
+[**cryptics.georgeho.org**](https://cryptics.georgeho.org/), which is an excellent
 database of published cryptic clues, for:
 
 - Definitions that others might have used for an entry, in cryptic clues.
@@ -629,6 +629,10 @@ database of published cryptic clues, for:
   published newspapers have used it in the same way. Only 1-word and 2-word
   phrases from the clue are searched for by default, but you can easily edit
   the SQL query to add any longer phrase that you may have used as an indicator.
+
+Similarly, we provide a link to **crosswordtracker.com** (a good database of mostly
+non-cryptic-crossword clues) for looking up published definitions. This too opens
+in a new tab.
 
 For cryptic crosswords, there are some additional tabs that setters may find
 useful. In all of these (other than "Lists"), the wordplay candidates are shown

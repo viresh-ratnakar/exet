@@ -2872,13 +2872,16 @@ Exet.prototype.researchTabNav = function() {
       choiceIndex >= researchTab.choices.length) {
     return;
   }
-  const words = researchTab.choices[choiceIndex].needsClueWords ?
-                this.currClueWordsList() : researchTab.words;
+  const choice = researchTab.choices[choiceIndex];
+  let words = choice.needsClueWords ?
+              this.currClueWordsList() : researchTab.words;
+  if (choice.noPunct) {
+    words = exetLexicon.lcLetterString(words);
+  }
   if (choiceIndex == researchTab.currChoice &&
       researchTab.savedWords == words) {
     return;
   }
-  const choice = researchTab.choices[choiceIndex];
   const url = choice.url + words + (choice.suffix || '');
   if (choice.newTab) {
     this.researchSelect.value = researchTab.currChoice;

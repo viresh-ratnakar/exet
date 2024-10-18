@@ -1,5 +1,12 @@
 # Changelog
 
+### Minor update: Exet v0.94.5 October 18, 2024
+
+- Add crosswordtracker.com as a research tool. It looks like a good db of
+  non-cryptic clues.
+- Add option "noPunct: true" to research tools, to strip away spaces, dashes,
+  quotes from the solution words, for using in a research tool URL.
+
 ### Minor update: Exet v0.94.4 October 15, 2024
 
 - Bug-fix: the "pattern of death" detection implemented in v0.94.3 was
