@@ -200,7 +200,7 @@ function exetLexiconInit() {
   exetLexicon.stemGroup = function(idx) {
     console.assert(idx >= 0 && idx < this.lexicon.length);
     let group = [idx];
-    if (!this.hasOwnProperty('stems')) {
+    if (!this.hasOwnProperty('stems') || (idx >= this.startLen)) {
       return group;
     }
     let leastPos = 0, least = idx;

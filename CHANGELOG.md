@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.94.6 October 21, 2024
+
+- Bug-fix: when a preferred fill entry was not in the lexicon, recent
+  stemming changes were crashing as stemGroup() did not expect it. Fixed.
+
 ### Minor update: Exet v0.94.5 October 18, 2024
 
 - Add crosswordtracker.com as a research tool. It looks like a good db of
