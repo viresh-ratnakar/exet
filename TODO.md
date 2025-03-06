@@ -3,7 +3,9 @@
   - [ ] Make README.md more complete
 - [ ] Option for US dictionary
 - [ ] "Smart-delete" to purge excessive revisions: save revisions and keep just last 5 of each
-- [ ] Stricter grid connectivity checks
+- [ ] exetLexicon: add feature to constrain certain letters to be the same, when matching a pattern. Use this when a linked clue crosses itself.
+- [ ] make about-exet.html link use the base of exet.js
+- [x] Stricter grid connectivity checks
 - [x] Improve autofill
 - [x] Highlight preferred fills that get picked
 - [x] Clue length analysis

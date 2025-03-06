@@ -1,5 +1,65 @@
 # Changelog
 
+### Minor update: Exet v0.94.6 October 21, 2024
+
+- Bug-fix: when a preferred fill entry was not in the lexicon, recent
+  stemming changes were crashing as stemGroup() did not expect it. Fixed.
+
+### Minor update: Exet v0.94.5 October 18, 2024
+
+- Add crosswordtracker.com as a research tool. It looks like a good db of
+  non-cryptic clues.
+- Add option "noPunct: true" to research tools, to strip away spaces, dashes,
+  quotes from the solution words, for using in a research tool URL.
+
+### Minor update: Exet v0.94.4 October 15, 2024
+
+- Bug-fix: the "pattern of death" detection implemented in v0.94.3 was
+  buggy: it used only already committed solution letters. It should have
+  used current letters from the candidate, now does.
+- Bug-fix: set numCells correctly (for autofill-taking-too-long detection)
+  for 3d crosswords too.
+
+### Minor update: Exet v0.94.3 October 10, 2024
+
+- Autofill-tweak: detect a pattern of death (that occurs non-trivially
+  often) and fail early. The pattern is that you have an unfilled cell,
+  and both its crossing lights have all other letters filled in identically.
+- Add hover text to explain that in the Analysis of clues that shows
+  common word stems, what's shown is the most popular word form, for each
+  stem.
+
+### Minor update: Exet v0.94.2 October 9, 2024
+
+- Augment stem overrides with all (hopefuly) irregular verb forms.
+  These would now get stemmed correctly (eg: 'swam'->'swim').
+
+### Minor update: Exet v0.94.1 October 7, 2024
+
+- Bug-fix: had missed a couple of places where dontReuse is augmented.
+  Hence, stem-dupe-avoidance was not happening sometimes.
+
+### Version: Exet v0.94, October 6, 2024
+
+- Update the English lexicon to Lufz v0.08:
+  - This adds around 850 new words.
+  - The lexicon now includes an efficient datastructure to find words with
+    common stemmed forms.
+- Add an option (on be default), to avoid suggesting fill choices (or using
+  them in autofill) that share a stem with any existing entry.
+- When reporting word duplication across clues in the Analaysis page, count
+  words with the same stemmed forms as duplicates.
+- Make autofill quit if it reaches a step greater than 3 times the number of
+  cells. This is because there are some rare cases in which autofill will
+  start looping.
+
+### Minor update: Exet v0.93.3 July 10, 2024
+
+- When trying to find duplicate words across clues, also ignore quotes and
+  hyphens.
+- Bug-fix: depunct() needs to be prepared to see whitespace other than
+  regular space.
+
 ### Minor update: Exet v0.93.2 June 18, 2024
 
 - Add a top row in both columns in the anagrams table (unused fodder,

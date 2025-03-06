@@ -4,7 +4,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.93, June 17, 2024
+#### Version: Exet v0.94, October 6, 2024
 
 #### Author: Viresh Ratnakar
 
@@ -103,6 +103,10 @@ following modifications to the UKACD words list:
 - Created an index of the lexicon suitable for use by my JavaScript
   code. Source code for the last few steps is available in my
   [Lufz GitHub repository](https://github.com/viresh-ratnakar/lufz).
+- I also added stemming info (offline, using the Porter2 algotithm
+  implementation in
+  [wink-porter2-stemmer](https://github.com/winkjs/wink-porter2-stemmer).
+  Details are in the Lufz README file.
 
 ### Hindi
 
@@ -283,17 +287,21 @@ settings that control the nature of fill suggestions. These are:
 
   | Threshold | #Entries | Last included entries    |
   |-----------|----------|--------------------------|
-  |       0   | 268,740  | to be or not to be that is the question, You're a better man than I am Gunga Din |
-  |       25  | 201,554  | titfers, simular, coalize |
-  |       50  | 134,369  | gallows humour, double-stopping, trading estates |
-  |       60  | 107,495  | tyrannis, fluffing, fluidics |
-  |       70  |  80,621  | grey seals, accretions, organismal |
-  |   **80**  |**53,747**|**dampened, normalcy, lampreys**        |
-  |      85   |  40,310  | tubules, Sylvian, klezmer  |
-  |       90  |  26,873  | linebackers, footballing, Ramakrishna |
-  |       95  |  13,436  | reactive, FX, anal |
+  |       0   | 269,526  | The bells of Hell go ting-a-ling-a-ling |
+  |       25  | 202,144  | involucels, nicht wahr |
+  |       50  | 134,762  | potica, Naskhi |
+  |       60  | 107,810  | toothaches, sociolects, minor canon |
+  |       70  |  80,857  | trembled, die down, catfight |
+  |   **80**  |**53,904**|**lor, prow, varus**        |
+  |       85  |  40,428  | devious, culling, despatch  |
+  |       90  |  26,952  | Suisse, gluten, flatter |
+  |       95  |  13,475  | clocks, stimuli, World Bank |
 
 - Whether to exclude proper nouns.
+- Whether to avoid reusing words with common stems. This option only works
+  for English. It's ON by default. If, say SWIM has been picked as a grid
+  entry, then this option precents SWIMS and SWIMMING getting suggested
+  for other unfilled entries (as well as in autofill).
 - Whether to allow grid-fill suggestions (and autofill) to try to reverse
   lights (and linked lights). This is false be default for 2-D crosswords, and
   true by default for 3-D crosswords. When true, if there is a reversed
@@ -613,7 +621,7 @@ word/phrase in the current light:
   iframes, so these links open in new tabs.
 
 In addition, the "Research" tab lets you search
-[cryptics.georgeho.org](https://cryptics.georgeho.org/), which is an excellent
+[**cryptics.georgeho.org**](https://cryptics.georgeho.org/), which is an excellent
 database of published cryptic clues, for:
 
 - Definitions that others might have used for an entry, in cryptic clues.
@@ -623,6 +631,10 @@ database of published cryptic clues, for:
   published newspapers have used it in the same way. Only 1-word and 2-word
   phrases from the clue are searched for by default, but you can easily edit
   the SQL query to add any longer phrase that you may have used as an indicator.
+
+Similarly, we provide a link to **crosswordtracker.com** (a good database of mostly
+non-cryptic-crossword clues) for looking up published definitions. This too opens
+in a new tab.
 
 For cryptic crosswords, there are some additional tabs that setters may find
 useful. In all of these (other than "Lists"), the wordplay candidates are shown
@@ -850,7 +862,9 @@ properties of crosswords:
 - Solution entry length distributions should not be too skewed towards
   very short or very long.
 - Words (other than very common ones) should not be repeated in clues,
-  especially if they are used as cryptic wordplay indicators.
+  especially if they are used as cryptic wordplay indicators. For
+  English, the Analysis page reports duplication in terms of stemmed
+  forms of words.
 - Long common substrings in solution entries may not be desirable.
 - The number of long and very long clues should ideally be limited.
 - Wordplay types in cryptic clues should have a good mix of variety.

@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.93, June 17, 2024
+Current version: v0.94, October 6, 2024
 */
 
 /**
@@ -14,9 +14,26 @@ Current version: v0.93, June 17, 2024
  * should be called once the DOMContentLoaded event fires.
  */
 function exetLexiconInit() {
-  console.assert(exetLexicon,
-    'The exetLexicon object must be initialized before this script can be ' +
-    'used. This can be done by loading the script file lufz-en-lexicon.js.');
+  if (!exetLexicon) {
+    throw 'The exetLexicon object must be initialized before this script ' +
+          'can be used. This can be done by loading the script file ' +
+          'lufz-en-lexicon.js.';
+  }
+
+  if (exetLexicon.language == 'en') {
+    if (!exetLexicon.hasOwnProperty('stems')) {
+      throw 'English lexicon, but missing stems info. Please update using ' +
+            'the instructions in ' +
+            'https://github.com/viresh-ratnakar/lufz/blob/master/README.md';
+    }
+  }
+  if (exetLexicon.hasOwnProperty('stems') &&
+      (exetLexicon.stemsId != exetLexicon.id)) {
+    throw 'English lexicon has stemsId ' + exetLexicon.stemsId + ', but ' +
+          'it should be ' + exetLexicon.id + '. Please update using ' +
+          'the instructions in ' +
+          'https://github.com/viresh-ratnakar/lufz/blob/master/README.md';
+  }
 
   exetLexicon.startLen = exetLexicon.lexicon.length;
 
@@ -161,19 +178,56 @@ function exetLexiconInit() {
    * Remove all punctuation, normalize spaces, only retain
    * letters and dashes and quotes and spaces. Return in
    * lower case. Applied to clue texts, preferred/disallowed entries.
+   * @param {=boolean} forDeduping: true if dashes and quotes should be turned
+   *     into spaces.
    */
-  exetLexicon.depunct = function(s) {
+  exetLexicon.depunct = function(s, forDeduping=false) {
     let out = '';
-    const parts = this.partsOf(s);
+    const parts = this.partsOf(s.replace(/\s+/g, ' '));
     for (let c of parts) {
-      if (c == ' ' || c == '-' || c == "'" ||
-          this.letterSet[c.toUpperCase()]) {
+      if (forDeduping && (c == '-' || c == "'")) {
+        out += ' ';
+      } else if (c == ' ' || c == '-' || c == "'" ||
+                 this.letterSet[c.toUpperCase()]) {
         out += c;
       } else if (c == '—' || c == '/' || c == '&') {
         out += ' ';
       }
     }
     return out.replace(/\s+/g, ' ').toLowerCase().trim();
+  }
+
+  exetLexicon.stemGroup = function(idx) {
+    console.assert(idx >= 0 && idx < this.lexicon.length);
+    let group = [idx];
+    if (!this.hasOwnProperty('stems') || (idx >= this.startLen)) {
+      return group;
+    }
+    let leastPos = 0, least = idx;
+    let next = this.stems[idx];
+    while (next != idx) {
+      if (next < least) {
+        least = next;
+        leastPos = group.length;
+      }
+      group.push(next);
+      next = this.stems[next];
+    }
+    if (leastPos != 0) {
+      /* The following splicing should result in a sorted array */
+      group = group.slice(leastPos).concat(group.slice(0, leastPos));
+    }
+    return group;
+  }
+
+  /**
+   * Return the stem (the most popular word that has the stem).
+   */
+  exetLexicon.stem = function(s) {
+    const lexIndices = this.getLexChoices(s, 1);
+    if (lexIndices.length == 0) return s;
+    const stemGroup = this.stemGroup(lexIndices[0]);
+    return this.lexicon[stemGroup[0]];
   }
 
   exetLexicon.letterRarity = function(c) {
