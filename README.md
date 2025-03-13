@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.94, October 6, 2024
+#### Version: Exet v0.95, March 12, 2025
 
 #### Author: Viresh Ratnakar
 
@@ -41,7 +41,6 @@ These are all the files needed from this repository:
   [`t-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/t-unches.png),
   [`l-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/l-unches.png),
   [`tl-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/tl-unches.png),
-  [`no-blocks.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-blocks.png).
 
 And here are the files needed from Exolve:
 
@@ -179,14 +178,24 @@ made by Debsamita Basu.
 
 ### Constructing the grid
 
-The "Open" menu allows you to start with blocked blank grids following a few
-checkquered templates and the completely blank "No blocks" template. You will
-also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
-and it will be checked by default (you can uncheck it if you do want to start
-with a chequered template with no added blocks or with a completely blank
-template). After creating a grid, you can customize it by manually
-adding/removing blocks/bars, or by letting the software automatically add
-blocks.
+The "Open" menu allows you to start with several "New grid" options:
+
+- New blank grid (add blocks/bars later)
+  - This is a completely blank grid to which you would manually add blocks
+    or bars (or both). For barred grids, or for blocked grids that you want
+    to craft yourselves, this is where you should start.
+- New blocked lattice grid (no added blocks)
+  - This allows you to create one of four variants of a chequered grid, wih
+    no further blocks added.
+- New blocked lattice grid (with blocks added)
+  - This allows you to create one of four variants of a chequered grid, wih
+    blocks added to create a reasonable grid. You can always edit it further
+    by adding or removing blocks.
+- New US-style doubly checked grid (with blocks added)
+  - This creates a US style crossword, with blocks added to create a reasonable
+    grid. You can always edit it firther by adding or removing blocks.
+After creating a grid, you can customize it by manually adding/removing
+blocks/bars, or by letting the software automatically add blocks.
 
 You can also create a 3-D grid from the "Open" menu. In a 3-D grid, there are
 multiple "layers", with "down" clues running through the layers and "across"
@@ -194,15 +203,20 @@ and "away" clues within the layers. See the
 [Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
 for details on 3-D crosswords.
 
+The "Open" menu also lets you open previously created crosswords, or return to
+an older revision of the current crossword, or open a .puz file or Exolve file.
 
+Next to the "Open" menu is the "Edit" menu, useful for tweaking the grid,
+autofilling it, and adding/modifying crossword features such as ninas:
+
+- Toggle block (.)
 - Add automagic blocks (#)
+- Toggle barred cell:
+  - Toggle bar-after (|)
+  - Toggle bar-under (\_)
 - Autofill:
   - _Leads to an autofill options panel._
 - Accept autofilled entries (=)
-- Edit grid cell:
-  - Toggle block (.)
-  - Toggle bar-after (|)
-  - Toggle bar-under (\_)
 - Mark grid cell:
   - Toggle encircling (@)
   - Toggle marking prefilled (!)
@@ -819,25 +833,31 @@ by clicking on it, when it is being edited above the grid).
 The "Open" menu lets you pick any old revision of any crossword. It also shows
 a preview of the puzzle revision that you select.
 
+### Storage
+
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
 May 2023). When this limit is reached, Exet will warn you that it cannot
 save crossword revisions. You can use the "Manage storage" menu option in the
-"Open" menu at any time to delete old revisions of some crosswords and/or
-entirely delete old crosswords (after downloading Exolve files with solutions
-for them as these files can be opened in Exet to recover the crosswords
-completely).
+"Storage" menu at any time to delete old revisions of some crosswords and/or
+entirely delete old crosswords (after saving a backup or after downloading
+Exolve files with solutions for your crosswords, as these files can be opened
+in Exet to recover the crosswords completely).
 
-### Backing up the revisions stored in local storage
+### Backing up the crosswords to a file
 
-The "Open" menu also has a "Save all revisions to file" option, which saves the
-entire revision history to a JSON file (named exet-revisions-_timestamp_.json),
-as a way of having a back-up beyond the browser's local storage. Apart from
-using as a back-up mechanism, you can also use this to transfer all the
-crosswords that you're working on to a different computer. The companion option,
-"Merge saved revisions file," lets you read a saved JSON file, merging all
-revision state from it. This allows limiting to just the latest version of each
-crossword (instead of its full revision history). The revisions are _merged_: in
-the sense that if a revision already exists then it is not duplicated.
+The "Storage" menu also has a "Back uo all current crosswords to file" option,
+which saves the entire revision history to a JSON file
+(named exet-backup-_timestamp_.json), as a way of having a back-up beyond the
+browser's local storage. Apart from using as a back-up mechanism, you can also
+use this to transfer all the crosswords that you're working on to a different
+computer. The companion option, "Merge saved back-ups file," lets you read a
+saved JSON file, merging all revision state from it. This allows limiting to
+just the latest version of each crossword (instead of its full revision
+history). The revisions are _merged_: in the sense that if a revision already
+exists then it is not duplicated.
+
+Exet also keeps track of when you last did a back up, and alerts you if over
+a week has passed since you backed up.
 
 ## Analysis
 
@@ -1168,6 +1188,8 @@ creating a new blank grid or whether you invoke it on an existing grid):
     blank grid, "Add automagic blocks" will create a British grid variety.)
 - No cell where you've already entered a grid-fill letter will be turned into a
   block.
+- The above procedure loops until a heuristically-determined minimum number of
+  lights is reached.
 
 ## Copyright notices
 

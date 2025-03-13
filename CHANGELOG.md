@@ -1,5 +1,28 @@
 # Changelog
 
+### Version: Exet v0.95, March 12, 2025
+
+- Separated out local storage menus and backing up menus into a
+  new menu called "Storage"
+- Added check to periodically monitor available local storage and last backup
+  time (did this by extending and renaming the function that was periodically
+  checking version).
+- If available storage is too low, or last backup is too stale (1 week), then
+  the Storage menu is turned red and a tool tip is shown on it, encouraging
+  the user to take steps to remedy the situation.
+- The last backup time initially is set to the current time, so the first
+  warning will be seen a week after this update is adopted.
+- Upgrade "Toggle block" to be a top-level member of the Edit menu (apparently
+  some folks didn't find it)
+- Make automagic-block-adding loop till a minimal number (heuristically
+  derived) of lights exists, so that auto-created grids start out in a more
+  directly usable state.
+- Refactor the "New crossword" menus, using the phrase "lattice grid" instead
+  of "chequered grid", and upgrading the the creation of a US-style grid to be
+  a top-level menu item.
+- Make the order of the Exet tab menus be more natural:
+  Open, Edit, Analysis, Save, Storage.
+
 ### Minor update: Exet v0.94.6 October 21, 2024
 
 - Bug-fix: when a preferred fill entry was not in the lexicon, recent
