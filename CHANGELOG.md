@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.95.1 March 17, 2025
+
+- Bug fix: unsetting css color needs to be via 'inherit' not 'default'.
+
 ### Version: Exet v0.95, March 12, 2025
 
 - Separated out local storage menus and backing up menus into a

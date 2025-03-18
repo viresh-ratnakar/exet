@@ -8574,7 +8574,7 @@ Exet.prototype.checkLocalStorage = function() {
   this.lsUsedSpan.innerText = this.inMB(this.lsUsed);
   this.lsFreeSpan.innerText = this.inMB(lsFree);
   this.lsLeftIsAmple = (lsFree > 50000);
-  this.lsFreeSpan.style.color = this.lsLeftIsAmple ? 'default' : 'red';
+  this.lsFreeSpan.style.color = this.lsLeftIsAmple ? 'inherit' : 'red';
   return this.lsLeftIsAmple;
 }
 
@@ -8584,7 +8584,7 @@ Exet.prototype.checkBackup = function() {
   /** 7 days check */
   const isRecent = ((Date.now() - exetState.lastBackup) <= (7 * 86400000));
   const backupElem = document.getElementById("xet-last-backup");
-  backupElem.style.color = isRecent ? 'default' : 'red';
+  backupElem.style.color = isRecent ? 'inherit' : 'red';
   return isRecent;
 }
 
@@ -8602,7 +8602,7 @@ Exet.prototype.checkStorage = function() {
     this.storageHeading.style.color = 'red';
     this.storageHeading.title = warnings.join(' ');
   } else {
-    this.storageHeading.style.color = 'default';
+    this.storageHeading.style.color = 'inherit';
     this.storageHeading.title = 'Manage local storage, back up crosswords to file.';
   }
 }
