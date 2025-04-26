@@ -3824,234 +3824,8 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
   }, 1000);
 }
 
-Exet.prototype.dotPuzCksum = function(uint8array, offset, len, cksum) {
-  for (let i = 0; i < len; i++) {
-    if (cksum & 0x0001) {
-      cksum = (cksum >> 1) | 0x8000;
-    } else {
-      cksum = cksum >> 1;
-    }
-    cksum += uint8array[offset + i]
-    cksum = cksum & 0xffff
-  }
-  return cksum;
-}
-
-Exet.prototype.dotPuzShort = function(buffer, offset, shortval) {
-  buffer[offset] = shortval & 0xFF
-  buffer[offset + 1] = shortval >> 8
-}
-
-Exet.prototype.enc8859 = function(s, buffer, offset) {
-  if (!this.chars8859) {
-    this.chars8859 = {};
-    let decoder = new TextDecoder('iso-8859-1');
-    const buff = new Uint8Array(1);
-    for (let i = 128; i < 256; i++) {
-      buff[0] = i;
-      const char = decoder.decode(buff);
-      this.chars8859[char] = i;
-    }
-  }
-  for (let i = 0; i < s.length; i++) {
-    let code = s.charCodeAt(i);
-    if (code >= 128) {
-      const char = s.charAt(i);
-      if (this.chars8859.hasOwnProperty(char)) {
-        code = this.chars8859[char];
-      } else {
-        throw 'Character not supported in ISO-8859-1: ' + char
-      }
-    }
-    buffer[offset++] = code;
-  }
-  return offset;
-}
-
-Exet.prototype.getDotPuz = function() {
-  try {
-    if (this.puz.layers3d > 1) {
-      throw 'This puzzle has lights other than across/down';
-    }
-    // Generously estimate length of the buffer needed.
-    let exolve = this.getExolve('', false, true, exetState.showEnums);
-    let estDotPuzLen = 2 * (1000 + exolve.length)
-    let buffer = new Uint8Array(estDotPuzLen);
-    let offset = 0;
-
-    offset = 0x02
-    offset = this.enc8859('ACROSS&DOWN', buffer, offset);
-    buffer[offset++] = 0;
-
-    offset = 0x18
-    offset = this.enc8859('1.3', buffer, offset);
-    buffer[offset++] = 0;
-
-    offset = 0x2c
-    buffer[offset++] = this.puz.gridWidth
-    buffer[offset++] = this.puz.gridHeight
-
-    this.dotPuzShort(buffer, 0x2E, this.puz.allClueIndices.length)
-    buffer[0x30] = 1  // Unknown bitmask
-
-    let numCells = this.puz.gridWidth * this.puz.gridHeight;
-
-    let solution = ''
-    let playerState = ''
-    let orderedClueIndices = []
-    let circleLocs = []
-    for (let i = 0; i < this.puz.gridHeight; i++) {
-      for (let j = 0; j < this.puz.gridWidth; j++) {
-        let gridCell = this.puz.grid[i][j]
-        if (gridCell.hasBarAfter || gridCell.hasBarUnder) {
-          throw 'This puzzle has barred cells';
-        }
-        if (!gridCell.isLight) {
-          solution = solution + '.'
-          playerState = playerState + '.'
-        } else {
-          solution = solution + (gridCell.currLetter != '0' ?
-            gridCell.currLetter : '?')
-          playerState = playerState + '-'
-          if (gridCell.startsAcrossClue) {
-            orderedClueIndices.push('A' + gridCell.startsClueLabel)
-          }
-          if (gridCell.startsDownClue) {
-            orderedClueIndices.push('D' + gridCell.startsClueLabel)
-          }
-          if (gridCell.hasCircle) {
-            circleLocs.push((i * this.puz.gridWidth) + j)
-          }
-        }
-      }
-    }
-    if (this.puz.allClueIndices.length != orderedClueIndices.length) {
-      throw 'Non-standard clue types';
-    }
-
-    offset = 0x34
-    offset = this.enc8859(solution, buffer, offset);
-    offset = this.enc8859(playerState, buffer, offset);
-
-    let titleOffset = offset
-    offset = this.enc8859(this.puz.title, buffer, offset);
-    let titleLen = offset - titleOffset;
-    buffer[offset++] = 0;
-
-    let setterOffset = offset
-    offset = this.enc8859(this.puz.setter, buffer, offset);
-    let setterLen = offset - setterOffset;
-    buffer[offset++] = 0
-
-    let copyrightOffset = offset
-    offset = this.enc8859(this.puz.copyright, buffer, offset);
-    let copyrightLen = offset - copyrightOffset;
-    buffer[offset++] = 0
-
-    let clueOffsets = []
-    let clueLens = []
-    for (let ci of orderedClueIndices) {
-      let theClue = this.puz.clues[ci]
-      const startOffset = offset;
-      clueOffsets.push(startOffset);
-      let puzClue = this.showClue(
-          theClue.clueSpan.innerText.replace(/\s+/g,' '),
-          false, exetState.showEnums, false);
-      if (theClue.children.length > 0) {
-        let chI = theClue.displayLabel.indexOf(',');
-        if (chI >= 0) {
-          const chLabel = theClue.displayLabel.substr(chI + 1).trim();
-          if (chLabel) {
-            puzClue = '(+'+ chLabel + ') ' + puzClue;
-          }
-        }
-      }
-      offset = this.enc8859(puzClue, buffer, offset);
-      clueLens.push(offset - startOffset);
-      buffer[offset++] = 0
-    }
-    // If the puzzle has a preamble, set it as "Notes"
-    let notesOffset = offset;
-    offset = this.enc8859(this.preambleText.value, buffer, offset);
-    let notesLen = offset - notesOffset;
-    buffer[offset++] = 0
-
-    let gextOffset = -1
-    if (circleLocs.length > 0) {
-      gextOffset = offset
-      offset = this.enc8859('GEXT', buffer, offset);
-      this.dotPuzShort(buffer, offset, numCells);
-      offset += 4
-      for (let loc of circleLocs) {
-        buffer[offset + loc] = 0x80
-      }
-      offset += numCells
-      buffer[offset++] = 0
-      let c_gext = this.dotPuzCksum(buffer, gextOffset + 8, numCells, 0);
-      this.dotPuzShort(buffer, gextOffset + 6, c_gext);
-    }
-
-    // Need to fill checksums
-    let c_cib = this.dotPuzCksum(buffer, 0x2C, 8, 0);
-    this.dotPuzShort(buffer, 0x0E, c_cib);
-
-    let cksum = c_cib;
-    cksum = this.dotPuzCksum(buffer, 0x34, numCells, cksum);
-    cksum = this.dotPuzCksum(buffer, 0x34 + numCells, numCells, cksum);
-
-    if (titleLen > 0) {
-      cksum = this.dotPuzCksum(buffer, titleOffset, titleLen + 1, cksum);
-    }
-    if (setterLen > 0) {
-      cksum = this.dotPuzCksum(buffer, setterOffset, setterLen + 1, cksum);
-    }
-    if (copyrightLen > 0) {
-      cksum = this.dotPuzCksum(
-          buffer, copyrightOffset, copyrightLen + 1, cksum);
-    }
-    for (let i = 0; i < orderedClueIndices.length; i++) {
-      cksum = this.dotPuzCksum(buffer, clueOffsets[i], clueLens[i], cksum);
-    }
-    if (notesLen > 0) {
-      cksum = this.dotPuzCksum(buffer, notesOffset, notesLen + 1, cksum);
-    }
-    this.dotPuzShort(buffer, 0x00, cksum);
-
-    let c_sol = this.dotPuzCksum(buffer, 0x34, numCells, 0);
-    let c_grid = this.dotPuzCksum(buffer, 0x34 + numCells, numCells, 0);
-    let c_part = 0;
-    if (titleLen > 0) {
-      c_part = this.dotPuzCksum(buffer, titleOffset, titleLen + 1, c_part);
-    }
-    if (setterLen > 0) {
-      c_part = this.dotPuzCksum(buffer, setterOffset, setterLen + 1, c_part);
-    }
-    if (copyrightLen > 0) {
-      c_part = this.dotPuzCksum(
-          buffer, copyrightOffset, copyrightLen + 1, c_part);
-    }
-    for (let i = 0; i < orderedClueIndices.length; i++) {
-      c_part = this.dotPuzCksum(buffer, clueOffsets[i], clueLens[i], c_part);
-    }
-
-    buffer[0x10] = 0x49 ^ (c_cib & 0xFF);
-    buffer[0x11] = 0x43 ^ (c_sol & 0xFF);
-    buffer[0x12] = 0x48 ^ (c_grid & 0xFF);
-    buffer[0x13] = 0x45 ^ (c_part & 0xFF);
-
-    buffer[0x14] = 0x41 ^ ((c_cib & 0xFF00) >> 8);
-    buffer[0x15] = 0x54 ^ ((c_sol & 0xFF00) >> 8);
-    buffer[0x16] = 0x45 ^ ((c_grid & 0xFF00) >> 8);
-    buffer[0x17] = 0x44 ^ ((c_part & 0xFF00) >> 8); 
-    return buffer.slice(0, offset)
-  } catch (err) {
-    alert('Cannot save this crossword as .puz: ' + err);
-    return null
-  }
-}
-
 Exet.prototype.downloadDotPuz = function() {
-  let dotPuz = this.getDotPuz()
+  let dotPuz = exolveToPuz(this.puz, exetState.showEnums)
   if (!dotPuz) {
     exetModals.hide()
     return
@@ -4562,21 +4336,10 @@ Exet.prototype.isInTag = function(prefix, suffix, open, close) {
   return [px, sx]
 }
 
-// Removes def markers ~{...}~ from s
-Exet.prototype.deDefMarkers = function(s) {
-  const reDef = new RegExp('(~\\{(.*)\\}~)')
-  while ((match = s.match(reDef)) && match.length > 2) {
-    const idx = s.indexOf(match[0])
-    console.assert(idx >= 0, s, match)
-    const cStart = idx + 2
-    const end = s.indexOf('}~', cStart)
-    s = s.substr(0, idx) + s.substring(cStart, end) + s.substr(end + 2);
-  }
-  return s
-}
-
-// Remove HTML tags (only that have matching closes) from s. Also
-// remove any matching ~{...}~ if inClue.
+/**
+ * Remove HTML tags (only that have matching closes) from s. Also
+ * remove any matching ~{...}~ if inClue.
+ */
 Exet.prototype.deTag = function(s, inClue) {
   const reHTML = new RegExp('(<([^<> ]+)(>| [^>]*>))(.*)(</\\2>)')
   let match
@@ -4592,7 +4355,7 @@ Exet.prototype.deTag = function(s, inClue) {
   if (!inClue) {
     return s
   }
-  return this.deDefMarkers(s);
+  return this.puz.deDefMarkers(s);
 }
 
 Exet.prototype.renderDefTags = function(s) {
@@ -7354,22 +7117,6 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid;
 }
 
-Exet.prototype.showClue = function(clue, forExolve=true,
-                                   showEnums=true, solved=false) {
-  clue = clue.trim();
-  if (!solved) {
-    clue = this.deDefMarkers(clue);
-  }
-  if (showEnums) {
-    return clue;
-  }
-  const idx = clue.lastIndexOf('(');
-  if (idx < 0 || clue[clue.length - 1] != ')') {
-    return clue;
-  }
-  return forExolve ? (clue + '*') : clue.substr(0, idx)
-}
-
 Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   if (!this.puz) {
     return ''
@@ -7384,7 +7131,7 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   cluePtrs.sort((c1, c2) => parseInt(c1.label) - parseInt(c2.label));
   let clues = ''
   for (let clue of cluePtrs) {
-    const thisClue = this.showClue(clue.clue, true, showEnums, solved);
+    const thisClue = this.puz.formatClue(clue.clue, true, showEnums, solved);
     const label = clue.displayLabel || clue.label;
     clues = clues + '\n  ' + label + ' ' + thisClue;
     if (!solved || clue.parentClueIndex) {

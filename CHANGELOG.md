@@ -1,5 +1,12 @@
 # Changelog
 
+### Minor update: Exet v0.95.2 April 25, 2025
+
+- In Exolve v1.62, we added exolve-to-puz.js, factoring out code from Exet.
+  This version makes Exet switch to using that code, deleting its own.
+- A couple of clue text formatting functions also moved from Exet to Exolve,
+  with this change, we update Exet to use those variants, deleting its own.
+
 ### Minor update: Exet v0.95.1 March 17, 2025
 
 - Bug fix: unsetting css color needs to be via 'inherit' not 'default'.

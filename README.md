@@ -47,6 +47,7 @@ And here are the files needed from Exolve:
 - [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
 - [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
 - [`exolve-from-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-puz.js).
+- [`exolve-to-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-puz.js).
 
 Exet comes with a permissive MIT license. The full license notice is provided in
 the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
