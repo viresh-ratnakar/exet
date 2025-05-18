@@ -1,5 +1,16 @@
 # Changelog
 
+### Exet v0.96, May 18, 2025
+
+- Allow reading and writing .ipuz files.
+- Reorder the new-grid menu.
+- Whether or not enums are used (and enforced) is now a crossword-specific
+  option that you specify from the menu choice for a blank grid. When loading
+  an existing puzzle, if all clues in the puzzle have enums, then requireEnums
+  is set to true, otherwise it's falsse (allowing a US-style enum-less puzzle).
+- Adjust the desired max number of lights to 78 (when adding automagic blocks
+  to a 15x15 US-style grid) by adjusting the factor.
+
 ### Minor update: Exet v0.95.2 April 25, 2025
 
 - In Exolve v1.62, we added exolve-to-puz.js, factoring out code from Exet.

@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.95, March 12, 2025
+#### Version: Exet v0.96, May 18, 2025
 
 #### Author: Viresh Ratnakar
 
@@ -48,6 +48,8 @@ And here are the files needed from Exolve:
 - [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
 - [`exolve-from-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-puz.js).
 - [`exolve-to-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-puz.js).
+- [`exolve-from-ipuz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-ipuz.js).
+- [`exolve-to-ipuz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-ipuz.js).
 
 Exet comes with a permissive MIT license. The full license notice is provided in
 the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
@@ -181,20 +183,21 @@ made by Debsamita Basu.
 
 The "Open" menu allows you to start with several "New grid" options:
 
-- New blank grid (add blocks/bars later)
-  - This is a completely blank grid to which you would manually add blocks
-    or bars (or both). For barred grids, or for blocked grids that you want
-    to craft yourselves, this is where you should start.
-- New blocked lattice grid (no added blocks)
-  - This allows you to create one of four variants of a chequered grid, wih
-    no further blocks added.
-- New blocked lattice grid (with blocks added)
+- New blocked lattice grid (with blocks added, non-US-style)
   - This allows you to create one of four variants of a chequered grid, wih
     blocks added to create a reasonable grid. You can always edit it further
     by adding or removing blocks.
+- New blocked lattice grid (no added blocks, non-US-style)
+  - This allows you to create one of four variants of a chequered grid, wih
+    no further blocks added.
 - New US-style doubly checked grid (with blocks added)
   - This creates a US style crossword, with blocks added to create a reasonable
     grid. You can always edit it firther by adding or removing blocks.
+- New blank grid (add blocks/bars later)
+  - This is a completely blank grid to which you would manually add blocks
+    or bars (or both). For barred grids, or for blocked grids that you want
+    to craft yourselves, this is where you should start. A sub-menu lets You
+    choose whether you want the grid to be a US-style puzzle without enums.
 After creating a grid, you can customize it by manually adding/removing
 blocks/bars, or by letting the software automatically add blocks.
 
@@ -205,7 +208,8 @@ and "away" clues within the layers. See the
 for details on 3-D crosswords.
 
 The "Open" menu also lets you open previously created crosswords, or return to
-an older revision of the current crossword, or open a .puz file or Exolve file.
+an older revision of the current crossword, or open an Exolve file or a
+.puz/.ipuz file.
 
 Next to the "Open" menu is the "Edit" menu, useful for tweaking the grid,
 autofilling it, and adding/modifying crossword features such as ninas:
@@ -285,6 +289,9 @@ If you modify the enum part in the clue to something that indicates a multi-word
 phrase (for example, by changing "(10)" to "(4,6)") then the grid-fill
 suggestions will be reordered to prefer entries that match the implied
 punctuation, i.e., the presence of interword space/dash/apostrophe characters.
+
+Note that if you start with a US-style crossword, enums are not shown in clues,
+unless you explicitly add them.
 
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
@@ -490,15 +497,13 @@ In the clues list in the Exet panel (to the right of the grid), clues in
 draft mode get shown with a `[DRAFT]` marker and their clue numbers get shown
 coloured gray.
 
-You can also edit the enum part of the clue, but the software will reset it
-to the previous value if it does not add up to the needed number. For example,
-if a light spans 10 cells, and you edit the enum part to be "(5-4)," the
-software will reset it to "(10)," (or "(5,5)" or whatever was the last value).
-When it does this, Exet will also surface a relevant tip under the "Tips"
-area, showing how you can use `exolve-option: ignore-enum-mismatch` to avoid
-this strict checking, if desired.
-Note that when you save the crossword to Exolve or PUZ or PDF formats,
-you can always chose to not list the enums (using a checkbox in the Save menu).
+In a puzzle where enums are required (i.e., non-US-style), you can also edit the
+enum part of the clue, but the software will reset it to the previous value if
+it does not add up to the needed number. For example, if a light spans 10
+cells, and you edit the enum part to be "(5-4)," the software will reset it to
+"(10)," (or "(5,5)" or whatever was the last value). When it does this, Exet
+will also surface a relevant tip under the "Tips" area, showing how you can use
+`exolve-option: ignore-enum-mismatch` to avoid this strict checking, if desired.
 
 You can also leave an enum incompletely specified, as in these examples:
 "(one word)", "(2 wds)". You can specify the total length and omit the
@@ -770,17 +775,11 @@ edited. Similarly, you can edit the copyright notice for the puzzle. All three
 of these editable fields are optional, and you can simply edit them to be
 empty.
 
-### Downloading Exolve or .puz files
+### Downloading Exolve or .puz or .ipuz files
 
 The "Save" menu lets you download or grab the puzzle in various ways. In the
 following, \<title\> in a filename stands for the puzzle title.
 
-- **Download PUZ file (exet-\<title\>.puz)**: Download a .puz file. Note that
-  .puz does not support many crossword features (afaik) such as barred grids.
-  The software will alert you if it is not able to provide a .puz download.
-  Note also that when exporting the crossword in the .puz format, any rich
-  formatting in clues will get stripped out as the .puz format does not support
-  it (.puz does not support annotations either).
 - **Download Exolve file with solutions
   (exet-exolve-\<title\>-with-solutions.html)**:
   Download an HTML file that uses Exolve and that allows solvers to check/see
@@ -800,16 +799,23 @@ following, \<title\> in a filename stands for the puzzle title.
   it as a PDF file, in a compact, two-column format, with solutions.
 - **Print or download PDF file without solutions**: Print the crossword, or save
   it as a PDF file, in a compact, two-column format, without solutions.
+- **Download PUZ file (exet-\<title\>.puz)**: Download a .puz file. Note that
+  .puz does not support many crossword features (afaik) such as barred grids.
+  The software will alert you if it is not able to provide a .puz download.
+  Note also that when exporting the crossword in the .puz format, any rich
+  formatting in clues will get stripped out as the .puz format does not support
+  it (.puz does not support annotations either).
+- **Download IPUZ file (exet-\<title\>.ipuz)**: Download a .ipuz file. Note that
+  .puz does not support many crossword features (afaik). The software will alert
+  you if it is not able to provide a .ipuz download.
 
-In the first three "download" variants, a file with the name shown will be
+In the "download-file" "Save" options, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already
 exists a file with that name, the system will use a variant of the name
-as per its usual conventions.
+as per its usual conventions (such as appending "(1)" to the name).
 
-The Save menu also lets you change a couple of settings:
+The Save menu also lets you change some settings:
 
-- **Show enums in clues**: You can turn this off to download American-style
-  puzzles that do not show enums in clues.
 - **Exolve URL prefix**: You can change this to your own custom location
   of the `exolve-m.css` and `exolve-m.js` files in downloaded Exolve files.
   You can press the Escape key inside the text entry area to revert to the

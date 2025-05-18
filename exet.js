@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.95, March 12, 2025
+Current version: v0.96, May 18, 2025
 */
 
 function ExetModals() {
@@ -451,6 +451,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
         lastRev.noStemDupes == exet.noStemDupes &&
         lastRev.tryReversals == exet.tryReversals &&
         lastRev.minpop == exet.minpop &&
+        lastRev.hasOwnProperty('requireEnums') && lastRev.requireEnums == exet.requireEnums &&
         lastRev.asymOK == exet.asymOK) {
       return;
     }
@@ -471,9 +472,10 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.asymOK = exet.asymOK;
   exetRev.tryReversals = exet.tryReversals;
   exetRev.minpop = exet.minpop;
+  exetRev.requireEnums = exet.requireEnums;
   stored.revs.push(exetRev);
   this.saveLocal(exet.puz.id, JSON.stringify(stored));
-};
+}
 
 ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
   let urgent = revType <= 10;
@@ -642,7 +644,7 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
 };
 
 function Exet() {
-  this.version = 'v0.95, March 12, 2025';
+  this.version = 'v0.96, May 18, 2025';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -651,6 +653,7 @@ function Exet() {
   this.preflexInUse = {};
   this.unpreflex = {};
   this.noProperNouns = false;
+  this.requireEnums = true;
   this.noStemDupes = exetLexicon.hasOwnProperty('stems');
   this.asymOK = false;
   this.tryReversals = false;
@@ -1189,7 +1192,7 @@ Exet.prototype.makeExetTab = function() {
             Go back to a specific revision of the current puzzle
           </div>
           <div class="xet-dropdown-item">
-            Open Exolve or .puz file: <input id="xet-file"
+            Open Exolve or .puz or .ipuz file: <input id="xet-file"
                 onchange="exetLoadFile();" type="file"></input>
           </div>
           <hr>
@@ -1213,55 +1216,10 @@ Exet.prototype.makeExetTab = function() {
               </input>
             </div>
           </div>
-          <div class="xet-dropdown-item"
-              title="Blank starting-point-grid for a blocked or barred grid to which you will manually add blocks/bars"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                  `document.getElementById('xet-h').value, 1, ` +
-                  `document.getElementById('xet-id').value, ` +
-                  `false, false);">
-              New blank grid (add blocks/bars later)
-          </div>
-          <div class="xet-dropdown-div" style="padding-bottom:0"
-              title="Starting point for a chequered grid to which you will manually add blocks">
-            New blocked lattice grid (no added blocks):
-            <div class="xet-controls-row">
-              <div class="xet-dropdown-item"
-                   title="Blocked with no top/left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, false, false);">
-                <img class="xet-icon" src="no-unches.png"/>
-              </div>
-              <div class="xet-dropdown-item"
-                   title="Blocked with top but not left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, true, false);">
-                <img class="xet-icon" src="t-unches.png"/>
-              </div>
-              <div class="xet-dropdown-item"
-                   title="Blocked with left but not top unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, false, true);">
-                <img class="xet-icon" src="l-unches.png"/>
-              </div>
-              <div class="xet-dropdown-item"
-                   title="Blocked with top/left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, true, true);">
-                <img class="xet-icon" src="tl-unches.png"/>
-              </div>
-            </div>
-          </div>
+          <hr>
           <div class="xet-dropdown-div" style="padding-bottom:0"
               title="Chequered grid with already added blocks that you can modify as needed">
-            New blocked lattice grid (with blocks added):
+            New blocked lattice grid (with blocks added, non-US-style):
             <div class="xet-controls-row">
               <div class="xet-dropdown-item"
                    title="Blocked with no top/left unches"
@@ -1297,13 +1255,74 @@ Exet.prototype.makeExetTab = function() {
               </div>
             </div>
           </div>
+          <hr>
+          <div class="xet-dropdown-div" style="padding-bottom:0"
+              title="Starting point for a chequered grid to which you will manually add blocks">
+            New blocked lattice grid (no added blocks, non-US-style):
+            <div class="xet-controls-row">
+              <div class="xet-dropdown-item"
+                   title="Blocked with no top/left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, false, false);">
+                <img class="xet-icon" src="no-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with top but not left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, true, false);">
+                <img class="xet-icon" src="t-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with left but not top unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, false, true);">
+                <img class="xet-icon" src="l-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with top/left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, true, true);">
+                <img class="xet-icon" src="tl-unches.png"/>
+              </div>
+            </div>
+          </div>
+          <hr>
           <div class="xet-dropdown-item"
               title="Doubly checked US-style blocked grid with already added blocks that you can modify as needed"
                 onclick="exetBlank(document.getElementById('xet-w').value, ` +
                   `document.getElementById('xet-h').value, 1, ` +
                   `document.getElementById('xet-id').value, ` +
-                  `true, false);">
+                  `true, false, false, false, false);">
               New US-style doubly-checked grid (with blocks added)
+          </div>
+          <hr>
+          <div class="xet-dropdown-item"
+              title="Blank starting-point-grid for a blocked or barred grid to which you will manually add blocks/bars">
+            New blank grid (add blocks/bars later), choose style:
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-subitem"
+                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, false, false, false, true);">
+                With enums (non-US-style)
+              </div>
+              <div class="xet-dropdown-subitem"
+                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, false, false, false, false);">
+                Without enums (US-style)
+              </div>
+            </div>
           </div>
           <hr>
           <hr>
@@ -1663,14 +1682,6 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropdown-content" id="xet-save" title="The * shown in file names will be replaced by '-[title]', if there is a non-empty puzzle title">
           <div class="xet-dropdown-div">
             <b>Settings:</b>
-            <div title="Set this option for American-style grids that do ` +
-              `not show enums in clues">
-              Show enums in clues:
-              <input id="xet-show-enums" name="xet-show-enums"
-                ${exetState.showEnums ? "checked=true" : ""}
-                value="show-enums" type="checkbox">
-              </input>
-            </div>
             <div title="Change this to your own URL prefix for exolve-m.js ` +
               `and exolve-m.css. Only used when saving as Exolve if the ` +
               `Exolve data did not already have these URLs. Press Esc after ` +
@@ -1692,15 +1703,11 @@ Exet.prototype.makeExetTab = function() {
           <div class="xet-dropdown-item" onclick="exet.download(false)">
               Download Exolve file without solutions<br>(exet-exolve-<span
                   class="xet-filetitle"></span>-sans-solutions.html)</div>
-          <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">
-              Download PUZ file<br>
-              (exet-<span class="xet-filetitle"></span>.puz)
-          </div>
           <div class="xet-dropdown-item"
               onclick="exet.toClipboard(true, 'xet-xlv-widget')">
             Copy Exolve widget code with solutions &#128203;
             <div class="xet-dropdown-submenu">
-              <textarea rows="25" cols="40" id="xet-xlv-widget">
+              <textarea rows="25" cols="32" id="xet-xlv-widget">
               </textarea>
             </div>
           </div>
@@ -1708,14 +1715,24 @@ Exet.prototype.makeExetTab = function() {
               onclick="exet.toClipboard(false, 'xet-xlv-widget-nosol')">
             Copy Exolve widget code without solutions &#128203;
             <div class="xet-dropdown-submenu">
-              <textarea rows="25" cols="40" id="xet-xlv-widget-nosol">
+              <textarea rows="25" cols="32" id="xet-xlv-widget-nosol">
               </textarea>
             </div>
           </div>
+          <hr>
           <div class="xet-dropdown-item" onclick="exet.print(true)">
               Print or download PDF file with solutions</div>
           <div class="xet-dropdown-item" onclick="exet.print(false)">
               Print or download PDF file without solutions</div>
+          <hr>
+          <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">
+              Download PUZ file<br>
+              (exet-<span class="xet-filetitle"></span>.puz)
+          </div>
+          <div class="xet-dropdown-item" onclick="exet.downloadIPuz()">
+              Download IPUZ file<br>
+              (exet-<span class="xet-filetitle"></span>.ipuz)
+          </div>
         </div>
       </li>
       <li class="xet-dropdown">
@@ -2083,11 +2100,6 @@ Exet.prototype.makeExetTab = function() {
   });
 
   // Saving options
-  const showEnums = document.getElementById("xet-show-enums")
-  showEnums.addEventListener('change', e => {
-    exetState.showEnums = showEnums.checked ? true : false;
-    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
-  });
   const exolveUrl = document.getElementById("xet-xlv-url-prefix")
   exolveUrl.addEventListener('change', e => {
     exolveUrl.value = exolveUrl.value.trim();
@@ -2720,6 +2732,7 @@ Exet.prototype.updateOtherSections = function() {
     'exolve-submit': true,
     'exolve-option': true,
     'exolve-relabel': true,
+    'exolve-no-rebus': true,
     'exolve-force-hyphen-right': true,
     'exolve-force-hyphen-below': true,
     'exolve-force-bar-right': true,
@@ -3747,7 +3760,7 @@ Exet.prototype.navTip = function(delta) {
 }            
 
 Exet.prototype.download = function(solved=true) {
-  let html = this.getHTML(solved, exetState.showEnums)
+  let html = this.getHTML(solved);
   const a = document.createElement("a");
   a.style.display = "none";
   document.body.appendChild(a);
@@ -3784,7 +3797,7 @@ Exet.prototype.print = function(solved=true) {
         'window.print();window.close();">\n' +
         '<script>\n' +
         'createExolve(`' +  '\n' +
-        this.getExolve('', false, solved, exetState.showEnums) +
+        this.getExolve('', false, solved) +
         '`);\n' +
         '<\/script>\n' +
         '<\/body>\n' +
@@ -3811,7 +3824,7 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
   let suffix = '' +
       '  `, "' + id + '");\n' +
       '<\/script>\n'
-  inp.value = prefix + this.getExolve('', false, solved, exetState.showEnums) +
+  inp.value = prefix + this.getExolve('', false, solved) +
               suffix;
 
   inp.select();
@@ -3825,10 +3838,10 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
 }
 
 Exet.prototype.downloadDotPuz = function() {
-  let dotPuz = exolveToPuz(this.puz, exetState.showEnums)
+  const dotPuz = exolveToPuz(this.puz);
   if (!dotPuz) {
-    exetModals.hide()
-    return
+    exetModals.hide();
+    return;
   }
   const a = document.createElement("a");
   a.style.display = "none";
@@ -3836,9 +3849,30 @@ Exet.prototype.downloadDotPuz = function() {
   a.href = window.URL.createObjectURL(
     new Blob([dotPuz], {type: "application/x-crossword"})
   );
-  let filetitle = this.fileTitle()
+  const filetitle = this.fileTitle();
   a.setAttribute("download",
     filetitle ? "exet-" + filetitle + ".puz" : "exet.puz");
+  a.click();
+  window.URL.revokeObjectURL(a.href);
+  document.body.removeChild(a);
+  exetModals.hide()
+}
+
+Exet.prototype.downloadIPuz = function() {
+  const ipuz = exolveToIpuz(this.puz);
+  if (!ipuz) {
+    exetModals.hide();
+    return;
+  }
+  const a = document.createElement("a");
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.href = window.URL.createObjectURL(
+    new Blob([ipuz], {type: "application/x-crossword"})
+  );
+  const filetitle = this.fileTitle();
+  a.setAttribute("download",
+    filetitle ? "exet-" + filetitle + ".ipuz" : "exet.ipuz");
   a.click();
   window.URL.revokeObjectURL(a.href);
   document.body.removeChild(a);
@@ -4004,8 +4038,8 @@ Exet.prototype.draftClue = function(ci) {
   }
   let ret = this.DRAFT + ' ' + this.CLUE_NOT_SET;
   let cells = this.puz.getAllCells(ci);
-  if (cells.length > 0) {
-    ret = ret + ' (' + cells.length + ')'
+  if (cells.length > 0 && this.requireEnums) {
+    ret += ' (' + cells.length + ')';
   }
   return ret;
 }
@@ -4293,24 +4327,24 @@ Exet.prototype.isDraftClue = function(clueText) {
 }
 Exet.prototype.renderClue = function(theClue=null) {
   if (!theClue) {
-    theClue = exet.currClue()
+    theClue = exet.currClue();
   }
   if (!theClue || !theClue.clueSpan || theClue.parentClueIndex) {
-    return
+    return;
   }
-  const c = theClue.clue
-  let modC = c
+  const c = theClue.clue;
+  let modC = c;
   if (this.isDraftClue(c)) {
     modC = '<span class="xet-draft-marker">' +
-      this.DRAFT + '</span> ' + c.substr(this.DRAFT.length).trim()
-    theClue.clueTR.className = "xet-draft"
+      this.DRAFT + '</span> ' + c.substr(this.DRAFT.length).trim();
+    theClue.clueTR.className = "xet-draft";
   } else {
-    theClue.clueTR.className = "xlv-solved"
+    theClue.clueTR.className = "xlv-solved";
   }
-  theClue.clue = modC
-  this.puz.renderClueSpan(theClue, theClue.clueSpan)
-  this.puz.revealClueAnno(theClue.index)
-  theClue.clue = c
+  theClue.clue = modC;
+  this.puz.renderClueSpan(theClue, theClue.clueSpan);
+  this.puz.revealClueAnno(theClue.index);
+  theClue.clue = c;
 }
 
 Exet.prototype.setDraftToggler = function() {
@@ -4899,43 +4933,37 @@ Exet.prototype.handleClueChange = function() {
 
   this.saveCursor();
 
-  let expEnumLen = this.puz.getAllCells(ci).length;
+  const expEnumLen = this.puz.getAllCells(ci).length;
+  console.assert(expEnumLen > 0, ci);
   this.stripInputLF(currClueText);
   let clue = currClueText.innerText;
   const savedClue = clue;
   clue = clue.trim();
-  let clueSansEnum = clue;
-  let oldEnum = '';
-  let enumPos = theClue.clue.lastIndexOf('(');
-  if (enumPos >= 0) {
-    oldEnum = theClue.clue.substr(enumPos).trim();
-  }
-  let newEnum = '';
-  enumPos = clue.lastIndexOf('(');
-  if (enumPos >= 0) {
-    newEnum = clue.substr(enumPos).trim();
-    clueSansEnum = clue.substr(0, enumPos).trim();
-  }
-  const enumParse = this.puz.parseEnum(newEnum);
-  newEnum = enumParse.enumStr.trim();
+  const oldEnumParse = this.puz.parseEnum(theClue.clue);
+  let enumParse = this.puz.parseEnum(clue);
+
   /**
-   * Revert to the old enum if the new one isn't an
-   * enum or if the new one says a length that is different
-   * from what the light says.
+   * If !requireEnums, we allow any enum-like thing in the
+   * clue, even with mismatched length. Otherwise, we enforce
+   * the required length, unless ignoreEnumMismatch is set.
    */
-  if (newEnum.length <= 2 ||
-      (enumParse.enumLen > 0 && enumParse.enumLen != expEnumLen &&
-       !this.puz.ignoreEnumMismatch)) {
-    if (newEnum.length > 2) {
-      this.showTip(this.TIP_ENUM_MISMATCH);
-    }
-    if (expEnumLen > 0) {
-      newEnum = oldEnum || ('(' + expEnumLen + ')');
-    } else {
-      newEnum = '';
+  if (this.requireEnums) {
+    /**
+     * Revert to the old enum if the new one isn't an
+     * enum or if the new one says a length that is different
+     * from what the light says.
+     */
+    if (enumParse.enumLen == 0 ||
+        (enumParse.enumLen != expEnumLen && !this.puz.ignoreEnumMismatch)) {
+      if (enumParse.enumLen > 0) {
+        this.showTip(this.TIP_ENUM_MISMATCH);
+      }
+      const clueSansEnum = clue.substr(0, enumParse.afterClue);
+      clue = (clueSansEnum + ' ' +
+              (oldEnumParse.enumStr || ('(' + expEnumLen + ')'))).trim();
+      enumParse = this.puz.parseEnum(clue);
     }
   }
-  clue = (clueSansEnum + ' ' + newEnum).trim();
   if (clue != savedClue) {
     let delta = clue.length - savedClue.length;
     if (delta < 0) {
@@ -4971,7 +4999,7 @@ Exet.prototype.handleClueChange = function() {
       exetLexicon.depunct(clue).split(' ').length > 12) {
     this.showTip(this.TIP_ANALYSIS);
   }
-  if (oldEnum != newEnum) {
+  if (oldEnumParse.enumStr != enumParse.enumStr) {
     if (this.handleGridInput()) {
       // throttledSaveRev() got called already
       return;
@@ -5137,7 +5165,7 @@ Exet.prototype.automagicBlocks = function(showAlerts=true) {
     return false;
   }
   if (analysis.unchequeredOK()) {
-    const target = Math.ceil(2*w*h/6.5);
+    const target = Math.ceil(2*w*h/5.8);
     return this.automagicBlocksInner(false, target, showAlerts);
   } else  if (analysis.chequeredOK()) {
     const lightRows = Math.floor(h/2) + (((h % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
@@ -6206,7 +6234,7 @@ Exet.prototype.killInvalidatedClues = function() {
   // New puzzle, but no clues/ninas/colours (these may contain invalid entries).
   const specs = this.getExolve(
       tempId, true /*skipClues*/, false /* solved */,
-      true /* showEnums */, false /* showColoursNinas */);
+      false /* showColoursNinas */);
   const xetTemp = document.getElementById("xet-temp");
   xetTemp.innerHTML = '';
   const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
@@ -6466,6 +6494,7 @@ Exet.prototype.reverseLight = function() {
   this.reverseLightInner(clue);
 }
 
+// TODO: deal with question hints
 Exet.prototype.killQuestion = function(idx, e) {
   this.puz.questionTexts = this.puz.questionTexts.slice(0, idx).concat(
       this.puz.questionTexts.slice(idx + 1));
@@ -7117,7 +7146,7 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid;
 }
 
-Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
+Exet.prototype.getClues = function(dir, solved=true) {
   if (!this.puz) {
     return ''
   }
@@ -7131,25 +7160,26 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   cluePtrs.sort((c1, c2) => parseInt(c1.label) - parseInt(c2.label));
   let clues = ''
   for (let clue of cluePtrs) {
-    const thisClue = this.puz.formatClue(clue.clue, true, showEnums, solved);
+    const thisClue = this.puz.formatClue(clue.clue, true, true, solved);
     const label = clue.displayLabel || clue.label;
     clues = clues + '\n  ' + label + ' ' + thisClue;
     if (!solved || clue.parentClueIndex) {
       continue
     }
     const parsedEnum = this.puz.parseEnum(thisClue);
-    if (!parsedEnum.enumStr && (clue.solution || clue.anno)) {
-      // Allow appending solution/anno.
-      clue += ' (?)*';
+    if (!parsedEnum.enumStr && !parsedEnum.hasEmptyBracs &&
+        (clue.solution || clue.anno)) {
+      /** Allow appending solution/anno. */
+      clues += ' []';
     }
     if (clue.solution) {
-      clues = clues + ' [' + clue.solution + ']'
+      clues = clues + ' [' + clue.solution + ']';
     }
     if (clue.anno) {
-      clues = clues + ' ' + clue.anno
+      clues = clues + ' ' + clue.anno;
     }
   }
-  return clues
+  return clues;
 }
 
 Exet.prototype.cellCode = function(r, c) {
@@ -7196,9 +7226,9 @@ Exet.prototype.getExolveQuestions = function(solved) {
   for (let q of this.puz.questionTexts) {
     let tq = q;
     if (!solved) {
-      let enumParse = this.puz.parseEnum(q)
-      tq = q.substr(0, enumParse.afterEnum)
-      if (q.substr(enumParse.afterClue).indexOf('[lowercase-ok]') >= 0) {
+      let enumParse = this.puz.parseEnum(q);
+      tq = q.substr(0, enumParse.afterEnum);
+      if (q.substr(enumParse.afterEnum).indexOf('[lowercase-ok]') >= 0) {
         tq = tq + ' [lowercase-ok]';
       }
     }
@@ -7209,7 +7239,7 @@ Exet.prototype.getExolveQuestions = function(solved) {
 }
 
 Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
-                                    showEnums=true, showColoursNinas=true) {
+                                    showColoursNinas=true) {
   const maker = `
     Software: <a target="_blank" href="https://exet.app">Exet</a><br>
     Version: ${this.version}<br>
@@ -7277,19 +7307,19 @@ Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
   exolve-grid: ${this.getGrid(solved)}` +
   (!skipClues ? `
   ${this.puz.layers3d > 1 ? 'exolve-3d-across' :
-      'exolve-across'}: ${this.getClues('A', solved, showEnums)}
+      'exolve-across'}: ${this.getClues('A', solved)}
   ${this.puz.layers3d > 1 ? 'exolve-3d-away' :
-      'exolve-down'}: ${this.getClues('D', solved, showEnums)}` : '') +
+      'exolve-down'}: ${this.getClues('D', solved)}` : '') +
   (!skipClues && this.puz.layers3d > 1 ? `
-  exolve-3d-down: ${this.getClues('Z', solved, showEnums)}` : '') + `
+  exolve-3d-down: ${this.getClues('Z', solved)}` : '') + `
 exolve-end
 `
   return exolve;
 }
 
-Exet.prototype.getHTML = function(solved=true, showEnums=true) {
-  return this.prefix + '\n' + this.getExolve('', false, solved, showEnums) +
-         '\n' + this.suffix
+Exet.prototype.getHTML = function(solved=true) {
+  return this.prefix + '\n' + this.getExolve('', false, solved) +
+         '\n' + this.suffix;
 }
 
 Exet.prototype.IntersectChoices = function(set1, set2) {
@@ -7970,8 +8000,8 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   for (let i = 0; i < solParts.length; i++) {
     let c = solParts[i];
     if (enumPart > 0 && (c == ' ' || c == '-' || c == '\'')) {
-      enumStr = enumStr + enumPart + (c == ' ' ? ',' : c)
-      enumPart = 0
+      enumStr += ('' + enumPart + (c == ' ' ? ',' : c));
+      enumPart = 0;
     }
     if (exetLexicon.letterSet[c]) {
       enumPart++;
@@ -7986,18 +8016,16 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   if (enumPart > 0) {
     enumStr = enumStr + enumPart;
   }
-  let clueEnumStart = theClue.clue.lastIndexOf('(');
-  let clueEnumEnd = theClue.clue.lastIndexOf(')');
-  if (clueEnumStart > 0 && clueEnumEnd > clueEnumStart + 1) {
-    let clueEnum = theClue.clue.substring(clueEnumStart + 1, clueEnumEnd);
-    if (clueEnum != enumStr) {
-      theClue.clue = theClue.clue.substr(0, clueEnumStart).trim() +
-        ' (' + enumStr + ')';
+  if (enumStr) {
+    enumStr = '(' + enumStr + ')';
+  }
+  if (this.requireEnums) {
+    const parsedEnum = this.puz.parseEnum(theClue.clue);
+    if (parsedEnum.enumStr != enumStr) {
+      theClue.clue = theClue.clue.substr(0, parsedEnum.afterClue).trim() +
+        ' ' + enumStr;
       changed = true;
     }
-  } else {
-    theClue.clue = theClue.clue.trim() + ' (' + enumStr + ')';
-    changed = true;
   }
   if (changed && updateIfChanged) {
     this.handleGridInput(revType);
@@ -8390,6 +8418,8 @@ function exetFromHistory(exetRev) {
     exetBlank();
     return;
   }
+  exet.requireEnums = !exetRev.hasOwnProperty('requireEnums') ?
+      exet.puz.allCluesHaveEnums : exetRev.requireEnums;
   if (exetRev.navState) {
     exet.startNav(exetRev.navState[0],
                   exetRev.navState[1], exetRev.navState[2])
@@ -8406,7 +8436,8 @@ function exetFromHistory(exetRev) {
 }
 
 function exetBlank(w, h, layers3d=1, id='', automagic=false,
-                   chequered=true, topUnches=false, leftUnches=false) {
+                   chequered=true, topUnches=false, leftUnches=false,
+                   requireEnums=true) {
   if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
     alert('Width and height must be specified in the range, 1-100')
     return
@@ -8491,6 +8522,7 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
   exet.setMinPop(exet.DEFAULT_MINPOP);
   exet.noProperNouns = false;
   exet.asymOK = false;
+  exet.requireEnums = requireEnums;
   exet.tryReversals = layers3d > 1 ? true : false;
   exet.makeExolve(specs);
   if (!exet.puz) {
@@ -8521,16 +8553,26 @@ function exetLoadFile() {
   fr.onload = function(){ 
     const buffer = fr.result;
     const utf8decoder = new TextDecoder();
-    let exolve = utf8decoder.decode(buffer);
+    const decodedBuffer = utf8decoder.decode(buffer);
+    let exolve = decodedBuffer;
     let start = exolve.indexOf('exolve-begin');
     if (start < 0) {
       /* Try parsing as .puz */
       exolve = exolveFromPuz(buffer, exet.exolveFile);
       start = exolve.indexOf('exolve-begin');
     }
+    if (start < 0) {
+      /* Try parsing as .ipuz */
+      try {
+        const ipuz = JSON.parse(decodedBuffer);
+        exolve = exolveFromIpuz(ipuz, exet.exolveFile);
+      } catch (err) {
+      }
+      start = exolve.indexOf('exolve-begin');
+    }
     let end = exolve.indexOf('exolve-end');
     if (start < 0 || end < 0 || start >= end) {
-      alert('Invalid Exolve/.puz specifications');
+      alert('Invalid Exolve/.puz/.ipuz specifications');
       return;
     }
     end += 'exolve-end'.length;
@@ -8550,6 +8592,7 @@ function exetLoadFile() {
         exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension);
       return;
     }
+    exet.requireEnums = exet.puz.allCluesHaveEnums;
     exet.startNav();
     // See if this has a preflex/unpreflex, recover if so.
     let stored = window.localStorage.getItem(exet.puz.id);
@@ -8609,9 +8652,6 @@ document.addEventListener('DOMContentLoaded', () => {
     exetState = JSON.parse(exetState)
   } else {
     exetState = {};
-  }
-  if (!exetState.hasOwnProperty('showEnums')) {
-    exetState.showEnums = true;
   }
   if (!exetState.hasOwnProperty('exolveUrl')) {
     exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
