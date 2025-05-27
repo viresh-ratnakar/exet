@@ -4948,6 +4948,7 @@ Exet.prototype.handleClueChange = function() {
    * the required length, unless ignoreEnumMismatch is set.
    */
   if (this.requireEnums) {
+    const clueSansEnum = clue.substr(0, enumParse.afterClue).trim();
     /**
      * Revert to the old enum if the new one isn't an
      * enum or if the new one says a length that is different
@@ -4958,11 +4959,12 @@ Exet.prototype.handleClueChange = function() {
       if (enumParse.enumLen > 0) {
         this.showTip(this.TIP_ENUM_MISMATCH);
       }
-      const clueSansEnum = clue.substr(0, enumParse.afterClue);
-      clue = (clueSansEnum + ' ' +
-              (oldEnumParse.enumStr || ('(' + expEnumLen + ')'))).trim();
-      enumParse = this.puz.parseEnum(clue);
+      clue = clueSansEnum + ' ' +
+             (oldEnumParse.enumStr || ('(' + expEnumLen + ')'));
+    } else {
+      clue = clueSansEnum + ' ' + enumParse.enumStr;
     }
+    enumParse = this.puz.parseEnum(clue);
   }
   if (clue != savedClue) {
     let delta = clue.length - savedClue.length;

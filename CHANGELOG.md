@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v0.96.1, May 26, 2025
+
+- Restore functionality to insert a space between clue and enum if
+  missing, when enums are required.
+
 ### Exet v0.96, May 18, 2025
 
 - Allow reading and writing .ipuz files.
