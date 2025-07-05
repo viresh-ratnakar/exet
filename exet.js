@@ -5040,12 +5040,16 @@ Exet.prototype.automagicBlocksInner = function(chequered, targetNumClues, showAl
     rowcols.push(["row", x]);
     rowcols.push(["col", x]);
   }
-  for (let i = minwhby2 + 1; i < hby2; i++) {
+  for (let i = minwhby2; i < hby2; i++) {
     rowcols.push(["row", i]);
   }
-  for (let j = minwhby2 + 1; j < wby2; j++) {
+  for (let j = minwhby2; j < wby2; j++) {
     rowcols.push(["col", j]);
   }
+  /**
+   * Randomize the order of rowcols.
+   */
+  this.shuffle(rowcols);
 
   let totalChanges = 0;
   let numClues = Object.keys(this.puz.clues).length;
@@ -5067,7 +5071,7 @@ Exet.prototype.automagicBlocksInner = function(chequered, targetNumClues, showAl
         symk1 = h - 1 - k1;
       }
       const spans = isRow ? analysis.acrossSpans(k1) : analysis.downSpans(k1);
-      let candidates = [];
+      const candidates = [];
       for (let span of spans) {
         for (let x = minSpan; x < span[1] - minSpan; x++) {
           let k2 = span[0] + x;
@@ -5135,44 +5139,37 @@ Exet.prototype.automagicBlocksInner = function(chequered, targetNumClues, showAl
   return totalChanges > 0;
 }
 
-Exet.prototype.automagicBlocks = function(showAlerts=true) {
+Exet.prototype.automagicBlocks = function(noTarget=true) {
   const grid = this.puz.grid;
   const w = this.puz.gridWidth;
   const h = this.puz.gridHeight;
   const layers3d = this.puz.layers3d;
   const analysis = new ExetAnalysis(grid, w, h, layers3d);
   if (analysis.numBars() > 0) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the grid has barred cells');
-    }
+    alert('Cannot add automagic blocks when the grid has barred cells');
     return false;
   }
   if (this.puz.layers3d > 1) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the crossword has lights other than across/down');
-    }
+    alert('Cannot add automagic blocks when the crossword has lights other than across/down');
     return false;
   }
   if (!analysis.isConnected()) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the grid cells are not ' +
-            'fully connected');
-    }
+    alert('Cannot add automagic blocks when the grid cells are not ' +
+          'fully connected');
     return false;
   }
   if (!analysis.isSymmetric()) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the grid is not fully symmetric');
-    }
+    alert('Cannot add automagic blocks when the grid is not fully symmetric');
     return false;
   }
+  const showAlerts = noTarget;
   if (analysis.unchequeredOK()) {
-    const target = Math.ceil(2*w*h/5.8);
+    const target = noTarget ? w*h : Math.ceil(2*w*h/5.8);
     return this.automagicBlocksInner(false, target, showAlerts);
   } else  if (analysis.chequeredOK()) {
     const lightRows = Math.floor(h/2) + (((h % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
     const lightCols = Math.floor(w/2) + (((w % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
-    const target = Math.floor((lightRows * (w/7.9)) + (lightCols * (h/7.9)));
+    const target = noTarget ? w*h : Math.floor((lightRows * (w/7.5)) + (lightCols * (h/7.5)));
     return this.automagicBlocksInner(true, target, showAlerts);
   } else {
     if (showAlerts) alert('Cannot add automagic blocks to the current grid');
@@ -8417,7 +8414,7 @@ function exetFromHistory(exetRev) {
   exet.makeExolve(exetRev.exolve);
   if (!exet.puz) {
     alert('Could not load puzzle from history, reverting to a new blank puzzle');
-    exetBlank();
+    exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension);
     return;
   }
   exet.requireEnums = !exetRev.hasOwnProperty('requireEnums') ?

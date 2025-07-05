@@ -1195,8 +1195,10 @@ creating a new blank grid or whether you invoke it on an existing grid):
     blank grid, "Add automagic blocks" will create a British grid variety.)
 - No cell where you've already entered a grid-fill letter will be turned into a
   block.
+- Shuffle candidate rowcols to randomize the created grids better.
 - The above procedure loops until a heuristically-determined minimum number of
-  lights is reached.
+  lights is reached, when a new grid is being created. There is no target set
+  if you use the "Edit > Add automagic blocks" option.
 
 ## Copyright notices
 

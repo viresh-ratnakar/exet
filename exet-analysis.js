@@ -591,7 +591,7 @@ class ExetAnalysis {
   }
 
   /**
-   * Finds minThroughCuts() along both dimensions and returns truw iff both
+   * Finds minThroughCuts() along both dimensions and returns true iff both
    * are at least as big as one-fourth of the size along that dimension.
    */
   throughCutsBigEnough() {

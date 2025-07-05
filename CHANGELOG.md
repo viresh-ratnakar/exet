@@ -1,5 +1,14 @@
 # Changelog
 
+### Minor update: Exet v0.96.2, July 5, 2025
+
+- All changes relate to automagic blocks.
+- Bug-fix: we were skipping x = minwhby2 if w and h were different.
+- Shuffle rowcol spans.
+- When invoking automagic blocks from the edit menu, do not set
+  a target num-clues.
+- For chequered grids, increase the target num-clues slightly.
+
 ### Minor update: Exet v0.96.1, May 26, 2025
 
 - Restore functionality to insert a space between clue and enum if
