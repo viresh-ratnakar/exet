@@ -1177,6 +1177,8 @@ creating a new blank grid or whether you invoke it on an existing grid):
   grid has barred cells, then "Add automagic blocks" does not make any changes.
 - It makes 0 or 1 random change to each row, and then 0 or 1 random change to
   each column, while maintaining certain grid properties as listed below.
+  The rows and columns are visited in shuffled order to better randomize the
+  created grids.
 - If an existing grid is of the American variety with every white square
   being a part of an across light as well as a down light (i.e., is "checked"),
   then, ensure that:
@@ -1195,7 +1197,6 @@ creating a new blank grid or whether you invoke it on an existing grid):
     blank grid, "Add automagic blocks" will create a British grid variety.)
 - No cell where you've already entered a grid-fill letter will be turned into a
   block.
-- Shuffle candidate rowcols to randomize the created grids better.
 - The above procedure loops until a heuristically-determined minimum number of
   lights is reached, when a new grid is being created. There is no target set
   if you use the "Edit > Add automagic blocks" option.
