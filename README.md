@@ -833,9 +833,9 @@ following, \<title\> in a filename stands for the puzzle title.
   .puz does not support many crossword features (afaik). The software will alert
   you if it is not able to provide a .ipuz download.
 - **Download grid image SVG file...**
-  - **With solutions (exet-\>title\>-solution-grid.svg)**: Download
+  - **With solutions (exet-\<title\>-solution-grid.svg)**: Download
     the grid image as an SVG file, with solution letters (and ninas).
-  - **Without solutions (exet-\>title\>-blank-grid.svg)**: Download
+  - **Without solutions (exet-\<title\>-blank-grid.svg)**: Download
     the blank grid image as an SVG file, without solution letters or ninas.
 - **Copy Exolve HTML widget code...**
   - **With solutions 📋**: Copy (into the clipboard)
