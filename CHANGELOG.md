@@ -1,5 +1,45 @@
 # Changelog
 
+### Exet v0.97, September 16, 2025
+
+- Refactor local-storage-related code into exet-storage.js
+- Change the way we save preflexes and unpreflexes to local storage.
+  Used to be the case that we would save the full list with every
+  saved revision. This was wasteful and made us limit the size of
+  preflexes to only 100. We now save preflexes and unpreflexes
+  under separate local storage keys (that look like
+  `<special-prefix>-{preflex,unpreflex}-<id>`).
+- The entries in these saved preflex/unpreflex local storage entries
+  are objects keyed by the hash of the preflex/unpreflex arrays (the
+  values stored are the arrays themselves).
+- From the saved revision, we locate the needed array of preflex/unpreflex
+  by having preflexHash/unpreflexHash stored in the revision.
+- We make the code backward compatible for states saved the old way.
+- We garbage-collect old hash-keys in preflex/unpreflex storage when
+  - preflex/unpreflex is updated
+  - puzzle/revision deletion is invoked
+  - all revisions are saved
+  - if we have just detected that local-storage (that was running low) has
+    been freed up.
+- Also, in the old way, we were storing lexicon indices of unpreflex
+  entries, which was buggy as it would have created problems after
+  lexicon updates. We now save the words themselves.
+- Update the max size of preflex entries to be 10,000 now.
+- Refactor the old "Open" menu into separate "New"/"Open" menus.
+- When checking if the latest saved revision was the same as the
+  current state, we had a bug: the compared "exolve" strings
+  would always differ because the current one included the current
+  timestamp. Fixed by comparing after removing the Timestamp line.
+- Abandoned WIP for adding support for custom wordlists (rationale
+  is now listed in `README.md`, but TLDR: too much complexity).
+- Reuse Exolve.protype.fileDownload() instead of replicating its
+  code for all file-downloading needs.
+- Combine with/without-solutions entries in the Save menu, using
+  a submenu in each case.
+- Add Save menu options to download SVG image of the grid. Do this
+  by creating a temp HTML page. Share code for that with the
+  similarly done printing/PDF creation code.
+
 ### Minor update: Exet v0.96.2, July 5, 2025
 
 - All changes relate to automagic blocks.

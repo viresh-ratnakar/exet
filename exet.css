@@ -5,7 +5,7 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v0.96, May 18, 2025
+ * Current version: v0.97, September 16, 2025
  */
 
 [contenteditable="true"]:active,
@@ -575,6 +575,9 @@
 }
 #xet-unpreflex-input {
   color: chocolate;
+}
+.xet-smaller-text {
+  font-size: 11px;
 }
 #xet-preamble,
 #xet-explanations,
