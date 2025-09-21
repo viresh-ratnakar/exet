@@ -1,5 +1,16 @@
 # Changelog
 
+### Minor update: Exet v0.97.1, September 21, 2025
+
+- Delete saved state for the temp Exolve puzzles created for printing.
+- Override Ctrl-s (Cmd-s for Mac) to save the puzzle as HTML (Exolve)
+  with solutions. Add a tip for that. Add the shortcut info to the
+  Save menu entry.
+- For other uses of Ctrl key (such as when formatting), also allow the
+  Cmd key on macs.
+- In the documentation, consistently use the lower-case letter after
+  Ctr-/Cmd- (except for Ctrl-q and Ctrl-Q, which are different).
+
 ### Exet v0.97, September 16, 2025
 
 - Refactor local-storage-related code into exet-storage.js
