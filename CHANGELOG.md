@@ -1,5 +1,13 @@
 # Changelog
 
+### Minor update: Exet v0.97.2, October 4, 2025
+
+- On Windows, with Chrome as well as Edge, printing or saving PDFs
+  was not working. This is a bug in these platforms, but some
+  research indicated that changing `window.print()` to
+  `document.exetCommand('print')` would fix the issue. Verified
+  (details in https://github.com/viresh-ratnakar/exet/issues/41).
+
 ### Minor update: Exet v0.97.1, September 21, 2025
 
 - Delete saved state for the temp Exolve puzzles created for printing.

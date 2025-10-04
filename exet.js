@@ -3291,7 +3291,11 @@ Exet.prototype.saveGridSvg = function(solved=true) {
 }
 
 Exet.prototype.print = function(solved=true) {
-  const actionScript = 'window.print();';
+  /**
+   * Using 'window.print();' directly does not work because of some bug
+   * in Windows (Chrome/Edge).
+   */
+  const actionScript = 'document.execCommand(\'print\');';
   this.printWindower(actionScript, solved);
   exetModals.hide()
 }
