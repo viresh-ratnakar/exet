@@ -160,15 +160,16 @@ base lexicon and variants, so that the user can switch between lexicons.
 Like, adding background workers to "prepare" a new wordlist before it can
 be used, which would involve building indices, borrowing pronunciations from
 the base lexicon where possible, etc.). I did go down this path and was about
-60% done, before deciding to abandon it, in September 2025.
+60% done, before deciding to abandon it, in September 2025. I abandoned that
+path primarily because of the substantial additional complexity (without
+commensurate pay-off, in my opinion).
 
-I believe custom wordlists are commonly used by setters of U.S.-style
-(non-cryptic) crosswords), but so far, Exet anyway has found more traction with
-setters of cryptic crosswords. But I abandoned the custom wordlists path
-primarily because it would have brought in too much additional complexity
-without commensurate pay-off. Users already have the ability to specify a long
-list of "preferred" lexicon entries (I have increased the maximum allowed
-size of this to 10,000 now, instead of the old limit of 100).
+You can use the "preferred fills" feature as a substitute for full custom
+wordlists: just load your custom wordlist as the list of preferred fills,
+and then set the minimum popularty threshold to 100% (which will prevent
+any words outside the preferred fills list from getting suggested or used
+in autofill). The only limitation is that you're limited to 50,000 words
+(which is probably sufficient for most users).
 
 ## Crossword construction walk-through
 
@@ -387,16 +388,27 @@ one letter choice is viable, it shows that letter choice in gray. You can use
 the Edit menu's "Accept autofilled entries" option to accept all such autofilled
 letter suggestions.
 
-You can provide up to 100 preferred words/phrases for using in the grid, by
-clicking on the button labelled "Set preferred fills" in the Exet tab, just
+#### Preferred and excluded words/phrases
 
-Clicking anywhere outside the panel of preferred fills will dismiss the panel.
+You can provide up to 50,000 preferred words/phrases for using in the grid, by
+clicking on the button labelled "Set preferred fills" in the Exet tab.
+When showing fill suggestions, the words entered here will be shown first
+(in green). When using autofill, these words will be preferred (even if
+they do not meet the minimum popularity threshold).
 
 Similarly, you can provide a set of words that you do *not* want to appear
 in the crossword, by clicking on the "Set fill exclusions" button.
 
-Clicking anywhere outside the shown panel (for preferred fills or fill
-exclusions) dismisses it.
+If a line begins with '#" in the text entered in these panels, then it will be
+ignored.
+
+Clicking anywhere outside the panel shown for preferred fills or fill
+exclusions dismisses it.
+
+Note that if you specify preferred fills, and you set the minimum popularity
+threshold to 100%, then you are effectively using the preferred fills list
+as your custom wordlist, as no words outside of that list will be shown in
+fill suggestions or used in autofill.
 
 #### Going back-and forth between filling the grid and changing the grid
 
@@ -425,7 +437,10 @@ monitoring its status again by clicking again on "Autofill" in the "Edit" menu.
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
 Autofill also respects the "fill exclusions" settings (min-popularity,
 exclusion of proper nouns, as well as any entries in the explicitly forbidden
-list) and the setting for allowing reversals.
+list) and the setting for allowing reversals. As noted earlier, if you've
+set min-popularity threshold to 100%, then you're effectively limiting
+autofill to words in the preferred fills list (i.e., treating it like a
+custom wordlist).
 
 If Autofill fails, you can try to rerun it a few times. It may succeed
 on a subsequent run, because of the slight randomness in the choices that it
@@ -887,15 +902,15 @@ a preview of the puzzle revision that you select.
 
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
 May 2023). When this limit is reached, Exet will warn you that it cannot
-save crossword revisions. You can use the "Manage storage" menu option in the
-"Storage" menu at any time to delete old revisions of some crosswords and/or
+save crossword revisions. You can use the "Manage local storage" menu option in
+the "Storage" menu at any time to delete old revisions of some crosswords and/or
 entirely delete old crosswords (after saving a backup or after downloading
 Exolve files with solutions for your crosswords, as these files can be opened
 in Exet to recover the crosswords completely).
 
 ### Backing up the crosswords to a file
 
-The "Storage" menu also has a "Back uo all current crosswords to file" option,
+The "Storage" menu has a "Back uo all current crosswords to ..." option,
 which saves the entire revision history to a JSON file
 (named exet-backup-_timestamp_.json), as a way of having a back-up beyond the
 browser's local storage. Apart from using as a back-up mechanism, you can also
@@ -908,6 +923,21 @@ exists then it is not duplicated.
 
 Exet also keeps track of when you last did a back up, and alerts you if over
 a week has passed since you backed up.
+
+### Auto-Free!
+
+There's a convenient menu option under Storage called "Auto-Free!" that can be
+used for saving a back-up file _plus_ purging some old revisions to free up
+space. It first saves all current versions to a back-up file (as described in
+the previous section), and then, for each crossword, it deletes some old
+versions. The latest 25 revisions as well as any revisions saved within the last
+hour are left untouched. Revisions prior to these cutoffs are trimmed in half
+(only every other revision is deleted).
+
+If you're low on space and Auto-Free fails to free up space, that probably
+means that you have too many active crosswords. Auto-Free would display an
+alert to that effect in that scenario, and would point you to use the
+"Manage local storage" option to delete some revisions manually.
 
 ## Analysis
 

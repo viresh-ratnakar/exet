@@ -322,6 +322,26 @@
   font-size: 12px;
   box-sizing: border-box;
 }
+.xet-fill-settings table {
+  border-spacing: 0;
+  margin: 0;
+}
+.xet-fill-settings td {
+  text-align: left;
+  vertical-align: top;
+}
+.xet-fill-settings .xlv-answer {
+  padding: 0;
+}
+.xet-fill-settings-summary {
+  font-size: 10px;
+  font-style: italic;
+  text-align: right;
+}
+.xet-processing {
+  color: red;
+  cursor: wait;
+}
 .xet-menu {
   position: relative;
   width:100%;
@@ -570,10 +590,10 @@
   animation-direction: alternate;
   animation-iteration-count: infinite;
 }
-#xet-preflex-input {
+.xet-preflex-entry {
   color: green;
 }
-#xet-unpreflex-input {
+.xet-unpreflex-entry {
   color: chocolate;
 }
 .xet-smaller-text {
@@ -633,6 +653,9 @@
   border: 1px solid green;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   font-size: 12px;
+}
+#xet-frame .xet-fills-heading .xlv-small-button {
+  background-color: ghostwhite;
 }
 #xet-frame .xet-fills-heading .xlv-small-button:hover {
   background-color: lavender;

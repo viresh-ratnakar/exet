@@ -83,6 +83,12 @@ function ExetRevManager() {
   this.previewId = `exet-preview-${Math.random().toString(36).substring(2, 8)}`;
 };
 
+ExetRevManager.prototype.skippableKey = function(id) {
+  return (id.startsWith(this.SPECIAL_KEY_PREFIX) ||
+          id.startsWith('xlvstate:') ||
+          id == '42-xlvp-player-state');
+}
+
 ExetRevManager.prototype.sizeOfPrefUnpref = function(id) {
   let sz = 0;
   for (isPref of [true, false]) {
@@ -104,18 +110,21 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
     choices = [{id: puz.id, title: puz.title, space: lsUsed}];
   } else {
     for (let idx = 0; idx < window.localStorage.length; idx++) {
-      let id = window.localStorage.key(idx);
-      if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
+      const id = window.localStorage.key(idx);
+      if (this.skippableKey(id)) {
         continue;
       }
-      let stored = window.localStorage.getItem(id);
-      let lsUsed = stored.length + this.sizeOfPrefUnpref(id);
+      const storedJson = window.localStorage.getItem(id);
+      let lsUsed = storedJson.length + this.sizeOfPrefUnpref(id);
+      let stored = '';
       try {
-        stored = JSON.parse(stored);
+        stored = JSON.parse(storedJson);
       } catch (err) {
+        console.log('Unparseable stored item for id [' + id + ']:' + storedJson);
         continue;
       }
       if (!stored || !stored["id"] || !stored["revs"] || !stored["maxRevNum"]) {
+        console.log('Weird stored item for id [' + id + ']:' + storedJson);
         continue;
       }
       let title = '';
@@ -237,8 +246,8 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
         }
         this.storedRevs.revs = newRevs.concat(
             this.storedRevs.revs.slice(lastToDelete + 1));
-        this.savePrefUnpref(this.idChoice, this.storedRevs.revs, true);
         this.saveLocal(this.idChoice, JSON.stringify(this.storedRevs));
+        this.savePrefUnpref(this.idChoice, this.storedRevs.revs, true);
       }
       this.choosePuzRev(true, null, exet.revChooser, null);
       e.stopPropagation();
@@ -280,7 +289,7 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
   for (let i = 0; i < choices.length; i++) {
     let selector = document.getElementById(`xet-id-choice-${i}`);
     this.idSelectors.push(selector);
-    let id = choices[i].id;
+    const id = choices[i].id;
     selector.addEventListener('click', e => {
       this.preview.innerHTML = '';
       if (exolvePuzzles[this.previewId]) {
@@ -588,18 +597,20 @@ ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
 ExetRevManager.prototype.saveAllRevisions = function() {
   const storage = {};
   for (let idx = 0; idx < window.localStorage.length; idx++) {
-    let id = window.localStorage.key(idx);
-    if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
+    const id = window.localStorage.key(idx);
+    if (this.skippableKey(id)) {
       continue;
     }
-    let storedRevsBlob = window.localStorage.getItem(id);
+    const storedJson = window.localStorage.getItem(id);
     let storedRevs = null;
     try {
-      storedRevs = JSON.parse(storedRevsBlob);
+      storedRevs = JSON.parse(storedJson);
     } catch (err) {
+      console.log('Unparseable stored item for id [' + id + ']:' + storedJson);
       continue;
     }
     if (!storedRevs || !storedRevs['revs']) {
+      console.log('Weird stored item for id [' + id + ']:' + storedJson);
       continue;
     }
     storage[id] = storedRevs;
@@ -637,17 +648,19 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
     existingRevs = {};
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       const id = window.localStorage.key(idx);
-      if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
+      if (this.skippableKey(id)) {
         continue;
       }
-      let storedRevsBlob = window.localStorage.getItem(id);
+      const storedJson = window.localStorage.getItem(id);
       let storedRevs = null;
       try {
-        storedRevs = JSON.parse(storedRevsBlob);
+        storedRevs = JSON.parse(storedJson);
       } catch (err) {
+        console.log('Unparseable stored item for id [' + id + ']:' + storedJson);
         continue;
       }
       if (!storedRevs || !storedRevs['revs']) {
+        console.log('Weird stored item for id [' + id + ']:' + storedJson);
         continue;
       }
       for (rev of storedRevs['revs']) {
@@ -758,5 +771,71 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
   } 
   const f = document.getElementById('xet-merge-revs-file').files[0];
   fr.readAsText(f);
+}
+
+ExetRevManager.prototype.autofree = function() {
+  this.saveAllRevisions();
+
+  const SAVE_LAST_THESE_MANY = 25;
+  const SAVE_LAST_THESE_MANY_HOURS = 1;
+
+  const tsCutoffMillis =
+    Date.now() - (SAVE_LAST_THESE_MANY_HOURS * 60 * 60 * 1000);
+
+  let bytesUsed = 0;
+  let itemsPurged = 0;
+  for (let idx = 0; idx < window.localStorage.length; idx++) {
+    const id = window.localStorage.key(idx);
+    const storedJson = window.localStorage.getItem(id);
+    bytesUsed += storedJson.length;
+    if (this.skippableKey(id)) {
+      continue;
+    }
+    let stored = '';
+    try {
+      stored = JSON.parse(storedJson);
+    } catch (err) {
+      console.log('Unparseable stored item for id [' + id + ']:' + storedJson);
+      continue;
+    }
+    if (!stored || !stored["id"] || !stored["revs"] || !stored["maxRevNum"]) {
+      console.log('Weird stored item for id [' + id + ']:' + storedJson);
+      continue;
+    }
+    const revs = stored.revs;
+    if (revs.length <= 0) {
+      console.log('No revisions in crossword with id ' + id + ': should be deleted');
+      continue;
+    }
+    const limit = revs.length - SAVE_LAST_THESE_MANY;
+    const revsToKeep = [];
+    for (let r = 0; r < revs.length; r++) {
+      const rev = revs[r];
+      revsToKeep.push(rev);
+      if ((r < limit) &&
+          ((r % 2) == 1) &&
+          (rev.timestamp < tsCutoffMillis)) {
+        revsToKeep.pop();
+        itemsPurged++;
+      }
+    }
+    if (revsToKeep.length < revs.length) {
+      stored.revs = revsToKeep;
+      this.saveLocal(id, JSON.stringify(stored));
+      this.savePrefUnpref(id, stored.revs, true);
+    }
+  }
+  /**
+   * Call checkStorage() to update displayed numbers/warnings, and to
+   * get the return value from checkLocalStorage().
+   */
+  const ampleLeft = exet.checkStorage();
+  if (itemsPurged == 0 && !ampleLeft) {
+    alert('Auto-Free could not find any old revisions to purge, and you ' +
+          'are running very low on available storage. This probably means ' +
+          'that you have excessively many active crosswords. Use the ' +
+          '"Manage local storage" menu option to manually delete some old ' +
+          'crosswords, perhaps.');
+  }
 }
 

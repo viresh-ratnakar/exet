@@ -1,5 +1,31 @@
 # Changelog
 
+### Exet v0.98, October 6, 2025
+
+- Increase limit on number of preflexes from 10,000 to 50,000.
+- Process preflex updates in chunks, to keep the UI responsive.
+- Change color of "Web sources" button text to black from green (to
+  avoid conflating with preferred fills), but add a light background.
+- In the fill-choices list, show preferred words entries in
+  green. Mention these colour semantics in the tooltip.
+- Allow min popularity threshold to be set to 100 (and make that
+  set "indexMinPop" to 1, effectively limiting word choices
+  to those in the preferred fills list.
+- Re-format the fill settings box (and add a tooltip) to bring more
+  clarity to the fact that preferred fills are tried first and
+  then the top K words from the lexicon that meet the popularity
+  threshold (which could be no words at all, with threshold = 100).
+- Add "Auto-Free!" storage option. This is a short-cut to first
+  save all current revisions, and then free up space by purging
+  some old revisions. For each crossword, the latest 25 revisions
+  as well as any revisions created within the previous hour are
+  retained. Amon the other revisions, every other one is deleted.
+- When going through local storage keys, skip Exolve/ExolvePlayer
+  keys. For other keys, add console logs for any weird ones
+  encountered.
+- When parsing local storage, always log error messages for weird
+  stuff. Skip Exolve and Exolve Player keys though.
+
 ### Minor update: Exet v0.97.2, October 4, 2025
 
 - On Windows, with Chrome as well as Edge, printing or saving PDFs
