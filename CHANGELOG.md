@@ -1,5 +1,11 @@
 # Changelog
 
+### Minor update: Exet v0.98.1, October 17, 2025
+
+- Bug fix: `ExetRevManager.mergeRevisionsFile()` had a bug introduced by
+  a recent change: need to refer to the `exetRevManager` object, not `this`
+  in a particular context.
+
 ### Exet v0.98, October 6, 2025
 
 - Increase limit on number of preflexes from 10,000 to 50,000.

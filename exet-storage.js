@@ -648,7 +648,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
     existingRevs = {};
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       const id = window.localStorage.key(idx);
-      if (this.skippableKey(id)) {
+      if (exetRevManager.skippableKey(id)) {
         continue;
       }
       const storedJson = window.localStorage.getItem(id);
