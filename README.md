@@ -453,10 +453,11 @@ Here are some illustrative examples of regexp usage:
 
 - `^[ae]` would only allow entries starting with "a" or "e".
 - `/egg/i` would match entries containing the substring "egg", ignoring case.
+  You can use the `/.../..` syntax to add regexp flags.
 - `(.)\1$` would only allow entries that end with two identical characters.
 - `^(.)(.).\2\1$` would only allow 5-letter palindromes.
-- You can use the `/.../..` syntax to add regexp flags (so, `/x/i` would
-  match entries that contain "x" or "X").
+- `^[belgium]*$` would only allow entries that contain letters from the
+  word "belgium".
 
 When a regexp constraint is active for a light, an icon with the chain-link
 symbol (&#128279;) is shown in the list of available light choices. Clicking
