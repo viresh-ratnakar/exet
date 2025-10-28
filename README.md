@@ -288,6 +288,14 @@ two formats is the state of the grid at that time. "Add automagic blocks"
 can be used repeatedly. More details on what "Add automagic blocks" does
 are [provided in the appendix](#automagic-blocks).
 
+When you add or remove blocks/bars, that invalidates all the lights
+whose lists of cells changes as a result of the modification. Other lights
+may be impacted only with a number change (other than that impact, they
+continue their previous state made up of any existing clues, linked
+group memberships, regexp constraints). Invalidated lights get reset (they
+lose any existing clues, regexp constraints, and any linked groups that
+they were a part of get broken up).
+
 #### Reversing the current light
 When you choose the option to reverse a light from the Edit menu, the
 orientation of the cell is reversed. This entails the following direction changes:
@@ -297,11 +305,17 @@ orientation of the cell is reversed. This entails the following direction change
 - Away (aw) &harr; Towards (to) in 3-D
 - Down (dn) &harr; Up (up) in 3-D
 
+Exet will prompt you to confirm before going ahead with a reversal (as it
+is such a drastic action).
+
 When you reverse a light, you retain the clue (and annotation) that you might
 have already written for it (but you will probably need to revise it!). You will
 also retain any linked group that the light may be a part of (but the order of
 cells in the group will change!). Reversing a light has no impact on other
 lights/clues (except that their numbering may change).
+
+If there was a regexp constraint on the light, it is retained after reversal
+(but note that it will now be applied in the reversed direction).
 
 ### Filling the grid
 
@@ -409,6 +423,44 @@ Note that if you specify preferred fills, and you set the minimum popularity
 threshold to 100%, then you are effectively using the preferred fills list
 as your custom wordlist, as no words outside of that list will be shown in
 fill suggestions or used in autofill.
+
+#### Light-specific menu
+Just above the editable version of the current clue (shown above the grid),
+there are three buttons shown. The first one has a hamburger menu (&#9776;)
+and the other two are for navigating to the previous and next clues.
+
+The hamburger menu provides convenient access to a few features that are
+available from other places (linking/unlinking, clearing, reversing). It
+also provides access to a panel where you can specify/edit a "regexp constraint"
+in the entry in the light. This is described next.
+
+#### Regexp constraints on entries
+You can specify a regular expression ("regexp") constraining the entries in a
+light. This is done in a panel that can be accessed by clicking the
+"&#128279; Regexp constraint" option in the light-specific hamburger menu.
+
+The regexp would be tested against entries in the lexicon (that fit any
+existing crossing letters), including spaces and capitalizations. Any entries
+that do not match the regexp would be removed from consideration. Clearing a
+previously-specified regexp would make the light entry unconstrained again.
+Any changes you make are automatically applied after a short lag.
+
+This is a powerful mechanism, but it does require a good understanding
+of [JavaScript RegExp workings and
+features](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp).
+
+Here are some illustrative examples of regexp usage:
+
+- `^[ae]` would only allow entries starting with "a" or "e".
+- `/egg/i` would match entries containing the substring "egg", ignoring case.
+- `(.)\1$` would only allow entries that end with two identical characters.
+- `^(.)(.).\2\1$` would only allow 5-letter palindromes.
+- You can use the `/.../..` syntax to add regexp flags (so, `/x/i` would
+  match entries that contain "x" or "X").
+
+When a regexp constraint is active for a light, an icon with the chain-link
+symbol (&#128279;) is shown in the list of available light choices. Clicking
+on this icon also brings up the regexp editing panel.
 
 #### Going back-and forth between filling the grid and changing the grid
 
@@ -652,7 +704,10 @@ You can link clues, creating sequences of lights that make up a single solution
 that is clued using the "parent" clue (the first one in the sequence). To
 create such linkages, you can click on the clue number of the current clue,
 which will bring up a panel through which you can add a linked clue to the
-current clue. You have to specify the clue to be linked by providing its
+current clue. There is also a hamburger menu button (&#9776;) above the current
+clue, from which you can access this panel.
+
+You have to specify the clue to be linked by providing its
 number as well as direction suffix ("7d" or "9a" or "6u" or "13b" or—in
 3-D—"7dn" or "9ac" or "8aw" or "12up" or "19ba" or "3to", etc.). The same panel
 also provides a button for breaking up a group of

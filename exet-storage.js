@@ -547,6 +547,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
         lastRev.tryReversals == exet.tryReversals &&
         lastRev.minpop == exet.minpop &&
         lastRev.hasOwnProperty('requireEnums') && lastRev.requireEnums == exet.requireEnums &&
+        lastRev.hasOwnProperty('lightRegexps') && JSON.stringify(lastRev.lightRegexps) == JSON.stringify(exet.lightRegexps) &&
         lastRev.asymOK == exet.asymOK) {
       return;
     }
@@ -568,6 +569,7 @@ ExetRevManager.prototype.saveRev = function(revType, details="") {
   exetRev.tryReversals = exet.tryReversals;
   exetRev.minpop = exet.minpop;
   exetRev.requireEnums = exet.requireEnums;
+  exetRev.lightRegexps = exet.lightRegexps;
   stored.revs.push(exetRev);
   this.saveLocal(exet.puz.id, JSON.stringify(stored));
 }

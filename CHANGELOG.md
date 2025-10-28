@@ -1,5 +1,33 @@
 # Changelog
 
+### Exet v0.99, October 28, 2025
+
+- Move the prev/next clue buttons to go above the clue-editing panel. This
+  reduces clutter, and also allows us to:
+- Add a hamburger menu above the current clue. This menu features access
+  to some already-existing features (link/unlink, clear, reverse), and
+  a new one: regexp constraint.
+- Through the hamburger menu, allow setting/editing a light-specific
+  regular expression that is used as an additional constraint on fill
+  choices for that light.
+- Add an optional regexp parameter to ExetLexicon.getLexChoices().
+- When a light has a regexp constraint, show a "chain link" icon in its
+  fill-choices list. Clicking on this icon also brings up the regexp
+  setting/editing panel.
+- Add code to killInvalidatedClues() to remove/move regexp constraints
+  as dictated by grid mutations, reversals.
+- Font size/colour tweaks for a few above-clue-editing widgets.
+- When the mouse enters an Exet menu item, any existing modal is cleared.
+  This is wai when that modal was from another Exet menu item, but it
+  did not make sense for other modals (such as the regexp editing panel).
+  Add a check to only clear the existing modal if it's from another
+  Exet menu item (i.e., has class xet-dropdown-content).
+- Add a confirmation dialog before doing light reversal.
+- Remove horizontal scroll bar that had started appearing in the clues
+  list. This was because the inner panel had an unnecessary width
+  (which probably got violated by Chrome deciding to make the vertical
+  scroll bar slightly thicker).
+
 ### Minor update: Exet v0.98.1, October 17, 2025
 
 - Bug fix: `ExetRevManager.mergeRevisionsFile()` had a bug introduced by

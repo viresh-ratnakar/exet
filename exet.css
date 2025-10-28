@@ -74,7 +74,7 @@
   vertical-align: top;
 }
 .xet-panel {
-  overflow: auto;
+  overflow-y: auto;
 }
 .xet-half-section,
 .xet-section {
@@ -128,19 +128,62 @@
   min-height: 80px;
   overflow-y: auto;
 }
+.xet-clue-menu {
+  border: 1px solid lightgray;
+  background-color: white;
+  display: none;
+  left: 0;
+  position: absolute;
+  text-align: left;
+  width: 200px;
+  top: 100%;
+  z-index: 3;
+}
+.xet-clue-menu-item {
+  border: 1px solid silver;
+  font-size: 12px;
+  font-weight: normal;
+  padding: 4px;
+}
+.xet-clue-menu-item:hover {
+  background-color: whitesmoke;
+  font-weight: bold;
+}
+.xet-curr-clue .xlv-curr-clue-label {
+  display: inline-block;
+  margin: 0 3px 0 0;
+}
+#xet-nextprev-span {
+  z-index: 1;
+}
+#xet-nextprev-span .xlv-small-button {
+  color: dodgerblue !important;
+  border: 1px solid lightgray;
+}
 #xet-unlink {
   padding: 4px;
 }
-.xet-linking {
+#xet-nextprev-span,
+.xet-above-clue-panel {
   position: absolute;
-  z-index: 1;
-  top: -28px;
+  top: -18px;
   left: 0;
   background-color: white;
-  border: 1px solid dodgerblue;
-  padding: 2px 4px 0 4px;
-  color: darkgreen;
+}
+.xet-above-clue-panel {
   box-sizing: border-box;
+  color: dodgerblue;
+  border: 1px solid dodgerblue;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 2px 4px 0 4px;
+  z-index: 2;
+}
+.xet-above-clue-panel a:link,
+.xet-above-clue-panel a:visited,
+.xet-above-clue-panel a:hover,
+.xet-above-clue-panel a:active {
+  color: inherit;
 }
 .xet-blur *,
 .xet-blur {
@@ -272,6 +315,13 @@
 #xet-light-choices,
 #xet-light-rejects {  
   font-size: 16px;
+}
+.xet-light-regexp-icon {  
+  cursor: pointer;
+  padding: 8px;
+  position: absolute;
+  right: 20px;
+  top: 36px;
 }
 .xet-choices {  
   table-layout: auto;
@@ -475,9 +525,6 @@
   line-height: normal;
   box-sizing: border-box;
 }
-.xet-frame .xlv-clues {
-  width: 610px;
-}
 .xet-clues-box {
   width: 625px;
 }
@@ -503,6 +550,7 @@
 }
 .xet-action {
   color: dodgerblue;
+  display: inline-block;
   font-weight: normal;
   font-family: serif;
   font-size: 14px;

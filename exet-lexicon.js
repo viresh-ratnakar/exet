@@ -364,6 +364,7 @@ function exetLexiconInit() {
    * tryRev: try reversals.
    * preflexByLen[len] should be an array of preferred lexicon indices of length len.
    * unpreflexSet should be an object where unpreflexSet[idx] is true if lexicon index idx should be avoided.
+   * regexp: if not null, then this is a RegExp object to filter out choices that do not pass regexp.test().
    */
   exetLexicon.getLexChoices = function(
       partialSol,
@@ -373,7 +374,8 @@ function exetLexiconInit() {
       indexLimit=0,
       tryRev=false,
       preflexByLen=[],
-      unpreflexSet={}) {
+      unpreflexSet={},
+      regexp=null) {
     if (indexLimit <= 0) {
       indexLimit = this.startLen;
     }
@@ -388,6 +390,9 @@ function exetLexiconInit() {
       for (idx of preflexByLen[keylen]) {
         if (dontReuse[idx]) continue;
         const phrase = this.lexicon[idx];
+        if (regexp && !regexp.test(phrase)) {
+          continue;
+        }
         if (this.keyMatchesPhrase(key, phrase)) {
           choices.push(idx);
           seen[idx] = true;
@@ -415,6 +420,9 @@ function exetLexiconInit() {
         if (unpreflexSet[idx]) continue;
         const phrase = this.lexicon[idx];
         if (noProperNouns && this.isProperNoun(phrase)) {
+          continue;
+        }
+        if (regexp && !regexp.test(phrase)) {
           continue;
         }
         const loopIdx = (i == 0) ? idx : 0 - idx;
