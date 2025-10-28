@@ -488,12 +488,12 @@ its control panel and hiding it (by moving the mouse out): you can return to
 monitoring its status again by clicking again on "Autofill" in the "Edit" menu.
 
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
-Autofill also respects the "fill exclusions" settings (min-popularity,
-exclusion of proper nouns, as well as any entries in the explicitly forbidden
-list) and the setting for allowing reversals. As noted earlier, if you've
-set min-popularity threshold to 100%, then you're effectively limiting
-autofill to words in the preferred fills list (i.e., treating it like a
-custom wordlist).
+Autofill also respects fill preferences settings (min-popularity, exclusion of
+proper nouns and entries in the explicitly forbidden list, stem-dupes avoidance,
+light-specific regexp constraints) and the setting for allowing reversals. As
+noted earlier, if you've set min-popularity threshold to 100%, then you're
+effectively limiting autofill to words in the preferred fills list (i.e.,
+treating it like a custom wordlist).
 
 If Autofill fails, you can try to rerun it a few times. It may succeed
 on a subsequent run, because of the slight randomness in the choices that it
@@ -565,6 +565,9 @@ no word/phrase from the lexicon fits. You have to use your own judgment to
 decide whether a word or phrase obtained from a web source is usable, as
 these matches may not necessarily be dictionary entries or common phrases.
 
+Listings for web sources do *not* use any light-specific regexp constraints
+that you may have specified.
+
 For English, the web sources made available are Nutrimatic, Onelook, and Qat.
 My personal experience is that Nutrimatic can sometimes find
 common-enough-to-be-fair-in-crosswords phrases that are missing from the
@@ -624,7 +627,7 @@ if you change the setting, depending on some browser peculiarities, the
 updated setting may only become active after you have navigated to a new
 clue and/or clicked on the clue or anno.
 
-##### Modifying the grid after some clues have been provided
+#### Modifying the grid after some clues have been provided
 
 If you make changes to the grid (such as adding/removing blocks/bars) that
 result in a modified numbering of clues, any clues or annotations that you
