@@ -1,5 +1,9 @@
 # Changelog
 
+### Minor update: Exet v0.99.1, October 28, 2025
+
+- Increase the font size in the format panel a bit. Update its screenshot.
+
 ### Exet v0.99, October 28, 2025
 
 - Move the prev/next clue buttons to go above the clue-editing panel. This
