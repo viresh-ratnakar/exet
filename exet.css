@@ -5,7 +5,7 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v0.97, September 16, 2025
+ * Current version: v1.00, October 31, 2025
  */
 
 [contenteditable="true"]:active,
@@ -310,6 +310,9 @@
   overflow: auto;
   margin: 4px 0;
 }
+.xet-pad-top {
+  padding-top: 6px;
+}
 #xet-light-choices-box {  
   width: 30ch;
 }
@@ -353,9 +356,12 @@
 }
 .xet-choices tr:nth-child(even) td { background: #F1F1F1; }   
 .xet-choices tr:nth-child(odd) td { background: #FEFEFE; }  
-.xet-choices:not(.xet-picked) tr:hover td {
+.xet-choices tr:not(.xet-chosen):hover td {
   background: lightgreen;
-}  
+}
+.xet-choices tr.xet-chosen:hover td {
+  background: #c0ffc0;
+}
 #xet-light-rejects tr:nth-child(odd) td { background: #f1cfff; }   
 #xet-light-rejects tr:nth-child(even) td { background: #e8c6f6; }  
 #xet-light-rejects tr:hover td {

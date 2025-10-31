@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.97, September 16, 2025
+Current version: v1.00, October 31, 2025
 */
 
 function ExetModals() {
@@ -65,7 +65,7 @@ ExetModals.prototype.hide = function() {
 }
 
 function Exet() {
-  this.version = 'v0.98, October 6, 2025';
+  this.version = 'v1.00, October 31, 2025';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -1602,18 +1602,25 @@ Exet.prototype.makeExetTab = function() {
     e.stopPropagation();
   });
 
-
   this.revChooser = document.getElementById("xet-rev-chooser");
   let showPuzChooser = document.getElementById("xet-show-puz-chooser");
   showPuzChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(false, null, exet.revChooser, exetFromHistory);
+    exetRevManager.choosePuzRev({
+        elt: exet.revChooser,
+        callback: exetFromHistory,
+        sortBy: 'timestamp',
+        sortOrder: 'decreasing'
+    });
     exetModals.showModal(exet.revChooser);
     e.stopPropagation();
   })
   const showRevChooser = document.getElementById("xet-show-rev-chooser");
   showRevChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(false, this.puz, exet.revChooser,
-                                exetFromHistory);
+    exetRevManager.choosePuzRev({
+        onlyPuz: this.puz,
+        elt: exet.revChooser,
+        callback: exetFromHistory,
+    });
     exetModals.showModal(exet.revChooser);
     e.stopPropagation();
   })
@@ -1622,7 +1629,12 @@ Exet.prototype.makeExetTab = function() {
   this.lsFreeSpan = document.getElementById("xet-local-storage-free");
   this.storageHeading = document.getElementById("xet-storage-heading");
   manageStorage.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(true, null, exet.revChooser, null);
+    exetRevManager.choosePuzRev({
+        forStorage: true,
+        elt: exet.revChooser,
+        sortBy: 'space',
+        sortOrder: 'decreasing'
+    });
     exetModals.showModal(exet.revChooser);
     e.stopPropagation();
   });
@@ -1914,7 +1926,7 @@ Exet.prototype.getLightInfos = function() {
         index = fillClue.lChoices[0];
         solText = exetLexicon.getLex(index);
       }
-      let pop = 5 * Math.round(20 * (lexl - index) / lexl);
+      const pop = 5 * Math.round(20 * (lexl - index) / lexl);
       label += ': ' + solText;
       this.addStat(allInfo.popularities, pop, label);
       this.addStat(dirInfo.popularities, pop, label);
@@ -1923,16 +1935,26 @@ Exet.prototype.getLightInfos = function() {
         this.addStat(allInfo.substrings, substring, label);
         this.addStat(dirInfo.substrings, substring, label);
       }
+      /**
+       * Include filled entries in reporting stem-dupes in clues.
+       */
+      const depunctSol = exetLexicon.depunct(solText, true /* forDeduping */);
+      const words = depunctSol.split(' ');
+      for (const word of words) {
+        const stem = exetLexicon.stem(word).toLowerCase();
+        this.addStat(allInfo.words, stem, label);
+        this.addStat(dirInfo.words, stem, label);
+      }
     }
     this.addStat(allInfo.lengths, theClue.enumLen, label);
     this.addStat(dirInfo.lengths, theClue.enumLen, label);
-    let depunctClue = exetLexicon.depunct(theClue.clue, true /* forDeduping */);
+    const depunctClue = exetLexicon.depunct(theClue.clue, true /* forDeduping */);
     if (depunctClue && !this.isDraftClue(theClue.clue)) {
       allInfo.set += 1;
       dirInfo.set += 1;
       const labelAndClue = label + ' [' + depunctClue + ']';
-      let words = depunctClue.split(' ');
-      for (let word of words) {
+      const words = depunctClue.split(' ');
+      for (const word of words) {
         const stem = exetLexicon.stem(word).toLowerCase();
         this.addStat(allInfo.words, stem, labelAndClue);
         this.addStat(dirInfo.words, stem, labelAndClue);
@@ -1943,7 +1965,7 @@ Exet.prototype.getLightInfos = function() {
     if (theClue.anno) {
       allInfo.annos += 1;
       dirInfo.annos += 1;
-      let anno = this.essenceOfAnno(theClue.anno);
+      const anno = this.essenceOfAnno(theClue.anno);
       if (anno) {
         this.addStat(allInfo.annotations, anno, label);
         this.addStat(dirInfo.annotations, anno, label);
@@ -8271,14 +8293,14 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
                    chequered=true, topUnches=false, leftUnches=false,
                    requireEnums=true) {
   if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
-    alert('Width and height must be specified in the range, 1-100')
-    return
+    alert('Width and height must be specified in the range, 1-100');
+    return;
   }
   if (!id) {
-    id = `puz-${Math.random().toString(36).substring(2, 8)}`
+    id = `xet-${Math.random().toString(36).substring(2, 8)}`;
   }
 
-  let gridRow = ['', '']
+  let gridRow = ['', ''];
   for (let j = 0; j < w; j++) {
     if (chequered) {
       if (!topUnches && !leftUnches) {
@@ -8302,19 +8324,19 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
 
   let grid = '';
   let thirdDSpec = '';
-  let acrossLine = 'exolve-across:'
-  let downLine = 'exolve-down:'
+  let acrossLine = 'exolve-across:';
+  let downLine = 'exolve-down:';
   if (layers3d == 1) {
     for (let i = 0; i < h; i++) {
-      grid = grid + '\n  ' + gridRow[i % 2]
+      grid = grid + '\n  ' + gridRow[i % 2];
     }
   } else {
     if (layers3d <= 0 || h % layers3d != 0) {
       alert("#layers in 3-D crosswords must be a positive divisor of height");
       return;
     }
-    acrossLine = 'exolve-3d-across:'
-    downLine = 'exolve-3d-away:'
+    acrossLine = 'exolve-3d-across:';
+    downLine = 'exolve-3d-away:';
     thirdDSpec = `\n    exolve-3d-down:\n    exolve-3d: ${layers3d}`;
     let darkRow = '';
     for (let j = 0; j < w; j++) darkRow += '. ';

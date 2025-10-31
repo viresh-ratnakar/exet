@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.97, September 16, 2024
+Current version: v1.00, October 31, 2025
 */
 
 /**
@@ -101,13 +101,27 @@ ExetRevManager.prototype.sizeOfPrefUnpref = function(id) {
   return sz;
 }
 
-ExetRevManager.prototype.choosePuzRev = function(manageStorage,
-                                                 puz, elt, callback) {
+/**
+ * params object should have these fields (missing = false/null):
+ *   forStorage: true/false
+ *   onlyPuz: null/current-puzzle (if not null, only used changing rev)
+ *   startId: null or can be specified when onlyPuz is null, for starting id.
+ *   elt: the element in which to render
+ *   callback: null or fn. to call after selection, passing rev
+ *   sortBy: null or 'timestamp'/'title'/'space'/'id'
+ *   sortOrder: null or 'increasing'/'decreasing'
+ * sortBy/sortOrder are ignored when onlyPuz is not null.
+ */
+ExetRevManager.prototype.choosePuzRev = function(params) {
+  this.params = params;
   let choices = [];
-  if (puz) {
-    let stored = window.localStorage.getItem(puz.id);
-    let lsUsed = stored.length + this.sizeOfPrefUnpref(puz.id);
-    choices = [{id: puz.id, title: puz.title, space: lsUsed}];
+  if (params.onlyPuz) {
+    let lsUsed = 0;
+    let stored = window.localStorage.getItem(params.onlyPuz.id);
+    if (lsUsed) {
+      lsUsed = stored.length + this.sizeOfPrefUnpref(params.onlyPuz.id);
+    }
+    choices = [{id: params.onlyPuz.id, title: params.onlyPuz.title, space: lsUsed, timestamp: 0}];
   } else {
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       const id = window.localStorage.key(idx);
@@ -128,19 +142,61 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
         continue;
       }
       let title = '';
+      let timestamp = 0;
       if (stored.revs.length > 0) {
-        title = stored.revs[stored.revs.length - 1].title;
+        const lastRev = stored.revs[stored.revs.length - 1];
+        title = lastRev.title;
+        timestamp = lastRev.timestamp;
       }
-      choices.push({id: stored.id, title: title, space: lsUsed});
+      choices.push({id: stored.id, title: title, space: lsUsed, timestamp: timestamp});
     }
   }
+  if (params.sortBy) {
+    const cmp = (a, b) => {
+      const mult = (params.sortOrder == 'increasing' ? 1 : -1);
+      if (a < b) {
+        return -1 * mult;
+      } else if (b < a) {
+        return 1 * mult;
+      } else {
+        return 0;
+      }
+    };
+    const sorter = (c1, c2) => {
+      return cmp(c1[params.sortBy], c2[params.sortBy]);
+    };
+    choices.sort(sorter);
+  }
   exet.checkStorage();
+  let sortingHTML = '';
+  if (!params.onlyPuz) {
+    const sorters = ['timestamp', 'title', 'id', 'space'];
+    sortingHTML = ', sort order: <select id="xet-choose-puz-sort-by">';
+    for (const sorter of sorters) {
+      sortingHTML += '<option' + (sorter == params.sortBy ? ' selected': '') +
+                     '>' + sorter + '</option>';
+    }
+    sortingHTML += '</select> <select id="xet-choose-puz-sort-order">';
+    const orders = [
+      {value: 'increasing', symbol: '&#9650;'},
+      {value: 'decreasing', symbol: '&#9660;'},
+    ];
+    for (const order of orders) {
+      sortingHTML += '<option value="' + order.value + '"' +
+                     ' title="' + order.value + '"' +
+                     (order.value == params.sortOrder ? ' selected': '') +
+                     '>' + order.symbol + '</option>';
+    }
+    sortingHTML += '</select>';
+  }
   let html = `
   <table>
     <tr>
-      <td><i>Select puzzle ID/Title</i></td>
-      <td>
-        <i>Select revision</i>
+      <td class="xet-pad-top">
+        Select puzzle${sortingHTML}:
+      </td>
+      <td class="xet-pad-top">
+        Select revision:
       </td>
     </tr>
     <tr>
@@ -150,7 +206,13 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
   for (let i = 0; i < choices.length; i++) {
     html = html + `
       <tr id="xet-id-choice-${i}">
-        <td>${choices[i].id}</td>
+        <td>
+          <b>${choices[i].id}</b>
+          ${choices[i].timestamp > 0 ?
+              '<br><span class="xet-small-action">Last change: ' +
+              (new Date(choices[i].timestamp)).toLocaleString() +
+              '</span>' : ''}
+        </td>
         <td>${choices[i].title}</td>
         <td>${exet.inMB(choices[i].space)} MB</td></tr>`
   }
@@ -192,15 +254,18 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
     </tr>
   </table>
   `;
-  elt.innerHTML = html;
-  this.idChoicesBox = document.getElementById('xet-choose-id');
-  this.idChoicesBox.style.width = '270px';
-  this.idChoicesBox.style.height = '200px';
+  params.elt.innerHTML = html;
+
+  const idChoicesBox = document.getElementById('xet-choose-id');
+  idChoicesBox.style.width = '385px';
+  idChoicesBox.style.height = '200px';
   this.idChoices = document.getElementById('xet-id-choices');
-  this.revChoicesBox = document.getElementById('xet-choose-rev');
-  this.revChoicesBox.style.width = '500px';
-  this.revChoicesBox.style.height = '200px';
+
+  const revChoicesBox = document.getElementById('xet-choose-rev');
+  revChoicesBox.style.width = '385px';
+  revChoicesBox.style.height = '200px';
   this.revChoices = document.getElementById('xet-rev-choices');
+
   this.preview = document.getElementById('xet-preview');
   this.idChoice = '';
   this.revChoice = -1;
@@ -208,8 +273,24 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
   this.puzPriorDeleter = document.getElementById('xet-puz-prior-deleter');
   this.puzRevDeleter = document.getElementById('xet-puz-rev-deleter');
   this.puzRevSelector = document.getElementById('xet-puz-rev-selector');
-  this.manageStorage = manageStorage;
-  if (manageStorage) {
+
+  this.sortByElt = document.getElementById('xet-choose-puz-sort-by');
+  this.sortOrderElt = document.getElementById('xet-choose-puz-sort-order');
+
+  if (this.sortByElt) {
+    const resorter = (e => {
+      const m = exetRevManager;
+      const params = m.params;
+      params.sortBy = m.sortByElt.value;
+      params.sortOrder = m.sortOrderElt.value;
+      params.startId = m.idChoice;
+      m.choosePuzRev(params);
+    });
+    this.sortByElt.addEventListener('change', resorter);
+    this.sortOrderElt.addEventListener('change', resorter);
+  }
+
+  if (params.forStorage) {
     this.puzDeleter.style.display = '';
     this.puzPriorDeleter.style.display = '';
     this.puzRevDeleter.style.display = '';
@@ -217,6 +298,29 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
     this.puzPriorDeleter.disabled = true;
     this.puzRevDeleter.disabled = true;
     const deleter = (types, e) => {
+      let newRevsNotAll = [];
+      if (types != 'all') {
+        if (this.revChoice < 0 || !this.storedRevs ||
+            this.storedRevs.revs.length == 0 ||
+            this.revChoice >= this.storedRevs.revs.length) {
+          console.log('Weird, did not find revChoice/storedRevs to delete from');
+          return;
+        }
+        let lastToDelete = this.revChoice;
+        if (types == 'prior') lastToDelete--;
+        let numToDelete = (types == 'prior' ? lastToDelete + 1 : 1);
+        let keptRevs = [];
+        if (lastToDelete - numToDelete >= 0) {
+          keptRevs = this.storedRevs.revs.slice(
+              0, lastToDelete - numToDelete + 1);
+        }
+        newRevsNotAll = keptRevs.concat(
+            this.storedRevs.revs.slice(lastToDelete + 1));
+        if (newRevsNotAll.length == 0) {
+          /** The user has indirectly chosen all revisions to be deleted. */
+          types = 'all';
+        }
+      }
       if (!confirm('Are you sure you want to delete ' + types +
                    ' revision(s)?')) {
         return;
@@ -229,27 +333,14 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
             this.keyPrefUnpref(this.idChoice, true));
         window.localStorage.removeItem(
             this.keyPrefUnpref(this.idChoice, false));
+        this.idChoice = '';
       } else {
-        if (this.revChoice < 0 || !this.storedRevs ||
-            this.storedRevs.revs.length == 0 ||
-            this.revChoice >= this.storedRevs.revs.length) {
-          console.log('Weird, did not find revChoice/storedRevs to delete from');
-          return;
-        }
-        let lastToDelete = this.revChoice;
-        if (types == 'prior') lastToDelete--;
-        let numToDelete = (types == 'prior' ? lastToDelete + 1 : 1);
-        let newRevs = [];
-        if (lastToDelete - numToDelete >= 0) {
-          newRevs = this.storedRevs.revs.slice(
-              0, lastToDelete - numToDelete + 1);
-        }
-        this.storedRevs.revs = newRevs.concat(
-            this.storedRevs.revs.slice(lastToDelete + 1));
+        this.storedRevs.revs = newRevsNotAll;
         this.saveLocal(this.idChoice, JSON.stringify(this.storedRevs));
         this.savePrefUnpref(this.idChoice, this.storedRevs.revs, true);
       }
-      this.choosePuzRev(true, null, exet.revChooser, null);
+      this.params.startId = this.idChoice;
+      this.choosePuzRev(this.params);
       e.stopPropagation();
     }
     this.puzDeleter.addEventListener('click', deleter.bind(this, 'all'));
@@ -273,54 +364,61 @@ ExetRevManager.prototype.choosePuzRev = function(manageStorage,
       if (exolvePuzzles[this.previewId]) {
         exolvePuzzles[this.previewId].destroy();
       }
-      callback(this.storedRevs.revs[this.revChoice]);
+      if (params.callback) {
+        params.callback(this.storedRevs.revs[this.revChoice]);
+      }
     })
   }
 
   this.idSelectors = [];
   this.revSelectors = [];
   this.storedRevs = null;
-  if (puz) {
-    this.idChoice = puz.id;
-    document.getElementById("xet-id-choice-0").className = 'xet-chosen';
+  if (params.onlyPuz) {
+    this.idChoice = params.onlyPuz.id;
+    document.getElementById("xet-id-choice-0").classList.add('xet-chosen');
     this.chooseRev();
     return;
   }
+  const selectIndex = (idx => {
+    this.preview.innerHTML = '';
+    if (this.previewId && exolvePuzzles[this.previewId]) {
+      exolvePuzzles[this.previewId].destroy();
+    }
+    this.puzDeleter.disabled = true;
+    this.puzPriorDeleter.disabled = true;
+    this.puzRevDeleter.disabled = true;
+    this.revChoices.innerHTML = '';
+    this.revChoice = -1;
+    this.revSelectors = [];
+    this.storedRevs = null;
+    this.puzRevSelector.disabled = true;
+    if (choices[idx].id == this.idChoice) {
+      this.idChoice = '';
+      this.idSelectors[idx].classList.remove('xet-chosen');
+    } else {
+      for (let j = 0; j < choices.length; j++) {
+        if (j != idx) {
+          this.idSelectors[j].className = '';
+        }
+      }
+      this.idChoice = choices[idx].id;
+      this.puzDeleter.disabled = false;
+      this.idSelectors[idx].classList.add('xet-chosen');
+      this.chooseRev();
+    }
+  });
+  let startIdIndex = -1;
   for (let i = 0; i < choices.length; i++) {
     let selector = document.getElementById(`xet-id-choice-${i}`);
     this.idSelectors.push(selector);
     const id = choices[i].id;
-    selector.addEventListener('click', e => {
-      this.preview.innerHTML = '';
-      if (exolvePuzzles[this.previewId]) {
-        exolvePuzzles[this.previewId].destroy();
-      }
-      this.puzDeleter.disabled = true;
-      this.puzPriorDeleter.disabled = true;
-      this.puzRevDeleter.disabled = true;
-      this.revChoices.innerHTML = '';
-      this.revChoices.className = 'xet-choices';
-      this.revChoice = -1;
-      this.revSelectors = [];
-      this.storedRevs = null;
-      this.puzRevSelector.disabled = true;
-      if (id == this.idChoice) {
-        this.idChoice = null;
-        selector.className = '';
-        this.idChoices.className = 'xet-choices';
-      } else {
-        for (let j = 0; j < choices.length; j++) {
-          if (j != i) {
-            this.idSelectors[j].className = '';
-          }
-        }
-        this.idChoice = id;
-        this.puzDeleter.disabled = false;
-        selector.className = 'xet-chosen';
-        this.idChoices.className = 'xet-choices xet-picked';
-        this.chooseRev();
-      }
-    })
+    if (id == params.startId) {
+      startIdIndex = i;
+    }
+    selector.addEventListener('click', e => selectIndex(i));
+  }
+  if (startIdIndex >= 0) {
+    selectIndex(startIdIndex);
   }
 };
 
@@ -362,8 +460,7 @@ ExetRevManager.prototype.chooseRev = function() {
       }
       if (i == this.revChoice) {
         this.revChoice = -1;
-        selector.className = '';
-        this.revChoices.className = 'xet-choices';
+        selector.classList.remove('xet-chosen');
       } else {
         for (let j = 0; j < this.revSelectors.length; j++) {
           if (j != i) {
@@ -371,8 +468,7 @@ ExetRevManager.prototype.chooseRev = function() {
           }
         }
         this.revChoice = i;
-        selector.className = 'xet-chosen';
-        this.revChoices.className = 'xet-choices xet-picked';
+        selector.classList.add('xet-chosen');
         let exolve = this.storedRevs.revs[i].exolve.replace(
             /exolve-id:[^\n]*/, `exolve-id: ${this.previewId}`);
         exet.renderPreview(exolve, "xet-preview");

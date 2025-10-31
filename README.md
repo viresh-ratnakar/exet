@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.96, May 18, 2025
+#### Version: Exet v1.00, October 31, 2025
 
 #### Author: Viresh Ratnakar
 
@@ -339,8 +339,8 @@ unless you explicitly add them.
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
-- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.06"), as of
-  May 2023, has 268,740 entries. Providing a popularity threshold
+- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.08"), as of
+  October 2025, has 269,526 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -960,7 +960,7 @@ a preview of the puzzle revision that you select.
 ### Storage
 
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
-May 2023). When this limit is reached, Exet will warn you that it cannot
+October 2025). When this limit is reached, Exet will warn you that it cannot
 save crossword revisions. You can use the "Manage local storage" menu option in
 the "Storage" menu at any time to delete old revisions of some crosswords and/or
 entirely delete old crosswords (after saving a backup or after downloading
@@ -1021,7 +1021,8 @@ properties of crosswords:
 - Words (other than very common ones) should not be repeated in clues,
   especially if they are used as cryptic wordplay indicators. For
   English, the Analysis page reports duplication in terms of stemmed
-  forms of words.
+  forms of words. We include solution entries too, when checking for such
+  dupes in clue texts.
 - Long common substrings in solution entries may not be desirable.
 - The number of long and very long clues should ideally be limited.
 - Wordplay types in cryptic clues should have a good mix of variety.

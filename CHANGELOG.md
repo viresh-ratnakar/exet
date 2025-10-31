@@ -1,5 +1,19 @@
 # Changelog
 
+### Exet v1.00, October 31, 2025
+
+- Add sorting by timestamp, space, title, id, in the choosePuzRev().
+- When sorting or after deleting some revisions, keep the chosen puzzle id
+  selected.
+- When selecting to open a puzzle, make the default sorting be by timestamp
+  decreasing.
+- When selecting to manage storage, make the default sorting be by space
+  decreasing.
+- When deleting a single revision, if it is the only remaining revision,
+  add a confirmation (basically falling into the "delete all revisions" flow).
+- Other minor tweaks to choosePuzRev (increase puz-choice table width, etc.)
+- Add filled entries to dupe-reporting in clue texts in Analysis.
+
 ### Minor update: Exet v0.99.1, October 28, 2025
 
 - Increase the font size in the format panel a bit. Update its screenshot.
