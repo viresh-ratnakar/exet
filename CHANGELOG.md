@@ -1,5 +1,23 @@
 # Changelog
 
+### Exet v1.01, November 14, 2025
+
+- Mainly a substantial refactoring, moving all the autofill-related code
+  to exet-autofill.js.
+- The exet.autofill object is not of a new ExetAutofill class that encapsulates
+  most of the logic. The current fill state is in an ExetFillState object.
+- This will help in the upcoming feature for allowing automatic grid mutations
+  alongside autofill (the hope is to be able to pack more thematic words
+  into a grid).
+- Minor bug-fix in autofill: when looking for a "pattern of death" (which
+  is an unfilled crosser with identical filled letters running through it
+  in Across anf Down lights), we were overlooking the possibility of linked
+  lights.
+- Add a convenient status display for autofill to the Edit menu itself.
+- When autofill fails, revert fill-state instead of keeping the failed
+  state (accepting which would not make sense) as leaving it in place
+  unnecessarily makes the subsequent autofill call fail.
+
 ### Exet v1.00, October 31, 2025
 
 - Add sorting by timestamp, space, title, id, in the choosePuzRev().

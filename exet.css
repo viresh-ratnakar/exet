@@ -5,7 +5,7 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v1.00, October 31, 2025
+ * Current version: v1.01, November 14, 2025
  */
 
 [contenteditable="true"]:active,
@@ -448,6 +448,15 @@
 .xet-autofill-panel {
   top: 0;
   bottom: auto;
+}
+#xet-autofill-active {
+  display: none;
+  float: right;
+  font-style: italic;
+  padding: 0 0 8px;
+}
+#xet-autofill-active-msg {
+  font-size: 10px;
 }
 .xet-dropdown-submenu textarea {
   background-color: #e9e9e9;

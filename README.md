@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.00, October 31, 2025
+#### Version: Exet v1.01, November 14, 2025
 
 #### Author: Viresh Ratnakar
 
@@ -399,8 +399,8 @@ background (and a warning tooltip).
 
 When Exet determines (using its lexicon) that for some unfilled cell, exactly
 one letter choice is viable, it shows that letter choice in gray. You can use
-the Edit menu's "Accept autofilled entries" option to accept all such autofilled
-letter suggestions.
+the Edit > Autofill menu's "Accept autofilled entries" option to accept all
+such autofilled letter suggestions.
 
 #### Preferred and excluded words/phrases
 
