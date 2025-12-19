@@ -6,6 +6,9 @@
   crossoword hosting service. You can upload to it directly from Exet,
   with or without solutions. Uploading again will update the previously
   uploaded copy.
+- Oops, lots of refactoring (code moving from exet.js to exet-autofill.js)
+  also sneaked into this version, inadvertently! Should be OK, just preparing
+  for optionally incorporating grid mutations into autofill.
 
 ### Exet v1.01, November 14, 2025
 
