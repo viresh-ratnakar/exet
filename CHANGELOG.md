@@ -1,5 +1,12 @@
 # Changelog
 
+### Exet v1.02, December 18, 2025
+
+- Add support for [Exost](https://xlufz.ratnakar.org/exost.html), my new
+  crossoword hosting service. You can upload to it directly from Exet,
+  with or without solutions. Uploading again will update the previously
+  uploaded copy.
+
 ### Exet v1.01, November 14, 2025
 
 - Mainly a substantial refactoring, moving all the autofill-related code

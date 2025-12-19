@@ -5,7 +5,7 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v1.01, November 14, 2025
+ * Current version: v1.02, December 18, 2025
  */
 
 [contenteditable="true"]:active,
@@ -709,14 +709,24 @@
   width: 840px;
 }
 .xet-web-fills-panel,
-.xet-text-editor {
+.xet-text-editor,
+.xet-xst-panel {
   position: absolute;
   left: 0;
   padding: 8px;
   z-index: 2;
   border: 1px solid green;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-  font-size: 12px;
+}
+.xet-xst-panel {
+  background-color: white;
+  max-width: 560px;
+  padding: 12px;
+  top: 54px;
+}
+.xet-xst-status {
+  font-size: 70%;
+  font-style: italic;
 }
 #xet-frame .xet-fills-heading .xlv-small-button {
   background-color: ghostwhite;
@@ -726,11 +736,13 @@
 }
 .xet-web-fills-panel {
   background-color: lavender;
+  font-size: 12px;
   text-align: left;
   top: 30px;
 }
 .xet-text-editor {
   background-color: white;
+  font-size: 12px;
   top: 0;
 }
 .xet-text-editor .xet-choices-box div,

@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.01, November 14, 2025
+#### Version: Exet v1.02, December 18, 2025
 
 #### Author: Viresh Ratnakar
 
@@ -51,6 +51,7 @@ And here are the files needed from Exolve:
 - [`exolve-to-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-puz.js).
 - [`exolve-from-ipuz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-ipuz.js).
 - [`exolve-to-ipuz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-ipuz.js).
+- [`exolve-exost.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-exost.js).
 
 Exet comes with a permissive MIT license. The full license notice is provided in
 the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
@@ -70,6 +71,10 @@ format, and as PDFs. You can also grab embeddable HTML code for adding your
 crossword to any web site or blog, using Exolve (but see the
 [known caveats in the Exolve
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-widget)).
+
+In late 2025, I set up a free, no-strings-attached crossword hosting
+service called [Exost](https://xlufz.ratnakar.org/exost.html). You can upload
+crosswords to it from its own site, or from Exolve Player, or from Exet.
 
 As of now, Exet only suggests English, Hindi, and Portuguese (Brazilian).
 I'll add support for more languages over time.
@@ -879,6 +884,22 @@ edited. Similarly, you can edit the copyright notice for the puzzle. All three
 of these editable fields are optional, and you can simply edit them to be
 empty.
 
+### Exost
+
+In late 2025, I set up a free, no-strings-attached crossword hosting
+service called [Exost](https://xlufz.ratnakar.org/exost.html). You can upload
+crosswords to it from its own site, or from Exolve Player, or from Exet.
+On that site, you can use exolve, puz, or ipuz formats. From Exolve Player
+and from Exet, you can upload the current crossword to Exost. From
+Exolve Player, you have the additional ability to start from just the text
+of the clues. From Exet, you have an additional option of uploading a
+crossword without its solutions. This can be useful if you want to first
+put up a crossword without solutions and then perhaps after some time
+replace it with a version that does provide solutions.
+
+You can access this functionality from the "Save" menu's
+"Upload for hosting at Exost" option.
+
 ### Downloading Exolve or .puz or .ipuz files
 
 The "Save" menu lets you download or grab the puzzle in various ways. In the
@@ -920,6 +941,7 @@ following, \<title\> in a filename stands for the puzzle title.
   - **Without solutions 📋**: Copy (into the clipboard)
     embeddable Exolve widget HTML code (with solvers not able to check/see
     solutions).
+- **Upload for hosting at Exost**
 
 In the "Save" options that download a file, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already
@@ -941,7 +963,7 @@ The Save menu also lets you change some settings:
   you modify the puzzle and download as Exolve subsequently, the downloaded
   file will simply copy everything (other than the modified puzzle specs)
   from the original file, including the URL prefix (i.e., this setting will
-  not get used).
+  not get used). Note that this has no impact on "Upload for hosting at Exost".
 
 These Save settings are sticky: Exet saves their current values in local
 storage.

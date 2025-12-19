@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v1.01, November 14, 2025
+Current version: v1.02, December 18, 2025
 */
 
 function ExetModals() {
@@ -65,7 +65,7 @@ ExetModals.prototype.hide = function() {
 }
 
 function Exet() {
-  this.version = 'v1.01, November 14, 2025';
+  this.version = 'v1.02, December 18, 2025';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -176,6 +176,10 @@ function Exet() {
     `You can use autofill to create pangrams, and even <i>constrained</i>
      pangrams, where all the letters in the alphabet get used over some
      specified cells, such as circled cells and unchecked cells.`,
+    `You can specify a regular expression that constrains fill-choices
+     shown for a light (for example, forcing a palindrome, or a specific
+     substring) using the "Regexp constraint" option in the hamburger menu above
+     the current clue.`,
     `You can create a <i>3-D</i> crossword using
      <i>Open &gt; New 3-D grid:</i>. You can also reverse some lights with
      <i>Edit &gt; Reverse current light</i>. You can let autofill suggest
@@ -332,7 +336,7 @@ Exet.prototype.setPuzzle = function(puz) {
         '<\/body>\n' +
         '<\/html>\n'
   }
-  this.exolveOtherSec = ''
+  this.exolveOtherSec = '';
 
   const sectionsToSkip = ['begin', 'grid', 'width', 'height', 'id', 'title',
                           'setter', 'copyright', 'nina', 'colour', 'color',
@@ -1228,6 +1232,10 @@ Exet.prototype.makeExetTab = function() {
               </div>
             </div>
           </div>
+          <hr>
+          <div id="xet-xst-show-panel" class="xet-dropdown-item">
+            Upload for hosting at Exost
+          </div>
         </div>
       </li>
       <li class="xet-dropdown">
@@ -1710,6 +1718,12 @@ Exet.prototype.makeExetTab = function() {
   document.getElementById("xet-edit-questions").addEventListener('click', e => {
     this.populateQuestions(questions);
     exetModals.showModal(questions)
+    e.stopPropagation();
+  });
+
+  document.getElementById("xet-xst-show-panel").addEventListener(
+      'click', e => {
+    this.showExostPanel();
     e.stopPropagation();
   });
 
@@ -2335,6 +2349,126 @@ Exet.prototype.updateOtherSections = function() {
       this.exolveOtherSec = saved;
     }
   }, 2000);
+}
+
+Exet.prototype.uploadToExost = function(solved=true) {
+  const exolve = this.getExolve('', false, solved);
+  this.exost.uploadExolve(exolve, this.puz);
+}
+
+Exet.prototype.exostUploadCallback = function(result) {
+  /** Can't use "this" as we detach this function before use */
+  if (result.error) {
+    console.log('Exost upload failed: ' + result.error);
+    return;
+  }
+  if (result.url) {
+    exet.exostState.url = result.url;
+    exet.exostState.urlElt.href = result.url;
+    exet.exostState.urlElt.innerText = result.url;
+    exet.exostState.urlRow.style.display = '';
+  }
+}
+
+Exet.prototype.showExostPanel = function() {
+  /**
+   * We reuse an Exost panel across multiple crosswords so that the user's
+   * email address and password fields are retained.
+   */
+  if (!this.exostState) {
+    this.exostState = {id: ''};
+    this.exostState.panel = document.createElement('div');
+    this.exostState.panel.className = 'xet-xst-panel';
+    this.exostState.panel.style.display = 'none';
+    this.exostState.panel.innerHTML = `
+      <p>
+        <b>Upload/update at <a target="_blank"
+           href="https://xlufz.ratnakar.org/exost.html">Exost</a>
+           crossword hosting</b>
+      </p>
+      <table>
+        <tr>
+          <td colspan="2">
+            <label for="xet-xst-email">Email: </label>
+            <input type="email" class="xlv-answer" id="xet-xst-email" size="32" placeholder="your@email.address">
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <label for="xet-xst-pwd">Password: </label>
+            <input type="password" class="xlv-answer" id="xet-xst-pwd" size="28" placeholder="Retrievable via email">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Get your password emailed to you:
+          </td>
+          <td>
+            <button class="xlv-small-button" onclick="exet.exost.requestPwd()">Request</button>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <span class="xet-xst-status" id="xet-xst-pwd-status"></span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Upload/update Exost-hosted version:
+          </td>
+          <td>
+            <button class="xlv-small-button" onclick="exet.uploadToExost(true)">With solutions</button>
+            <button class="xlv-small-button" onclick="exet.uploadToExost(false)">Sans solutions</button>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <span class="xet-xst-status" id="xet-xst-upload-status"></span>
+          </td>
+        </tr>
+        <tr id="xet-xst-url-row">
+          <td colspan="2">
+            Exost URL: <a class="xet-xst-status" target="_blank" id="xet-xst-url"></a>
+            <button id="xet-xst-cpurl-u" onclick="exet.exost.copyURL(exet.exostState.url, false, 'xet-xst-cpurl-u')"
+              title="Copy Exost URL">&#128279;</button>
+            <button id="xet-xst-cpurl-e" onclick="exet.exost.copyURL(exet.exostState.url, true, 'xet-xst-cpurl-e')"
+              title="Copy Exost iframe embed code">&lt;/&gt;</button>
+          </td>
+        </tr>
+      </table>
+      <p style="font-size:90%;font-style:italic">
+        You can view the list of all your uploaded crosswords (and delete any,
+        if you wish to) at the <a target="_blank"
+          href="https://xlufz.ratnakar.org/exost.html">Exost</a> site. Please
+        note that by uploading your crossword, you're agreeing to the simple
+        terms and conditions listed on the Exost site. In particular, please
+        note that if you've opened someone else's crossword on this page, you
+        shouldn't be uploading it for hosting anywhere unless you've received
+        explicit permission from them.
+      </p>
+    `;
+  }
+  this.frame.appendChild(this.exostState.panel);
+
+  this.exost = new ExolveExost({
+    exostURL: 'https://xlufz.ratnakar.org/exost.html',
+    apiServer: 'https://xlufz.ratnakar.org/exost.php',
+    emailEltId: 'xet-xst-email',
+    pwdEltId: 'xet-xst-pwd',
+    pwdStatusEltId: 'xet-xst-pwd-status',
+    uploadStatusEltId: 'xet-xst-upload-status',
+    uploadCallback: exet.exostUploadCallback
+  });
+  this.exostState.urlRow = document.getElementById('xet-xst-url-row');
+  this.exostState.urlElt = document.getElementById('xet-xst-url');
+  this.exostState.uploadStatus = document.getElementById('xet-xst-upload-status');
+  if (this.exostState.id != this.puz.id) {
+    this.exostState.id = this.puz.id;
+    this.exostState.url = '';
+    this.exostState.urlRow.style.display = 'none';
+    this.exostState.uploadStatus.innerHTML = '';
+  }
+  exetModals.showModal(this.exostState.panel);
 }
 
 Exet.prototype.trimUrl = function(url) {
@@ -4011,23 +4145,27 @@ Exet.prototype.resizeRHS = function() {
 }
 
 Exet.prototype.reposition = function() {
-  this.title.className = 'xlv-title'
-  this.setter.className = 'xlv-setter'
-  this.preamble.className = 'xlv-preamble'
-  this.title.title = ''
-  this.setter.title = ''
-  this.preamble.title = ''
-  const clueBox = this.puz.currClue.getBoundingClientRect()
+  /**
+   * We choose to not resize the grid for now, because that needs to take care
+   * of re-adding viablots and forcedLetters to the reborn gridCell.cellGroup.
+   */
+  this.title.className = 'xlv-title';
+  this.setter.className = 'xlv-setter';
+  this.preamble.className = 'xlv-preamble';
+  this.title.title = '';
+  this.setter.title = '';
+  this.preamble.title = '';
+  const clueBox = this.puz.currClue.getBoundingClientRect();
   if (this.puz.currClueIndex && clueBox.top > 0) {
     const top = clueBox.top - this.TOP_CLEARANCE;
     const right = clueBox.right;
     for (let elt of [this.title, this.setter, this.preamble]) {
       const box = elt.firstElementChild ?
         elt.firstElementChild.getBoundingClientRect() :
-        elt.getBoundingClientRect()
+        elt.getBoundingClientRect();
       if (box.bottom >= top && box.left <= right) {
-        elt.className += ' xet-blur'
-        elt.title = 'Click to make visible'
+        elt.className += ' xet-blur';
+        elt.title = 'Click to make visible';
       }
     }
   }
@@ -4035,16 +4173,16 @@ Exet.prototype.reposition = function() {
     this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
   }
 
-  const clearAreaBox = this.puz.clearArea.getBoundingClientRect()
+  const clearAreaBox = this.puz.clearArea.getBoundingClientRect();
 
   const colourNinaWidth = Math.min(300, (clearAreaBox.width - clueBox.width) / 2);
   this.tweakColourNina.style.width = colourNinaWidth + 'px';
 
-  const xetFormat = document.getElementById('xet-format')
+  const xetFormat = document.getElementById('xet-format');
   if (xetFormat) {
     const previewWidth = Math.min(480, (clearAreaBox.width - clueBox.width) / 2);
     for (let tag of Object.keys(this.formatTags)) {
-      const preview = document.getElementById('xet-format-' + tag + '-preview')
+      const preview = document.getElementById('xet-format-' + tag + '-preview');
       preview.style.width = previewWidth + 'px';
     }
   }
@@ -5952,7 +6090,11 @@ Exet.prototype.makeExolve = function(specs) {
   }
   this.puz = null;
   try {
-    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, this.TOP_CLEARANCE, 0, false)
+    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this),
+                           false /** provideStateUrl */,
+                           this.TOP_CLEARANCE /** visTop */,
+                           0 /** maxDim */,
+                           false /** notTemp */)
   } catch (err) {
     this.puz = null
     console.log('Could not parse Exolve specs:')
