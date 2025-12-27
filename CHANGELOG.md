@@ -1,5 +1,10 @@
 # Changelog
 
+### Exet v1.03, December 26, 2025
+
+- Change thefreedictionary.org to use newTab=true as they too have now sadly
+  started setting x-frame-options to sameorigin.
+
 ### Exet v1.02, December 18, 2025
 
 - Add support for [Exost](https://xlufz.ratnakar.org/exost.html), my new

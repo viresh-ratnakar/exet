@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.02, December 18, 2025
+#### Version: Exet v1.02, December 26, 2025
 
 #### Author: Viresh Ratnakar
 
@@ -737,15 +737,15 @@ usage, pronunciation, and etymology. The "Research" tab lets you do that
 by using reputed online resources, conveniently linking directly to the
 word/phrase in the current light:
 
-- **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Wiktionary**: [en.wiktionary.org](https://en.wiktionary.org)
 - **Merriam-Webster Dictionary & Thesaurus**: [www.merriam-webster.com](https://www.merriam-webster.com)
 - **Onelook**: [onelook.com](https://onelook.com)
 - **DictionaryAPI**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
+- **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Chambers Dictionary & Thesaurus**: [chambers.co.uk](https://chambers.co.uk).
-  Note that Chambers now does not allow embedding their pages in
-  iframes, so these links open in new tabs.
+  Note that The Free Dictionary and Chambers now do not allow embedding their
+  pages in iframes, so these links open in new tabs.
 
 In addition, the "Research" tab lets you search
 [**cryptics.georgeho.org**](https://cryptics.georgeho.org/), which is an excellent
