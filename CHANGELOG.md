@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v1.03.1, January 5, 2026
+
+- When saving as PDF, the temp window created was too small, which created
+  tiny grids. Make it a 1000x1500 window.
+
 ### Exet v1.03, December 26, 2025
 
 - Change thefreedictionary.org to use newTab=true as they too have now sadly

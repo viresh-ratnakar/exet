@@ -3486,7 +3486,7 @@ Exet.prototype.printWindower = function(actionScript, solved) {
         '<\/script>\n' +
         '<\/body>\n' +
         '<\/html>\n'
-  const pwin = window.open('', '', 'left=0,top=0');
+  const pwin = window.open('', '', 'left=0,top=0,width=1000,height=1500');
   pwin.document.write(html);
   pwin.document.close();
   pwin.focus();
