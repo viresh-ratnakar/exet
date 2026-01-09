@@ -1,5 +1,15 @@
 # Changelog
 
+### Minor update: Exet v1.03.2, January 8, 2026
+
+- Make reposition() handle the case of the window getting bigger when the
+  grid is known to be smaller than normal (likely because the grid was created
+  when the window was in some minimal state for some reason, such as a browser
+  restart). We were not letting Exolve do its own grid resizing (because
+  we Exet saves cetain extra things in puz.grid). The change is pretty simple
+  actually: we just call updatePuzzle(revType=0), which recreates the Exolve
+  puz but does not (unnecessarily) save again.
+
 ### Minor update: Exet v1.03.1, January 5, 2026
 
 - When saving as PDF, the temp window created was too small, which created

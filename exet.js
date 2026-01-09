@@ -4145,10 +4145,18 @@ Exet.prototype.resizeRHS = function() {
 }
 
 Exet.prototype.reposition = function() {
-  /**
-   * We choose to not resize the grid for now, because that needs to take care
-   * of re-adding viablots and forcedLetters to the reborn gridCell.cellGroup.
-   */
+  if (this.puz.squareDim < 31 &&
+      (this.puz.getViewportDim() - this.puz.viewportDim > 25)) {
+    /**
+     * The window is substantially bigger than when we created the grid. Let's
+     * just force a redraw (we don't use Exolve's resizing because that would
+     * create a new puz.grid and we would have to take care of re-adding
+     * viablots and forcedLetters * to the reborn gridCell.cellGroup fields.
+     */
+    console.log('updatePuzzle() called just to resize from ' + this.puz.viewportDim + ' to ' + this.puz.getViewportDim());
+    this.updatePuzzle();  /** revType = default 0 won't actually save */
+    return;
+  }
   this.title.className = 'xlv-title';
   this.setter.className = 'xlv-setter';
   this.preamble.className = 'xlv-preamble';
@@ -4186,7 +4194,6 @@ Exet.prototype.reposition = function() {
       preview.style.width = previewWidth + 'px';
     }
   }
-
   this.resizeRHS();
 }
 
@@ -6114,19 +6121,19 @@ Exet.prototype.makeExolve = function(specs) {
 }
 
 Exet.prototype.updatePuzzle = function(revType=0) {
-  if (revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
+  if (revType > 0 &&
+      revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
       revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
     this.autofill.reset('Aborted');
   }
-  const row = this.puz.currRow
-  const col = this.puz.currCol
-  const dir = this.puz.currDir
-  const scratch = this.puz.scratchPad.value
-  this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
-  this.saveCursor()
+  const row = this.puz.currRow;
+  const col = this.puz.currCol;
+  const dir = this.puz.currDir;
+  const scratch = this.puz.scratchPad.value;
+  this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : '';
+  this.saveCursor();
   const editingOtherSections = (exetModals.modal &&
                exetModals.modal.id == 'xet-other-sections');
-
   const oldPuz = this.puz;
   let exolve = this.getExolve();
   this.makeExolve(exolve);
@@ -6134,11 +6141,10 @@ Exet.prototype.updatePuzzle = function(revType=0) {
     alert('Update failed in makeExolve()! Best to reload.');
     return;
   }
-
-  this.puz.currDir = dir
-  this.puz.currRow = row
-  this.puz.currCol = col
-  this.puz.scratchPad.value = scratch
+  this.puz.currDir = dir;
+  this.puz.currRow = row;
+  this.puz.currCol = col;
+  this.puz.scratchPad.value = scratch;
   if (editingOtherSections) {
     if (this.postscript) {
       this.postscript.style.display = '';
@@ -6147,11 +6153,11 @@ Exet.prototype.updatePuzzle = function(revType=0) {
     exetModals.showModal(this.otherSecPanel);
     this.otherSecText.focus();
   } else if (this.puz.currCellIsValid()) {
-    this.restoreCursor()
+    this.restoreCursor();
     if (this.puz.grid[row][col].isLight) {
-      this.puz.activateCell(row, col)
+      this.puz.activateCell(row, col);
     } else {
-      this.navDarkness(row, col)
+      this.navDarkness(row, col);
     }
   }
   if (revType > 0) {
