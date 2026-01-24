@@ -1,5 +1,23 @@
 # Changelog
 
+### Minor update: Exet v1.03.3, January 24, 2026
+
+- More autofill refactoring and some bug-fixes.
+- Autofill refactoring is towards making grid mutations to maximize preflex
+  packing (in a future release). We move the core functionality of
+  resetViability() to an ExetFillState function rather than an Exet function,
+  so that we can apply it to any ExetFillState object (and not just
+  exet.fillState).
+- Autofill: In setScore(), preflex scoring boost was inconsistent between
+  entries already in lexicon vs not-from-lexicon (latter were getting more
+  boost!). Fix that.
+- Autofill: Call refineLightChoices() on the starting candidate too.
+- In makeExolve(), if there's an exception in Exolve(), then call destroy()
+  on the temp Exolve object.
+- In updatePuzzle(), even when called for reposition() (from the last update),
+  if an ongoing autofill is active, abort it and show the "Aborted" status to
+  the user.
+
 ### Minor update: Exet v1.03.2, January 8, 2026
 
 - Make reposition() handle the case of the window getting bigger when the

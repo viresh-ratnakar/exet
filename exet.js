@@ -631,6 +631,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.sweepIndicator = document.getElementById('xet-sweeping');
 
   this.fillState = new ExetFillState(this.puz);
+  this.fillState.markClueEnds();  /** Needed for some options */
   this.resetViability();
 
   this.autofill = new ExetAutofill();
@@ -5026,7 +5027,7 @@ Exet.prototype.automagicBlocksInner = function(chequered, targetNumClues, showAl
     if (numCandidates == 0) {
       break;
     }
- }
+  }
   if (totalChanges == 0) {
     if (showAlerts) {
       alert('Add automagic blocks: found no further candidate cells ' +
@@ -6090,24 +6091,30 @@ Exet.prototype.restoreCursor = function() {
 }
 
 Exet.prototype.makeExolve = function(specs) {
-  let xlvFrame = document.getElementById('xet-xlv-frame')
-  xlvFrame.innerHTML = ''
+  let xlvFrame = document.getElementById('xet-xlv-frame');
+  xlvFrame.innerHTML = '';
   if (this.puz) {
     this.puz.destroy();
   }
   this.puz = null;
   try {
-    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this),
+    const ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this),
                            false /** provideStateUrl */,
                            this.TOP_CLEARANCE /** visTop */,
                            0 /** maxDim */,
-                           false /** notTemp */)
+                           false /** notTemp */);
+    if (!this.puz) {
+      /** There was an error in setPuzzle() */
+      if (ptemp) {
+        ptemp.destroy();
+      }
+    }
   } catch (err) {
-    this.puz = null
-    console.log('Could not parse Exolve specs:')
-    console.log(specs)
-    console.log('Error thrown was:')
-    console.log(err)
+    this.puz = null;
+    console.log('Could not parse Exolve specs:');
+    console.log(specs);
+    console.log('Error thrown was:');
+    console.log(err);
   }
 
   if (!this.puz) {
@@ -6116,14 +6123,17 @@ Exet.prototype.makeExolve = function(specs) {
   this.checkLocalStorage();
 
   this.handleTabClick(this.currTab);
-  exetState.lastId = this.puz.id
+  exetState.lastId = this.puz.id;
   exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
 }
 
 Exet.prototype.updatePuzzle = function(revType=0) {
-  if (revType > 0 &&
-      revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
+  if (revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
       revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
+    /**
+     * Alert the user that their ongoing autofill run had to be aborted, even
+     * though they might not be expecting that. Hopefully a rare scenario.
+     */
     this.autofill.reset('Aborted');
   }
   const row = this.puz.currRow;
@@ -6371,18 +6381,18 @@ Exet.prototype.getHTML = function(solved=true) {
 }
 
 Exet.prototype.IntersectChoices = function(set1, set2) {
-  let result = {}
-  for (let x in set2) {
-    if (set1[x]) result[x] = true
+  const result = {};
+  for (const x in set2) {
+    if (set1[x]) result[x] = true;
   }
-  return result
+  return result;
 }
 
 Exet.prototype.Set2Trims = function(set1, set2) {
-  for (let x in set1) {
-    if (!set2[x]) return true
+  for (const x in set1) {
+    if (!set2[x]) return true;
   }
-  return false
+  return false;
 }
 
 Exet.prototype.addToDontReuse = function(p, dontReuse) {
@@ -6784,15 +6794,15 @@ Exet.prototype.startDeadendSweep = function(ci='') {
   }
   this.viabilityUpdateTimer = null;
   if (!this.puz || this.puz.numCellsFilled >= this.puz.numCellsToFill) {
-    return
+    return;
   }
   if (this.autofill && this.autofill.running) {
-    return
+    return;
   }
-  this.deadendsGridSweep = true
-  this.sweepIndicator.className = 'xet-sweeping-animated'
+  this.deadendsGridSweep = true;
+  this.sweepIndicator.className = 'xet-sweeping-animated';
   this.viabilityUpdateTimer = setTimeout(() => {
-    this.findAllDeadendFills(ci)
+    this.findAllDeadendFills(ci);
   }, this.sweepMS);
 }
 
@@ -6884,76 +6894,19 @@ Exet.prototype.viability = function(len) {
   return len == 0 ? 0 : (len >= 16 ? 5 : (1 + (Math.log(len) / log2)));
 }
 
-Exet.prototype.initViability = function() {
-  this.fillState.viable = true;
-  for (let i = 0; i < this.fillState.gridHeight; i++) {
-    for (let j = 0; j < this.fillState.gridWidth; j++) {
-      const fillCell = this.fillState.grid[i][j]
-      if (!fillCell.isLight) {
-        continue;
-      }
-      if (fillCell.solution != '?') {
-        fillCell.cChoices = {};
-        fillCell.cChoices[fillCell.solution] = true;
-        fillCell.viability = 1.0;
-      } else {
-        fillCell.cChoices = exetLexicon.letterSet;
-        fillCell.viability = 5.0;
-      }
-    }
-  }
-}
-
 /**
- * Fills cChoices and lChoices in exet.fillState.
+ * Fills cChoices (only initializes) and lChoices in exet.fillState.
  */
 Exet.prototype.resetViability = function() {
   if (this.autofill) {
     this.autofill.reset('Aborted');
   }
-  this.initViability();
-  const dontReuse = {};
-  this.preflexInUse = {};
-  this.fillState.preflexUsed = this.preflexInUse;
-  this.fillState.numPreflexUsed = 0;
-  for (const ci in this.puz.clues) {
-    const theClue = this.puz.clues[ci];
-    if (!theClue.solution || theClue.solution.indexOf('?') >= 0) {
-      continue;
-    }
-    const choices = exetLexicon.getLexChoices(theClue.solution, 1, dontReuse,
-        this.noProperNouns,
-        this.indexMinPop,
-        false, this.preflexByLen, this.unpreflexSet,
-        this.getLightRegexpC(ci));
-    this.fillState.clues[ci].lChoices = choices;
-    this.fillState.clues[ci].lRejects = [];
-    if (choices.length > 0) {
-      const p = choices[0];
-      console.assert(p > 0, p);
-      this.addToDontReuse(p, dontReuse);
-      if (this.preflexSet[p]) {
-        this.preflexInUse[p] = true;
-        this.fillState.numPreflexUsed++;
-      }
-    }
-  }
+  this.fillState.resetViability();
+  this.preflexInUse = this.fillState.preflexUsed;
   if (this.preflexUsed) {
     this.preflexUsed.innerHTML = (this.fillState.numPreflexUsed > 0) ?
       ('<b>' + this.fillState.numPreflexUsed + '</b>') :
       ('' + this.fillState.numPreflexUsed);
-  }
-  for (const ci in this.fillState.clues) {
-    const theClue = this.fillState.clues[ci];
-    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
-      continue;
-    }
-    theClue.lChoices = exetLexicon.getLexChoices(theClue.solution, 0, dontReuse,
-        this.noProperNouns,
-        this.indexMinPop,
-        this.tryReversals, this.preflexByLen, this.unpreflexSet,
-        this.getLightRegexpC(ci));
-    theClue.lRejects = [];
   }
   this.updateFillChoices();
   this.updateViablots();
@@ -7151,8 +7104,9 @@ Exet.prototype.setPreflex = function(preflex) {
   this.preflexHash = exetRevManager.hashPrefUnpref(preflex);
   this.preflexSet = {};
 
-  while (exetLexicon.lexicon.length > exetLexicon.startLen) {
-    exetLexicon.lexicon.pop();
+  if (exetLexicon.lexicon.length > exetLexicon.startLen) {
+    /** trim back to original size */
+    exetLexicon.lexicon.length = exetLexicon.startLen;
   }
   this.preflexByLen = {};
   for (let ptext of this.preflex) {
@@ -7341,13 +7295,13 @@ Exet.prototype.choiceDisplayHTML = function(choice) {
 Exet.prototype.updateFillChoices = function() {
   let ci = this.currClueIndex();
   if (!ci) {
-    return
+    return;
   }
-  let gridClue = this.puz.clues[ci]
-  let theClue = this.fillState.clues[ci]
-  console.assert(theClue && theClue.lChoices, ci)
+  const gridClue = this.puz.clues[ci];
+  const theClue = this.fillState.clues[ci];
+  console.assert(theClue && theClue.lChoices, ci);
 
-  let html = ''
+  let html = '';
   if (theClue.lChoices.length == 0) {
     // Maybe the light was filled from outside the lexicon
     if (gridClue.solution.indexOf('?') < 0) {
@@ -7366,15 +7320,15 @@ Exet.prototype.updateFillChoices = function() {
     lRejects.sort(this.enumMatchSorter.bind(this, gridClue.placeholder));
   }
 
-  let numShown = 0
+  let numShown = 0;
   for (const choice of lChoices) {
     html += this.choiceDisplayHTML(choice);
     numShown++;
     if (numShown >= this.shownLightChoices) break;
   }
 
-  let htmlRej = ''
-  let numRejects = 0
+  let htmlRej = '';
+  let numRejects = 0;
   for (const choice of lRejects) {
     htmlRej += this.choiceDisplayHTML(choice);
     numRejects++;

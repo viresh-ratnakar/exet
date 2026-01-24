@@ -236,6 +236,71 @@ ExetFillState.prototype.markClueEnds = function() {
   }
 }
 
+ExetFillState.prototype.initViability = function() {
+  this.viable = true;
+  for (let i = 0; i < this.gridHeight; i++) {
+    for (let j = 0; j < this.gridWidth; j++) {
+      const fillCell = this.grid[i][j];
+      if (!fillCell.isLight) {
+        continue;
+      }
+      if (fillCell.solution != '?') {
+        fillCell.cChoices = {};
+        fillCell.cChoices[fillCell.solution] = true;
+        fillCell.viability = 1.0;
+      } else {
+        fillCell.cChoices = exetLexicon.letterSet;
+        fillCell.viability = 5.0;
+      }
+    }
+  }
+}
+
+/**
+ * Fills lChoices in each clue and initializes cChoices in each cell.
+ */
+ExetFillState.prototype.resetViability = function() {
+  this.initViability();
+  const dontReuse = {};
+  this.preflexUsed = {};
+  this.numPreflexUsed = 0;
+  for (const ci in this.clues) {
+    const theClue = this.clues[ci];
+    if (!theClue.solution || theClue.solution.indexOf('?') >= 0) {
+      continue;
+    }
+    const choices = exetLexicon.getLexChoices(theClue.solution, 1, dontReuse,
+        exet.noProperNouns,
+        exet.indexMinPop,
+        false, exet.preflexByLen, exet.unpreflexSet,
+        exet.getLightRegexpC(ci));
+    theClue.lChoices = choices;
+    theClue.lRejects = [];
+    if (choices.length > 0) {
+      const p = choices[0];
+      console.assert(p > 0, p);
+      exet.addToDontReuse(p, dontReuse);
+      if (exet.preflexSet[p]) {
+        this.preflexUsed[p] = true;
+        this.numPreflexUsed++;
+      }
+    }
+  }
+  for (const ci in this.clues) {
+    const theClue = this.clues[ci];
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
+      continue;
+    }
+    theClue.lChoices = exetLexicon.getLexChoices(theClue.solution, 0, dontReuse,
+        exet.noProperNouns,
+        exet.indexMinPop,
+        exet.tryReversals, exet.preflexByLen, exet.unpreflexSet,
+        exet.getLightRegexpC(ci));
+    theClue.lRejects = [];
+  }
+}
+
+
 /**
  * autofill should be an ExetAutofill object.
  */
@@ -261,11 +326,12 @@ ExetFillState.prototype.setScore = function(autofill) {
       if (theClue.lChoices.length > 0) {
         let pindex = theClue.lChoices[0];
         if (pindex < 0) pindex = 0 - pindex;
-        if (pindex >= exetLexicon.startLen) {
+        if (pindex >= exetLexicon.startLen || this.preflexUsed[pindex]) {
           /* we really prefer preflex entries */
-          pindex = 0;
+          scoreP = 1.0;
+        } else {
+          scoreP = (exetLexicon.startLen - pindex) / exetLexicon.startLen;
         }
-        scoreP = (exetLexicon.startLen - pindex) / exetLexicon.startLen;
       }
       ++numEntries;
       this.scoreP += scoreP;
@@ -555,6 +621,13 @@ function ExetAutofill() {
   this.pangramLasts = false;
   this.triedHashes = {};
 
+  /** How many light choices do we consider for each light: */
+  this.constrainerLimit = 2000;
+  /** How many iterations of refineLightChoices to vet: */
+  this.refinementSweeps = 2;
+  /** How many loops to try to use preflex */
+  this.priorityLoops = 20;
+
   const analysis = new ExetAnalysis(
       exet.puz.grid, exet.puz.gridWidth, exet.puz.gridHeight, exet.puz.layers3d);
   this.barred = analysis.numBars() > 0;
@@ -734,8 +807,20 @@ ExetAutofill.prototype.startstop = function() {
       this.beamWidth = beamWidth;
       this.beam.relimit(beamWidth);
     }
+    this.boostPangram = this.pangramInp.checked;
+    this.loopForPangram = this.pangramLoopInp.checked;
+    this.pangramAll = this.pangramAllInp.checked;
+    this.pangramCircled = this.pangramCircledInp.checked;
+    this.pangramChecked = this.pangramCheckedInp.checked;
+    this.pangramUnchecked = this.pangramUncheckedInp.checked;
+    this.pangramFirsts = this.pangramFirstsInp.checked;
+    this.pangramLasts = this.pangramLastsInp.checked;
+
     if (this.beam.size() == 0) {
       const candidate = new ExetFillState(exet.fillState);
+      for (let s = 0; s < this.refinementSweeps && candidate.viable; s++) {
+        if (!exet.refineLightChoices(candidate, this.constrainerLimit)) break;
+      }
       candidate.setScore(this);
       if (!candidate.viable) {
         alert('Autofill will not work on the current grid. Perhaps retry ' +
@@ -745,9 +830,8 @@ ExetAutofill.prototype.startstop = function() {
       this.priorityClues = this.getPriorityClues(candidate);
       this.priorityLoop = 0;
       this.beam.add(candidate);
-      this.currBeamSpan.innerText = this.beam.size()
+      this.currBeamSpan.innerText = this.beam.size();
     }
-
     if (exet.viabilityUpdateTimer) {
       clearTimeout(exet.viabilityUpdateTimer);
       exet.viabilityUpdateTimer = null;
@@ -761,19 +845,7 @@ ExetAutofill.prototype.startstop = function() {
     exet.sweepIndicator.className = 'xet-sweeping-animated';
     this.startstopButton.innerText = 'Pause';
     this.startstopButton.className = 'xlv-button xet-pink-button';
-    this.boostPangram = this.pangramInp.checked;
-    this.loopForPangram = this.pangramLoopInp.checked;
-    this.pangramAll = this.pangramAllInp.checked;
-    this.pangramCircled = this.pangramCircledInp.checked;
-    this.pangramChecked = this.pangramCheckedInp.checked;
-    this.pangramUnchecked = this.pangramUncheckedInp.checked;
-    this.pangramFirsts = this.pangramFirstsInp.checked;
-    this.pangramLasts = this.pangramLastsInp.checked;
 
-    if ((this.pangramFirsts && exet.tryReversals) ||
-        this.pangramLasts) {
-      this.markClueEnds();
-    }
     if (this.throttledTimer) {
       clearTimeout(this.throttledTimer);
     }
@@ -876,19 +948,12 @@ ExetAutofill.prototype.maybeAddCandidate = function(candidate) {
 }
 
 ExetAutofill.prototype.addChildren = function() {
-  /** How many light choices do we consider for each light: */
-  const constrainerLimit = 2000;
-  /** How many iterations of refineLightChoices to vet: */
-  const refinementSweeps = 2;
-
-  const priorityLoops = 20;
-  if (this.priorityClues.length > 0 &&
-      this.priorityLoop < priorityLoops) {
+  if (this.priorityClues.length > 0 && this.priorityLoop < this.priorityLoops) {
     /**
      * We're still doing the first phase of trying to fit the
      * preflex entries.
      */
-    this.autofillPriorityClues(refinementSweeps, constrainerLimit);
+    this.autofillPriorityClues();
     ++this.priorityLoop;
     return;
   }
@@ -931,8 +996,8 @@ ExetAutofill.prototype.addChildren = function() {
       childCell.currLetter = c;
       child.delta = candidate.delta.slice();
       child.delta.push([row, col, c]);
-      for (let s = 0; s < refinementSweeps && child.viable; s++) {
-        if (!exet.refineLightChoices(child, constrainerLimit)) break;
+      for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
+        if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
       }
       if (child.viable) {;
         child.setScore(this);
@@ -953,7 +1018,7 @@ ExetAutofill.prototype.addChildren = function() {
  * Add a candidate to the beam that starts with the base and
  * adds as many preflexes as possible, in random order.
  */
-ExetAutofill.prototype.autofillPriorityClues = function(refinementSweeps, constrainerLimit) {
+ExetAutofill.prototype.autofillPriorityClues = function() {
   if (this.priorityClues.length == 0) {
     return;
   }
@@ -1001,15 +1066,15 @@ ExetAutofill.prototype.autofillPriorityClues = function(refinementSweeps, constr
           child.delta.push([row, col, c]);
         }
         usedP[p] = true;
-        for (let s = 0; s < refinementSweeps && child.viable; s++) {
-          if (!exet.refineLightChoices(child, constrainerLimit)) break;
+        for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
+          if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
         }
         break;
       }
     }
   }
-  for (let s = 0; s < refinementSweeps && child.viable; s++) {
-    if (!exet.refineLightChoices(child, constrainerLimit)) break;
+  for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
+    if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
   }
   if (child.viable) {
     child.setScore(this);
