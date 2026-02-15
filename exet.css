@@ -159,6 +159,7 @@
 #xet-nextprev-span .xlv-small-button {
   color: dodgerblue !important;
   border: 1px solid lightgray;
+  vertical-align: text-top;
 }
 #xet-unlink {
   padding: 4px;

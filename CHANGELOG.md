@@ -1,5 +1,10 @@
 # Changelog
 
+### Minor update: Exet v1.03.4, February 14, 2026
+
+- Prepare for Exolve's plan to remove the above-clue next/prev buttons by
+  making Exet add its own versions.
+
 ### Minor update: Exet v1.03.3, January 24, 2026
 
 - More autofill refactoring and some bug-fixes.

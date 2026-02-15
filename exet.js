@@ -4657,16 +4657,19 @@ Exet.prototype.makeClueEditable = function() {
   }
   currClueInner.appendChild(this.xetCurrClue);
 
-  const nextprevOld = document.getElementById('xet-nextprev-span');
-  if (nextprevOld) {
-    nextprevOld.remove();
+  const nextprevSpanXlv = document.getElementById(this.puz.prefix + '-nextprev-span');
+  if (nextprevSpanXlv) {
+    /** Old version of Exolve */
+    nextprevSpanXlv.remove();
   }
-  const nextprevSpan = document.getElementById(
-      `${exet.puz.prefix}-nextprev-span`);
-  nextprevSpan.id = 'xet-nextprev-span';
+  let nextprevSpan = document.getElementById('xet-nextprev-span');
+  if (!nextprevSpan) {
+    nextprevSpan = document.createElement('span');
+    nextprevSpan.id = 'xet-nextprev-span';
+  }
   this.puz.currClue.appendChild(nextprevSpan);
-  nextprevSpan.insertAdjacentHTML('afterbegin',
-      `<button id="xet-clue-menu-button"
+  nextprevSpan.innerHTML = `
+      <button id="xet-clue-menu-button"
           style="padding: 1px 4px"
           title="Click to see more options for ${this.puz.clueLabelDisp(theClue)}."
           class="xlv-small-button xlv-nextprev">&#9776;<div
@@ -4689,12 +4692,29 @@ Exet.prototype.makeClueEditable = function() {
           title="Click to reverse the current light (will ask for confirmation). Will also break any linked groups this light is a part of.">
         Reverse
         </div>
-      </div></button>`);
+      </div></button>
+      <button id="xet-prev"
+        class="xlv-small-button xet-nextprev"
+        title="${this.puz.textLabels['curr-clue-prev.hover']}"
+          >${this.puz.textLabels['curr-clue-prev']}</button>
+      <button id="xet-next"
+        class="xlv-small-button xlv-nextprev"
+        title="${this.puz.textLabels['curr-clue-next.hover']}"
+          >${this.puz.textLabels['curr-clue-next']}</button>
+      `;
   this.clueMenuButton = document.getElementById('xet-clue-menu-button');
   this.clueMenu = document.getElementById('xet-clue-menu');
   this.clueMenuButton.addEventListener('click', e => {
     exetModals.showModal(this.clueMenu);
     e.stopPropagation();
+  });
+  this.prevButton = document.getElementById('xet-prev');
+  this.prevButton.addEventListener('click', e => {
+    exet.puz.cnavPrev();
+  });
+  this.nextButton = document.getElementById('xet-next');
+  this.nextButton.addEventListener('click', e => {
+    exet.puz.cnavNext();
   });
   const clueMenuLinking = document.getElementById('xet-clue-menu-linking');
   const clueMenuRegexp = document.getElementById('xet-clue-menu-regexp');
