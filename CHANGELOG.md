@@ -1,5 +1,12 @@
 # Changelog
 
+### Exet v1.04, March 24, 2026
+
+- Update the English lexicon to v0.09.
+- 846 new entries.
+- Use JSON to wrap the exetLexicon struct in lufz-en-lexicon.js as it makes
+  the JavaScript parser on iPads choke otherwise (with stack overflow).
+
 ### Minor update: Exet v1.03.4, February 14, 2026
 
 - Prepare for Exolve's plan to remove the above-clue next/prev buttons by

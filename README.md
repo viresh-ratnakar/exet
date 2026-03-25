@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.02, December 26, 2025
+#### Version: Exet v1.04, March 24, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -344,8 +344,8 @@ unless you explicitly add them.
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
-- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.08"), as of
-  October 2025, has 269,526 entries. Providing a popularity threshold
+- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.09"), as of
+  March 2026, has 270,372 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -355,15 +355,15 @@ settings that control the nature of fill suggestions. These are:
 
   | Threshold | #Entries | Last included entries    |
   |-----------|----------|--------------------------|
-  |       0   | 269,526  | The bells of Hell go ting-a-ling-a-ling |
-  |       25  | 202,144  | involucels, nicht wahr |
-  |       50  | 134,762  | potica, Naskhi |
-  |       60  | 107,810  | toothaches, sociolects, minor canon |
-  |       70  |  80,857  | trembled, die down, catfight |
-  |   **80**  |**53,904**|**lor, prow, varus**        |
-  |       85  |  40,428  | devious, culling, despatch  |
-  |       90  |  26,952  | Suisse, gluten, flatter |
-  |       95  |  13,475  | clocks, stimuli, World Bank |
+  |       0   | 270,372  | The bells of Hell go ting-a-ling-a-ling |
+  |       25  | 202,778  | Christmassy, glass jaws |
+  |       50  | 135,185  | cense, mayst |
+  |       60  | 108,148  | virtuously, monography, sanyasins |
+  |       70  |  81,110  | grandfather clock, difference engine |
+  |   **80**  |**54,073**|**wagtail, thallus, skaldic**        |
+  |       85  |  40,554  | Dead Sea Scrolls, private enterprise  |
+  |       90  |  27,036  | URL, Tess, kindly |
+  |       95  |  13,517  | insulin, right side, transmitting |
 
 - Whether to exclude proper nouns.
 - Whether to avoid reusing words with common stems. This option only works
