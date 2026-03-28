@@ -1,5 +1,10 @@
 # Changelog
 
+### Exet v1.04.1, March 28, 2026
+
+- Make the ipad-friendly changes from 1.04 for Brazilian and Hindi too.
+- Bug fix in exet-brazilian.html (a typo had creeped in)
+
 ### Exet v1.04, March 24, 2026
 
 - Update the English lexicon to v0.09.
