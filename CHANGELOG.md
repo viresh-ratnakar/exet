@@ -1,5 +1,21 @@
 # Changelog
 
+### Exet v1.04.2, April 11, 2026
+
+- Make the UI more responsive: figure out the available space to the right
+  of the grid, and resize the panel accordingly.
+- The scratchpad was making this difficult. It's hardly ever used. It's
+  now been reverted back to its original place in Exolve: under the
+  grid, hidden by default, and revealed by clicking the "Jotter" link
+  (which is no longer hidden now).
+- To the right of the lights choice panel, we now place the fill-settings
+  block and the clues, in a column. Use flex/shrink to let the part to the
+  right of light choices fill up all remaining width.
+- When the RHS panel is smaller than a cutoff, then reduce the font-size
+  of the top menu entries.
+- Render Analysis and Autofill to the left of their parents, as that's
+  where there's more space, especially in lower width settings.
+
 ### Exet v1.04.1, March 28, 2026
 
 - Make the ipad-friendly changes from 1.04 for Brazilian and Hindi too.

@@ -5,17 +5,23 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v1.03, December 26, 2025
+ * Current version: v1.04.2, April 11, 2026
  */
 
+body {
+  margin: 8px;
+}
+#xet-xlv-frame .xlv-grid-panel,
+#xet-xlv-frame .xlv-clues-panel {
+  margin: 0;
+}
 [contenteditable="true"]:active,
 [contenteditable="true"]:focus{
   border:none;
   outline:none;
 } 
 .xet-frame {
-  width: 940px;
-  margin: 0 8px;
+  margin: 0;
   box-sizing: border-box;
   font-family: monospace;
   font-size: 14px;
@@ -52,8 +58,10 @@
 }
 .xet-tab button:hover {
   background-color: #f0f0f0;
+  font-size: 14px;
   border-bottom: 0;
   cursor: pointer;
+  width: 105px;
 }
 .xet-tab button.active {
   background-color: white;
@@ -61,7 +69,7 @@
 }
 .xet-tab-content {
   display: none;
-  padding: 6px 12px;
+  padding: 4px;
   border: 1px solid #ccc;
   border-top: none;
 }
@@ -76,16 +84,19 @@
 .xet-panel {
   overflow-y: auto;
 }
+.xet-panel-left {
+  flex-shrink: 0;
+  flex-grow: 0;
+  width: 260px;
+}
+.xet-panel-right {
+  flex-grow: 1;
+  min-width: 300px;
+}
 .xet-half-section,
 .xet-section {
   border: 0;
   overflow: auto;
-}
-.xet-section {
-  width: 910px;
-}
-.xet-half-section {
-  width: 440px;
 }
 .xet-draft > td:first-child {
   color: gray;
@@ -286,15 +297,10 @@
   flex-flow: row wrap;
   justify-content: left;
 }
-.xet-scratch-pad,
 .xet-controls-col {
   display: flex;
   flex-flow: column wrap;
   align-items: flex-start;
-}
-.xet-scratch-pad {
-  max-width: 280px;
-  padding: 0 0 6px;
 }
 .xet-in-tab-scrollable {
   border: 0;
@@ -315,7 +321,7 @@
   padding-top: 6px;
 }
 #xet-light-choices-box {  
-  width: 30ch;
+  width: 250px;
 }
 #xet-light-choices,
 #xet-light-rejects {  
@@ -363,8 +369,8 @@
 .xet-choices tr.xet-chosen:hover td {
   background: #c0ffc0;
 }
-#xet-light-rejects tr:nth-child(odd) td { background: #f1cfff; }   
-#xet-light-rejects tr:nth-child(even) td { background: #e8c6f6; }  
+#xet-light-rejects tr:nth-child(odd) td { background: #f1cfff; }
+#xet-light-rejects tr:nth-child(even) td { background: #e8c6f6; }
 #xet-light-rejects tr:hover td {
   background: lightblue;
 }
@@ -372,21 +378,21 @@
   min-height: 22px;
 }
 .xet-fill-settings {
-  width: 300px;
-  padding: 8px;
-  margin: 0 8px 6px 0;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 4px;
   border: 1px solid gray;
   font-family: monospace;
   font-size: 12px;
   box-sizing: border-box;
 }
-.xet-fill-settings table {
-  border-spacing: 0;
-  margin: 0;
-}
-.xet-fill-settings td {
+.xet-fill-settings div {
+  padding: 4px 0;
   text-align: left;
-  vertical-align: top;
+  vertical-align: bottom;
+}
+.xet-frame .xet-fill-settings input[type="checkbox"] {
+  vertical-align: text-top;
 }
 .xet-fill-settings .xlv-answer {
   padding: 0;
@@ -394,7 +400,6 @@
 .xet-fill-settings-summary {
   font-size: 10px;
   font-style: italic;
-  text-align: right;
 }
 .xet-processing {
   color: red;
@@ -447,8 +452,10 @@
   left: 100%;
 }
 .xet-autofill-panel {
-  top: 0;
   bottom: auto;
+  left: auto;
+  right: 100%;
+  top: 0;
 }
 #xet-autofill-active {
   display: none;
@@ -542,9 +549,6 @@
   line-height: normal;
   box-sizing: border-box;
 }
-.xet-clues-box {
-  width: 625px;
-}
 .xet-rev-chooser {
   position: absolute;
   z-index: 1;
@@ -573,9 +577,6 @@
   font-size: 14px;
   font-style: italic;
   margin: 4px 0;
-}
-#xet-scratch-pad {
-  margin: 0 6px 0 0;
 }
 .xet-stats-table td {
   vertical-align: top;

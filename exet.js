@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v1.03, December 26, 2025
+Current version: v1.04.2, April 11, 2026
 */
 
 function ExetModals() {
@@ -65,7 +65,7 @@ ExetModals.prototype.hide = function() {
 }
 
 function Exet() {
-  this.version = 'v1.03, December 26, 2025';
+  this.version = 'v1.04.2, April 11, 2026';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -286,9 +286,9 @@ Exet.prototype.setPuzzle = function(puz) {
   }
   if (puz.columnarLayout) {
     puz.columnarLayout = false;
-    puz.gridcluesContainer.className = 'xlv-grid-and-clues-flex';
-    puz.cluesContainer.className = 'xlv-clues xlv-clues-flex';
   }
+  puz.gridcluesContainer.className = 'xlv-grid-and-clues-flex';
+  puz.cluesContainer.className = 'xlv-clues';
   let gridFillChanges = false;
   for (let i = 0; i < puz.gridHeight; i++) {
     for (let j = 0; j < puz.gridWidth; j++) {
@@ -492,13 +492,13 @@ Exet.prototype.setPuzzle = function(puz) {
   }
 
   this.replaceHandlers()
+
   this.hideExolveElement('controls');
   this.hideExolveElement('saving');
   this.hideExolveElement('tools-link');
   this.hideExolveElement('print');
   this.hideExolveElement('webifi');
   this.hideExolveElement('notes');
-  this.hideExolveElement('jotter');
   this.hideExolveElement('report-bug');
   this.hideExolveElement('exolve-link');
   this.hideExolveElement('postscript');
@@ -873,9 +873,10 @@ Exet.prototype.makeExetTab = function() {
 
           <hr>
           <div title="Try to autofill the remaining grid"
-            class="xet-dropdown-item" id="xet-autofill">Autofill:
-            <div id="xet-autofill-active"><span id="xet-autofill-active-msg"></span>
-                &#9654;</div>
+            class="xet-dropdown-item" id="xet-autofill">Autofill
+            <div id="xet-autofill-active">
+              <span id="xet-autofill-active-msg"></span>
+            </div>
             <div class="xet-dropdown-submenu xet-autofill-panel">
               <div>
                 <button id="xet-autofill-startstop"
@@ -1313,8 +1314,8 @@ Exet.prototype.makeExetTab = function() {
   <div id="xet-temp" style="display:none">
   </div>
 
-  <div class="xet-controls-row xet-panel xet-high-tall-box">
-    <div class="xet-controls-col" style="position:relative">
+  <div class="xet-controls-row xet-high-tall-box">
+    <div class="xet-controls-col xet-panel-left" style="position:relative">
       <span class="xet-light-regexp-icon"
           title="This light has a regexp constraint, click to view/edit."
           id="xet-light-regexp-icon">&#128279;</span>
@@ -1387,66 +1388,54 @@ Exet.prototype.makeExetTab = function() {
         </div>
       </div>
     </div>
-    <div class="xet-controls-col">
-      <div class="xet-controls-row xet-clues-box">
-        <div class="xet-fill-settings">
-          <div>
-            <table>
-            <tr>
-              <td colspan="2">
-                <b title="Limit fill suggestions to words/phrases above this ` +
-                  `percentile threshold of popularity. Set this to 100 to use ` +
-                  `only the preferred fills list.">Minimum popularity score:</b>
-                <input id="xet-minpop" name="xet-minpop" class="xlv-answer"
-                  size="4" maxlength="4" type="text"></input> %ile
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <b title="If checked, this excludes proper nouns from ` +
-                    `fill suggestions">No proper nouns:</b>
-                <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
-                    value="no-proper-nouns" type="checkbox">
-                </input>
-              </td>
-              <td>
-                <b title="If checked, this allows trying reversals of unfilled ` +
-                    `lights, when finding fill suggestions">Try reversals:</b>
-                <input id="xet-try-reversals" name="xet-try-reversals"
-                    value="try-reversals" type="checkbox">
-                </input>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <b title="If checked, this excludes word choices that have ` +
-                    `the same stemmed forms as any other entries (e.g., if ` +
-                    `SWIM is picked, then SWIMS will not be considered)">` +
-                    `No stem-dupes:</b>
-                <input id="xet-no-stem-dupes" name="xet-no-stem-dupes"
-                    value="no-stem-dupes" type="checkbox">
-                </input>
-              </td>
-              <td>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <div class="xet-fill-settings-summary"
-                    title="Note that the number of lexicon entries indicated here could include some already counted in preferred fills, if there is overlap.">
-                  Using <span id="xet-preflex-size-fill-settings"></span> preferred fills, and
-                  <br>
-                  top <span id="xet-minpop-incl">${Number(
-                      this.indexMinPop - 1).toLocaleString()}</span> of
-                  ${Number(exetLexicon.startLen - 1).toLocaleString()} lexicon words/phrases
-                </div>
-              </td>
-            </tr>
-            </table>
+    <div class="xet-controls-col xet-panel-right">
+      <div id="xet-fill-settings" class="xet-fill-settings">
+        <div class="xet-controls-col">
+          <div title="Limit fill suggestions to words/phrases above this ` +
+              `percentile threshold of popularity. Set this to 100 to use ` +
+              `only the preferred fills list.">
+            <b>Minimum popularity score:</b>
+            <input id="xet-minpop" name="xet-minpop" class="xlv-answer"
+              size="4" maxlength="4" type="text"></input> %ile
+            <span class="xet-fill-settings-summary"
+                title="Note that the number of lexicon entries indicated here could include some already counted in preferred fills, if there is overlap.">
+              (<span id="xet-minpop-incl">${Number(
+                  this.indexMinPop - 1).toLocaleString()}</span> of
+              ${Number(exetLexicon.startLen - 1).toLocaleString()} words/phrases)
+            </span>
+          </div>
+          <div class="xet-controls-row">
+            <span>
+              <b title="If checked, this excludes proper nouns from ` +
+                `fill suggestions">No proper nouns:</b>
+              <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
+                  value="no-proper-nouns" type="checkbox">
+              </input>
+            </span>
+            &nbsp;
+            <span>
+              <b title="If checked, this allows trying reversals of unfilled ` +
+                  `lights, when finding fill suggestions">Try reversals:</b>
+              <input id="xet-try-reversals" name="xet-try-reversals"
+                  value="try-reversals" type="checkbox">
+              </input>
+            </span>
+            &nbsp;
+            <span>
+              <b title="If checked, this excludes word choices that have ` +
+                  `the same stemmed forms as any other entries (e.g., if ` +
+                  `SWIM is picked, then SWIMS will not be considered)">` +
+                  `No stem-dupes:</b>
+              <input id="xet-no-stem-dupes" name="xet-no-stem-dupes"
+                  value="no-stem-dupes" type="checkbox">
+              </input>
+            </span>
           </div>
         </div>
-        <div id="xet-scratch-pad" class="xet-scratch-pad">
-        </div>
+      </div>
+      <div id="xet-clues" class="xet-panel xet-clues-panel xet-clues-box"
+        title="You can edit the current clue as shown above ` +
+          `the grid by clicking on it.">
       </div>
     </div>
   </div>
@@ -1542,6 +1531,7 @@ Exet.prototype.makeExetTab = function() {
     });
   }
 
+  this.fillSettings = document.getElementById("xet-fill-settings");
   this.minpopInclSpan = document.getElementById("xet-minpop-incl");
   this.minpopInput = document.getElementById("xet-minpop");
   this.minpopInput.value = this.minpop;
@@ -1594,7 +1584,6 @@ Exet.prototype.makeExetTab = function() {
 
   this.preflexUsed = document.getElementById("xet-preflex-used");
   this.preflexSize = document.getElementById("xet-preflex-size");
-  this.preflexSize2 = document.getElementById("xet-preflex-size-fill-settings");
   this.preflexEditor = document.getElementById("xet-preflex-editor");
   this.preflexInput = document.getElementById("xet-preflex-input");
   this.preflexWait = document.getElementById("xet-preflex-processing");
@@ -1766,23 +1755,8 @@ Exet.prototype.makeExetTab = function() {
     exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
   });
 
-  // Move the scratch pad over to here.
-  const scratchP = document.getElementById("xet-scratch-pad")
-  this.puz.scratchPad.rows = "3"
-  this.puz.scratchPad.cols = "32"
-  const scratchPLabel = document.getElementById(this.puz.prefix + '-shuffle')
-  scratchPLabel.style.padding = '8px 0'
-  scratchPLabel.style.fontWeight = 'bold'
-  scratchP.appendChild(scratchPLabel)
-  scratchP.appendChild(this.puz.scratchPad)
-
   // Pull in the clues.
-  this.cluesPanel = document.createElement('div')
-  this.cluesPanel.id = 'xet-clues'
-  this.cluesPanel.className = 'xet-panel xet-clues-panel xet-clues-box'
-  this.cluesPanel.title = 'You can edit the current clue as shown above ' +
-                          'the grid by clicking on it.'
-  scratchP.after(this.cluesPanel)
+  this.cluesPanel = document.getElementById("xet-clues");
   this.cluesPanel.appendChild(document.getElementById(
         `${this.puz.prefix}-clues`))
 }
@@ -4115,8 +4089,16 @@ Exet.prototype.resizeRHS = function() {
     document.body.insertAdjacentElement('afterbegin', this.customStyles);
   }
   const windowH = this.puz.getViewportHeight();
-  const extraH = Math.max(0, windowH - 740);
-  const style = `
+  const extraH = Math.max(0, windowH - 720);
+  const windowW = this.puz.getViewportWidth();
+  const gridPanelBox = this.puz.gridPanel.getBoundingClientRect();
+  const frameW =
+    Math.max(580, windowW - 52 - Math.floor(gridPanelBox.width));
+  const sectionW = frameW - 16;
+  const halfSectionW = Math.floor(sectionW / 2) - 16;
+  const cluesW = frameW - 320;
+  this.fillSettings.style.width = '' + cluesW + 'px';
+  let style = `
     .xet-about,
     .xet-analysis {
       height: ${440 + extraH}px;
@@ -4125,24 +4107,48 @@ Exet.prototype.resizeRHS = function() {
       max-height: ${435 + extraH}px;
     }
     .xet-high-tall-box {
-      height: ${460 + extraH}px;
+      height: ${450 + extraH}px;
     }
     .xet-half-section,
     .xet-section {
-      height: ${450 + extraH}px;
+      height: ${410 + extraH}px;
     }
-    #xet-light-choices-box {
-      height: ${340 + extraH}px;
-    }
+    #xet-light-choices-box,
     .xet-clues-panel,
     .xet-mid-tall-box {
-      height: ${325 + extraH}px;
+      height: ${330 + extraH}px;
+    }
+    .xet-section {
+      width: ${sectionW}px;
+    }
+    .xet-half-section {
+      width: ${halfSectionW}px;
+    }
+    .xet-frame {
+      width: ${frameW}px;
     }
     .xet-tab-content {
       height: ${500 + extraH}px;
+      width: ${frameW}px;
     }
   `;
+  if (frameW < 860) {
+    style += `
+      .xet-analysis {
+        right: 0;
+      }
+      .xet-tab button {
+        font-size: 11px;
+        width: 70px;
+      }
+      .xet-tab button:hover {
+        font-size: 12px;
+        width: 80px;
+      }
+    `;
+  }
   this.customStyles.innerHTML = style;
+  this.puz.equalizeClueWidths(cluesW);
 }
 
 Exet.prototype.reposition = function() {
@@ -7081,9 +7087,6 @@ Exet.prototype.renderPreflex = function() {
   /** update various displays */
   if (this.preflexSize) {
     this.preflexSize.innerText = this.preflex.length;
-  }
-  if (this.preflexSize2) {
-    this.preflexSize2.innerText = this.preflex.length;
   }
   if (this.autofill && this.autofill.preflexTotalSpan) {
     this.autofill.preflexTotalSpan.innerText = this.preflex.length;

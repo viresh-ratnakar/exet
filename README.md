@@ -258,7 +258,7 @@ autofilling it, and adding/modifying crossword features such as ninas:
 - Toggle barred cell:
   - Toggle bar-after (|)
   - Toggle bar-under (\_)
-- Autofill:
+- Autofill
   - _Leads to an autofill options panel._
 - Accept autofilled entries (=)
 - Mark grid cell:
