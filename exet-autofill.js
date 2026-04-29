@@ -91,19 +91,25 @@ class ExetDher {
       idx = child;
     }
   }
+  /**
+   * Returns the bumped candidate, which could be the input candidate if it's
+   * not better than anything in the beam, and could be null if there's still
+   * room on the beam.
+   */
   add(candidate) {
     let num = this.minelts.length;
+    let bumped = null;
     if (num == this.lim) {
       let worst = this.minelts[0];
       if (candidate.score < worst.score) {
-        return;
+        return candidate;
       }
       if (candidate.score == worst.score) {
         if (Math.random() < 0.5) {
-          return;
+          return candidate;
         }
       }
-      this.pop(false);
+      bumped = this.pop(false);
       num--;
     }
     candidate.dher = {};
@@ -113,6 +119,7 @@ class ExetDher {
     this.minelts.push(candidate);
     this.heapifyUp(true, num);
     this.heapifyUp(false, num);
+    return bumped;
   }
   popInner(inMax, idx) {
     const elts = inMax ? this.maxelts : this.minelts;
@@ -173,12 +180,16 @@ function ExetFillState(obj) {
         }
       }
       if (!thisCell.isLight) {
+        thisCell.currLetter = '.';
         continue;
       }
       if (!thisCell.cChoices) {
         thisCell.cChoices = {};
       }
     }
+  }
+  if (obj.hasOwnProperty('usedReversals')) {
+    this.usedReversals = obj.usedReversals;
   }
   this.clues = {};
   for (let ci in obj.clues) {
@@ -200,40 +211,161 @@ function ExetFillState(obj) {
       thisClue.lRejects = [];
     }
   }
-  this.delta = [];
-
-  /** preflexUsed and numPreflexUsed are updated in exet.refineLightChoices() */
-  this.preflexUsed = obj.preflexUsed || {};
-  this.numPreflexUsed = obj.numPreflexUsed || 0;
+  /** preflexUsed and dontReuse are updated in exet.refineLightChoices() */
+  this.preflexUsed = obj.preflexUsed || new Set;
+  this.dontReuse = obj.dontReuse || new Set;
 }
 
-ExetFillState.prototype.markClueEnds = function() {
-  for (let r = 0; r < this.gridHeight; r++) {
-    for (let c = 0; c < this.gridWidth; c++) {
-      const gridCell = this.grid[r][c];
-      if (!gridCell.isLight) {
-        continue;
+/**
+ * Used by killInvalidatedClues()
+ */
+ExetFillState.prototype.getGridExolve = function(id) {
+  const ENTRY_WIDTH = 3;
+  let grid = '';
+  for (let i = 0; i < this.gridHeight; i++) {
+    let gridRow = '    ';
+    for (let j = 0; j < this.gridWidth; j++) {
+      const gridCell = this.grid[i][j];
+      let entry = '.';
+      if (gridCell.isLight) {
+        entry = '?';
+        entry += (gridCell.hasBarAfter && gridCell.hasBarUnder ?
+                              '+' : (gridCell.hasBarAfter ?
+                              '|' : (gridCell.hasBarUnder ? '_' : '')));
       }
-      if (gridCell.startsAcrossClue) {
-        const last =
-            gridCell.startsAcrossClue[gridCell.startsAcrossClue.length - 1];
-        const lastCell = this.grid[last[0]][last[1]];
-        lastCell.endsAcrossClue = gridCell.startsClueLabel;
+      while (entry.length < ENTRY_WIDTH) entry += ' ';
+      gridRow += entry;
+    }
+    grid = grid + '\n' + gridRow;
+  }
+  let xlv = `
+  exolve-begin
+  exolve-id: ${id}
+  exolve-width: ${this.gridWidth}
+  exolve-height: ${this.gridHeight}`;
+  if (exet.puz.layers3d > 1) {
+    xlv += `
+  exolve-3d: ${exet.puz.layers3d}`;
+  }
+  let reversals = '';
+  if (this.hasOwnProperty('usedReversals')) {
+    for (const k in this.usedReversals) {
+      if (reversals) reversals += ' ';
+      reversals += this.usedReversals[k];
+    }
+  }
+  if (reversals) {
+    xlv += `
+  exolve-reversals: ${reversals}`;
+  }
+  xlv += `
+  exolve-grid:
+  ${grid}
+  exolve-end`;
+  return xlv;
+}
+
+ExetFillState.prototype.killInvalidatedClues = function() {
+  const tempId = exet.puz.id + '-temp';
+  // New puzzle, but no clues/ninas/colours (these may contain invalid entries).
+  const specs = this.getGridExolve(tempId);
+  const xetTemp = document.getElementById("xet-temp");
+  xetTemp.innerHTML = '';
+  const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
+  // First build a map of cell-lists to new-clue-index
+  const cellsToIndex = {};
+  for (let ci in newPuz.clues) {
+    const ckey = JSON.stringify(newPuz.clues[ci].cells);
+    cellsToIndex[ckey] = ci;
+  }
+
+  // Keys are clue indices from the old grid:
+  const getsRelocated = {};
+  const fullNewLabels = {};
+
+  // Keys are clue indices from the new grid:
+  const isRelocated = {};
+  const isReversed = {};
+
+  for (const ci in this.clues) {
+    let ckey = JSON.stringify(this.clues[ci].cells);
+    let reversed = false;
+    if (!cellsToIndex[ckey]) {
+      const rcells = this.clues[ci].cells.slice().reverse();
+      ckey = JSON.stringify(rcells);
+      reversed = true;
+    }
+    if (!cellsToIndex[ckey]) {
+      continue;
+    }
+    const newCi = cellsToIndex[ckey];
+    getsRelocated[ci] = newCi;
+    fullNewLabels[ci] = newPuz.clueLabelDisp(newPuz.clues[newCi]);
+    isRelocated[newCi] = Object.assign({}, this.clues[ci]);
+    isReversed[newCi] = reversed;
+  }
+  // Preserve linked clues, if possible
+  for (const ci in this.clues) {
+    const oldClue = this.clues[ci];
+    if (!oldClue.childrenClueIndices ||
+        !oldClue.childrenClueIndices.length) {
+      continue;
+    }
+    const oldList = exet.puz.getLinkedClues(ci, this.clues);
+    console.assert(oldList.length > 1 && oldList[0] == ci, oldList);
+    let allMatch = true;
+    for (const cci of oldList) {
+      if (!getsRelocated[cci]) {
+        allMatch = false;
+        break;
       }
-      if (gridCell.startsDownClue) {
-        const last =
-            gridCell.startsDownClue[gridCell.startsDownClue.length - 1];
-        const lastCell = this.grid[last[0]][last[1]];
-        lastCell.endsDownClue = gridCell.startsClueLabel;
-      }
-      if (gridCell.startsZ3dClue) {
-        const last =
-            gridCell.startsZ3dClue[gridCell.startsZ3dClue.length - 1];
-        const lastCell = this.grid[last[0]][last[1]];
-        lastCell.endsZ3dClue = gridCell.startsClueLabel;
+    }
+    if (!allMatch) {
+      for (const cci of oldList) {
+        if (!getsRelocated[cci]) {
+          continue;
+        }
+        const newCi = getsRelocated[cci];
+        delete getsRelocated[cci];
+        delete fullNewLabels[cci];
+        delete isRelocated[newCi];
+        delete isReversed[newCi];
       }
     }
   }
+  for (const ci in this.clues) {
+    if (!getsRelocated[ci] && !exet.isDraftClue(this.clues[ci].clue)) {
+      console.log('Non-draft clue ' + ci + ' got deleted: ' +
+                  this.clues[ci].clue);
+    }
+  }
+  this.clues = {};
+  for (const newCi in isRelocated) {
+    this.clues[newCi] = exet.puz.newClue(newCi);
+    const theClue = this.clues[newCi];
+    const oldClue = isRelocated[newCi];
+    theClue.displayLabel = exet.remapDisplayLabel(
+        oldClue.displayLabel, oldClue.dir, fullNewLabels);
+    theClue.clue = oldClue.clue;
+    theClue.anno = oldClue.anno;
+    theClue.placeholder = oldClue.placeholder;
+    theClue.reversed = oldClue.reversed;
+    if (isReversed[newCi]) {
+      theClue.reversed = !theClue.reversed;
+      theClue.solution = '';  // will be recomputed by updatePuzzle().
+    }
+    if (oldClue.parentClueIndex) {
+      console.assert(getsRelocated[oldClue.parentClueIndex], oldClue);
+      theClue.parentClueIndex = getsRelocated[oldClue.parentClueIndex];
+      // Update "See XX"
+      theClue.clue = exet.remapDisplayLabel(
+          oldClue.clue, oldClue.dir, fullNewLabels);
+    }
+  }
+
+  xetTemp.innerHTML = '';
+  newPuz.destroy();
+  return [cellsToIndex, fullNewLabels, getsRelocated];
 }
 
 ExetFillState.prototype.initViability = function() {
@@ -261,15 +393,16 @@ ExetFillState.prototype.initViability = function() {
  */
 ExetFillState.prototype.resetViability = function() {
   this.initViability();
-  const dontReuse = {};
-  this.preflexUsed = {};
-  this.numPreflexUsed = 0;
+  this.dontReuse = new Set;
+  this.preflexUsed = new Set;
   for (const ci in this.clues) {
     const theClue = this.clues[ci];
     if (!theClue.solution || theClue.solution.indexOf('?') >= 0) {
+      /** !solution check skips children in linked clues */
       continue;
     }
-    const choices = exetLexicon.getLexChoices(theClue.solution, 1, dontReuse,
+    const choices = exetLexicon.getLexChoices(theClue.solution, 1,
+        this.dontReuse,
         exet.noProperNouns,
         exet.indexMinPop,
         false, exet.preflexByLen, exet.unpreflexSet,
@@ -279,10 +412,9 @@ ExetFillState.prototype.resetViability = function() {
     if (choices.length > 0) {
       const p = choices[0];
       console.assert(p > 0, p);
-      exet.addToDontReuse(p, dontReuse);
+      exet.addToDontReuse(p, this.dontReuse);
       if (exet.preflexSet[p]) {
-        this.preflexUsed[p] = true;
-        this.numPreflexUsed++;
+        this.preflexUsed.add(p);
       }
     }
   }
@@ -291,7 +423,8 @@ ExetFillState.prototype.resetViability = function() {
     if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue;
     }
-    theClue.lChoices = exetLexicon.getLexChoices(theClue.solution, 0, dontReuse,
+    theClue.lChoices = exetLexicon.getLexChoices(theClue.solution, 0,
+        this.dontReuse,
         exet.noProperNouns,
         exet.indexMinPop,
         exet.tryReversals, exet.preflexByLen, exet.unpreflexSet,
@@ -326,7 +459,8 @@ ExetFillState.prototype.setScore = function(autofill) {
       if (theClue.lChoices.length > 0) {
         let pindex = theClue.lChoices[0];
         if (pindex < 0) pindex = 0 - pindex;
-        if (pindex >= exetLexicon.startLen || this.preflexUsed[pindex]) {
+        if (pindex >= exetLexicon.startLen ||
+            this.preflexUsed.has(pindex)) {
           /* we really prefer preflex entries */
           scoreP = 1.0;
         } else {
@@ -569,6 +703,12 @@ ExetFillState.prototype.hasPatternOfDeath = function() {
  * picked suggesstions can be shown in gray.
  */
 ExetFillState.prototype.updateExetFill = function() {
+  if (!this.viable) {
+    return;
+  }
+  /** Reset exet.fillState to the puz state */
+  exet.fillState = new ExetFillState(exet.puz);
+
   // Show light-fill suggestions from full lights.
   for (const ci in this.clues) {
     const lChoices = this.clues[ci].lChoices;
@@ -580,16 +720,18 @@ ExetFillState.prototype.updateExetFill = function() {
     theClue.lChoices = lChoices.slice();
     theClue.lRejects = this.clues[ci].lRejects.slice();
   }
-  // Show grid-cell suggestions. 
+  // Show grid-cell suggestions.
   for (let row = 0; row < this.gridHeight; row++) {
     for (let col = 0; col < this.gridWidth; col++) {
       const gCell = this.grid[row][col];
       if (!gCell.isLight) {
         continue;
       }
+      const exetCell = exet.fillState.grid[row][col];
+      exetCell.viability = gCell.viability;
       const choices = gCell.cChoices;
       if (Object.keys(choices).length == 1) {
-        exet.fillState.grid[row][col].cChoices = { ...choices };
+        exetCell.cChoices = { ...choices };
       }
     }
   }
@@ -599,127 +741,110 @@ ExetFillState.prototype.updateExetFill = function() {
 /**
  * Use the global "exet" to access the Exet object from ExetAutofill.
  */
-function ExetAutofill() {
-  this.id = exet.puz.id;
-  this.candidates = [];
-  this.beamWidth = 64;
-  this.beam = new ExetDher(64);
-  this.step = 0;
-  this.numCells = exet.puz.gridWidth * exet.puz.gridHeight * exet.puz.layers3d;
-  this.running = false;
-  this.throttledTimer = null;
-  this.lag = 200;
-  this.msUsed = 0;
-  this.status = 'None';
-  this.boostPangram = false;
-  this.loopForPangram = false;
-  this.pangramAll = true;
-  this.pangramCircled = false;
-  this.pangramChecked = false;
-  this.pangramUnchecked = false;
-  this.pangramFirsts = false;
-  this.pangramLasts = false;
-  this.triedHashes = {};
+class ExetAutofill {
+  constructor() {
+    this.id = exet.puz.id;
+    this.candidates = [];
+    this.beamWidth = 64;
+    this.beam = new ExetDher(64);
+    this.step = 0;
+    this.numCells = exet.puz.gridWidth * exet.puz.gridHeight * exet.puz.layers3d;
+    this.running = false;
+    this.throttledTimer = null;
+    this.lag = 200;
+    this.msUsed = 0;
+    this.status = 'None';
+    this.boostPangram = false;
+    this.loopForPangram = false;
+    this.pangramAll = true;
+    this.pangramCircled = false;
+    this.pangramChecked = false;
+    this.pangramUnchecked = false;
+    this.pangramFirsts = false;
+    this.pangramLasts = false;
+    this.triedHashes = {};
 
-  /** How many light choices do we consider for each light: */
-  this.constrainerLimit = 2000;
-  /** How many iterations of refineLightChoices to vet: */
-  this.refinementSweeps = 2;
-  /** How many loops to try to use preflex */
-  this.priorityLoops = 20;
+    /** How many light choices do we consider for each light: */
+    this.constrainerLimit = 2000;
+    /** How many iterations of refineLightChoices to vet: */
+    this.refinementSweeps = 2;
+    /** How many loops to try to use preflex */
+    this.priorityLoops = 20;
 
-  const analysis = new ExetAnalysis(
-      exet.puz.grid, exet.puz.gridWidth, exet.puz.gridHeight, exet.puz.layers3d);
-  this.barred = analysis.numBars() > 0;
-  this.doublyChecked = analysis.unchequeredOK(false);
+    const analysis = new ExetAnalysis(
+        exet.puz.grid, exet.puz.gridWidth, exet.puz.gridHeight, exet.puz.layers3d);
+    this.barred = analysis.numBars() > 0;
+    this.doublyChecked = analysis.unchequeredOK(false);
+    this.parityHasLightRow = [true, true];
+    this.parityHasLightCol = [true, true];
+    this.chequered = analysis.chequeredOK(false);
+    if (this.chequered) {
+      analysis.getChequeredParity(this.parityHasLightRow, this.parityHasLightCol);
+    }
 
-  this.accept = document.getElementById("xet-autofill-accept");
-  this.clear = document.getElementById("xet-autofill-clear");
-  this.startstopButton = document.getElementById("xet-autofill-startstop");
+    this.accept = document.getElementById("xet-autofill-accept");
+    this.clear = document.getElementById("xet-autofill-clear");
+    this.startstopButton = document.getElementById("xet-autofill-startstop");
 
-  this.activeDiv = document.getElementById('xet-autofill-active');
-  this.activeDivMsg = document.getElementById('xet-autofill-active-msg');
+    this.activeDiv = document.getElementById('xet-autofill-active');
+    this.activeDivMsg = document.getElementById('xet-autofill-active-msg');
 
-  this.clear.disabled = true;
-  this.clear.addEventListener('click', e => {
-    this.accept.disabled = true;
     this.clear.disabled = true;
-    this.reset('Cleared');
-    exet.resetViability();
-    this.refreshDisplay();
-    this.activeDiv.style.display = 'none';
-  })
-  this.accept.disabled = true;
-  this.accept.addEventListener('click', e => {
+    this.clear.addEventListener('click', e => {
+      this.accept.disabled = true;
+      this.clear.disabled = true;
+      this.reset('Cleared');
+      exet.resetViability();
+      this.refreshDisplay();
+      this.activeDiv.style.display = 'none';
+    })
     this.accept.disabled = true;
-    this.clear.disabled = true;
-    exet.acceptAll();
-    this.activeDiv.style.display = 'none';
-  })
-  if (this.running) {
-    this.startstopButton.innerText = 'Pause';
-    this.startstopButton.className = 'xlv-button xet-pink-button';
-  }
-  this.startstopButton.addEventListener(
-      'click', this.startstop.bind(this));
+    this.accept.addEventListener('click', e => {
+      this.accept.disabled = true;
+      this.clear.disabled = true;
+      exet.acceptAll();
+      this.activeDiv.style.display = 'none';
+    })
+    if (this.running) {
+      this.startstopButton.innerText = 'Pause';
+      this.startstopButton.className = 'xlv-button xet-pink-button';
+    }
+    this.startstopButton.addEventListener(
+        'click', this.startstop.bind(this));
 
-  this.beamWidthInp = document.getElementById(
-      'xet-autofill-max-beam');
-  this.beamWidthInp.value = this.beamWidth;
+    this.beamWidthInp = document.getElementById(
+        'xet-autofill-max-beam');
+    this.beamWidthInp.value = this.beamWidth;
 
-  this.pangramInp = document.getElementById(
-      'xet-autofill-boost-pangram');
-  this.pangramInp.checked = this.boostPangram;
-  this.pangramLoopInp = document.getElementById(
-      'xet-autofill-pangram-loop');
-  this.pangramLoopInp.checked = this.loopForPangram;
+    this.pangramInp = document.getElementById(
+        'xet-autofill-boost-pangram');
+    this.pangramInp.checked = this.boostPangram;
+    this.pangramLoopInp = document.getElementById(
+        'xet-autofill-pangram-loop');
+    this.pangramLoopInp.checked = this.loopForPangram;
 
-  this.pangramDetails = document.getElementById(
-      'xet-autofill-pangram-details');
-  this.pangramAllInp = document.getElementById(
-      'xet-autofill-pangram-all');
-  this.pangramAllInp.checked = this.pangramAll;
-  this.pangramCircledInp = document.getElementById(
-      'xet-autofill-pangram-circled');
-  this.pangramCircledInp.checked = this.pangramCircled;
-  this.pangramCheckedInp = document.getElementById(
-      'xet-autofill-pangram-checked');
-  this.pangramCheckedInp.checked = this.pangramChecked;
-  this.pangramUncheckedInp = document.getElementById(
-      'xet-autofill-pangram-unchecked');
-  this.pangramUncheckedInp.checked = this.pangramUnchecked;
-  this.pangramFirstsInp = document.getElementById(
-      'xet-autofill-pangram-firsts');
-  this.pangramFirstsInp.checked = this.pangramFirsts;
-  this.pangramLastsInp = document.getElementById(
-      'xet-autofill-pangram-lasts');
-  this.pangramLastsInp.checked = this.pangramLasts;
-  const pangramOptionsSanitizer = (e) => {
-    this.pangramAllInp.checked = 
-        (!this.pangramCircledInp.checked &&
-         !this.pangramCheckedInp.checked &&
-         !this.pangramUncheckedInp.checked &&
-         !this.pangramFirstsInp.checked &&
-         !this.pangramLastsInp.checked) ||
-        (this.pangramCheckedInp.checked &&
-         this.pangramUncheckedInp.checked);
-  };
-  for (const elt of [this.pangramCircledInp,
-                   this.pangramCheckedInp,
-                   this.pangramUncheckedInp,
-                   this.pangramFirstsInp,
-                   this.pangramLastsInp]) {
-    elt.addEventListener('change', pangramOptionsSanitizer);
-  }
-  this.pangramAllInp.addEventListener('change', (e) => {
-    if (this.pangramAllInp.checked) {
-      this.pangramCircledInp.checked = false;
-      this.pangramCheckedInp.checked = false;
-      this.pangramUncheckedInp.checked = false;
-      this.pangramFirstsInp.checked = false;
-      this.pangramLastsInp.checked = false;
-    } else {
-      this.pangramAllInp.checked = 
+    this.pangramDetails = document.getElementById(
+        'xet-autofill-pangram-details');
+    this.pangramAllInp = document.getElementById(
+        'xet-autofill-pangram-all');
+    this.pangramAllInp.checked = this.pangramAll;
+    this.pangramCircledInp = document.getElementById(
+        'xet-autofill-pangram-circled');
+    this.pangramCircledInp.checked = this.pangramCircled;
+    this.pangramCheckedInp = document.getElementById(
+        'xet-autofill-pangram-checked');
+    this.pangramCheckedInp.checked = this.pangramChecked;
+    this.pangramUncheckedInp = document.getElementById(
+        'xet-autofill-pangram-unchecked');
+    this.pangramUncheckedInp.checked = this.pangramUnchecked;
+    this.pangramFirstsInp = document.getElementById(
+        'xet-autofill-pangram-firsts');
+    this.pangramFirstsInp.checked = this.pangramFirsts;
+    this.pangramLastsInp = document.getElementById(
+        'xet-autofill-pangram-lasts');
+    this.pangramLastsInp.checked = this.pangramLasts;
+    const pangramOptionsSanitizer = (e) => {
+      this.pangramAllInp.checked =
           (!this.pangramCircledInp.checked &&
            !this.pangramCheckedInp.checked &&
            !this.pangramUncheckedInp.checked &&
@@ -727,412 +852,578 @@ function ExetAutofill() {
            !this.pangramLastsInp.checked) ||
           (this.pangramCheckedInp.checked &&
            this.pangramUncheckedInp.checked);
+    };
+    for (const elt of [this.pangramCircledInp,
+                     this.pangramCheckedInp,
+                     this.pangramUncheckedInp,
+                     this.pangramFirstsInp,
+                     this.pangramLastsInp]) {
+      elt.addEventListener('change', pangramOptionsSanitizer);
     }
-  });
+    this.pangramAllInp.addEventListener('change', (e) => {
+      if (this.pangramAllInp.checked) {
+        this.pangramCircledInp.checked = false;
+        this.pangramCheckedInp.checked = false;
+        this.pangramUncheckedInp.checked = false;
+        this.pangramFirstsInp.checked = false;
+        this.pangramLastsInp.checked = false;
+      } else {
+        this.pangramAllInp.checked =
+            (!this.pangramCircledInp.checked &&
+             !this.pangramCheckedInp.checked &&
+             !this.pangramUncheckedInp.checked &&
+             !this.pangramFirstsInp.checked &&
+             !this.pangramLastsInp.checked) ||
+            (this.pangramCheckedInp.checked &&
+             this.pangramUncheckedInp.checked);
+      }
+    });
 
-  this.stepSpan = document.getElementById('xet-autofill-step');
-  this.stepSpan.innerText = this.step;
+    this.stepSpan = document.getElementById('xet-autofill-step');
+    this.stepSpan.innerText = this.step;
 
-  this.statusSpan = document.getElementById('xet-autofill-status');
-  this.statusSpan.innerHTML = this.status;
+    this.statusSpan = document.getElementById('xet-autofill-status');
+    this.statusSpan.innerHTML = this.status;
 
-  this.timeSpan = document.getElementById('xet-autofill-time');
-  this.speedSpan = document.getElementById('xet-autofill-speed');
+    this.timeSpan = document.getElementById('xet-autofill-time');
+    this.speedSpan = document.getElementById('xet-autofill-speed');
 
-  this.currBeamSpan = document.getElementById('xet-autofill-curr-beam');
-  this.currBeamSpan.innerText = this.beam.limit();
+    this.currBeamSpan = document.getElementById('xet-autofill-curr-beam');
+    this.currBeamSpan.innerText = this.beam.limit();
 
-  this.scoreSpan = document.getElementById('xet-autofill-score');
-  this.scoreVSpan = document.getElementById('xet-autofill-score-v');
-  this.scorePSpan = document.getElementById('xet-autofill-score-p');
-  this.scoreFSpan = document.getElementById('xet-autofill-score-f');
+    this.scoreSpan = document.getElementById('xet-autofill-score');
+    this.scoreVSpan = document.getElementById('xet-autofill-score-v');
+    this.scorePSpan = document.getElementById('xet-autofill-score-p');
+    this.scoreFSpan = document.getElementById('xet-autofill-score-f');
 
-  this.reversalsSpan = document.getElementById('xet-autofill-reversals');
+    this.tryReversalsSpan = document.getElementById(
+        'xet-autofill-try-reversals');
+    this.reversalsSpan = document.getElementById('xet-autofill-reversals');
 
-  this.preflexTotalSpan = document.getElementById(
-      'xet-autofill-preflex-total');
-  this.preflexUsedSpan = document.getElementById(
-      'xet-autofill-preflex-used');
-  this.unpreflexTotalSpan = document.getElementById(
-      'xet-autofill-unpreflex-total');
-  this.minpopSpan = document.getElementById('xet-autofill-minpop');
-  this.indexMinPopSpan = document.getElementById(
-      'xet-autofill-index-minpop');
-  this.properNounsSpan = document.getElementById(
-      'xet-autofill-proper-nouns');
-  this.stemDupesSpan = document.getElementById(
-      'xet-autofill-stem-dupes');
-  this.tryReversalsSpan = document.getElementById(
-      'xet-autofill-try-reversals');
-  this.pangramSpan = document.getElementById('xet-autofill-letters');
-  this.pangramConstrSpan = document.getElementById(
-      'xet-autofill-pangram-cletters');
-  this.pangramConstrSpan.style.display = 'none';
-  this.isPangram = document.getElementById('xet-is-pangram');
+    this.preflexTotalSpan = document.getElementById(
+        'xet-autofill-preflex-total');
+    this.preflexUsedSpan = document.getElementById(
+        'xet-autofill-preflex-used');
 
-  this.refreshDisplay();
-}
+    this.pangramSpan = document.getElementById('xet-autofill-letters');
+    this.pangramConstrSpan = document.getElementById(
+        'xet-autofill-pangram-cletters');
+    this.pangramConstrSpan.style.display = 'none';
+    this.isPangram = document.getElementById('xet-is-pangram');
 
-ExetAutofill.prototype.reset = function(status, longStatus='') {
-  this.beam = new ExetDher(this.beamWidth);
-  this.step = 0;
-  this.msUsed = 0;
-  this.triedHashes = {};
-  if (!this.running) {
-    return;
+    this.refreshDisplay();
   }
-  if (this.throttledTimer) {
-    clearTimeout(this.throttledTimer);
-    this.throttledTimer = null;
-  }
-  this.status = status;
-  this.statusSpan.innerHTML = longStatus || status;
-  this.activeDivMsg.innerHTML = status;
-  this.running = false;
-  exet.updateSweepInd();
-  this.startstopButton.innerText = 'Start';
-  this.startstopButton.className = 'xlv-button';
-}
 
-ExetAutofill.prototype.startstop = function() {
-  if (!this.running) {
-    if (exet.puz.numCellsToFill == exet.puz.numCellsFilled) {
-      alert('The grid is already full');
+  static getUI() {
+    return `
+          <div title="Try to autofill the remaining grid"
+            class="xet-dropdown-item" id="xet-autofill">Autofill
+            <div id="xet-autofill-active">
+              <span id="xet-autofill-active-msg"></span>
+            </div>
+            <div class="xet-dropdown-submenu xet-autofill-panel">
+              <div>
+                <button id="xet-autofill-startstop"
+                    class="xlv-button">Start</button>
+                <button id="xet-autofill-accept" style="float:right"
+                  title="Accept autofill suggestions"
+                  class="xlv-button">Accept</button>
+                <button id="xet-autofill-clear" style="float:right"
+                  title="Stop the autofill and clear all its suggestions"
+                  class="xlv-button">Clear</button>
+              </div>
+              <hr>
+              <div title="Increasing this may make the algorithm slower but may improve its success rate"
+                  class="xet-pdiv">
+                Beam search width:
+                <input id="xet-autofill-max-beam"
+                    name="xet-autofill-max-beam"
+                    value="64" type="text" size="4" maxlength="4"
+                    style="padding:0;margin:0">
+                </input>
+              </div>
+              <div class="xet-pdiv">
+                Try to find a pangram:
+                <input id="xet-autofill-boost-pangram"
+                    name="xet-autofill-boost-pangram" value="pangram"
+                    type="checkbox">
+                </input>
+                &nbsp;
+                <span title="Keep looping until the desired pangram is found (or until failure)">
+                  <span class="xet-small">Loop until pangram?</span>
+                  <input id="xet-autofill-pangram-loop"
+                      name="xet-autofill-pangram-loop" value="pangram-loop"
+                      type="checkbox">
+                  </input>
+                </span>
+              </div>
+              <div class="xet-pdiv">
+                <details id="xet-autofill-pangram-details">
+                  <summary>Try to constrain pangram to these cells:</summary>
+                  <table>
+                    <tr>
+                      <td>
+                        <input id="xet-autofill-pangram-all"
+                            name="xet-autofill-pangram-all"
+                            value="pangram-all" type="checkbox">
+                        </input>
+                        All
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-checked"
+                            name="xet-autofill-pangram-checked"
+                            value="pangram-checked" type="checkbox">
+                        </input>
+                        Checked
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-unchecked"
+                            name="xet-autofill-pangram-unchecked"
+                            value="pangram-unchecked" type="checkbox">
+                        </input>
+                        Unchecked
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <input id="xet-autofill-pangram-circled"
+                            name="xet-autofill-pangram-circled"
+                            value="pangram-circled" type="checkbox">
+                        </input>
+                        Circled
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-firsts"
+                            name="xet-autofill-pangram-firsts"
+                            value="pangram-firsts" type="checkbox">
+                        </input>
+                        Starts
+                      </td>
+                      <td>&nbsp;</td>
+                      <td>
+                        <input id="xet-autofill-pangram-lasts"
+                            name="xet-autofill-pangram-lasts"
+                            value="pangram-lasts" type="checkbox">
+                        </input>
+                        Ends
+                      </td>
+                    </tr>
+                  </table>
+                </details>
+              </div>
+              <hr>
+              <div class="xet-pdiv" title="The number of 'preferred fills' entries currently used.">
+                Preferred fills used: <span
+                  id="xet-autofill-preflex-used">0</span> of <span
+                  id="xet-autofill-preflex-total"
+                  >${exet.preflex.length}</span>
+              </div>
+              <hr>
+              <div class="xet-pdiv" title="You can edit the list of ` +
+                  `preferred fills by clicking on the 'Set preferred ` +
+                  `fills' button on the Exet panel. You can edit the list of undesired fills, ` +
+                  `by clicking on the 'Set fill exclusions' button. You can also ` +
+                  `restrict fills by a popularity cutoff, allow/` +
+                  `disallow proper nouns, stem-dupes, and reversals from the Exet tab.">
+                <div class="xet-pdiv"></div>
+                <div>
+                Trying reversals: <span
+                    id="xet-autofill-try-reversals">${exet.tryReversals ?
+                          "allowed" : "disallowed"}</span>
+                  (<span id="xet-autofill-reversals">0</span> reversed)
+                </div>
+              </div>
+              <div class="xet-pdiv">
+                Letters used: <span id="xet-autofill-letters">0</span>
+                <span id="xet-autofill-pangram-cletters">(0 in pangram cells)</span>
+                of ${exetLexicon.letters.length}
+              </div>
+              <hr>
+              <div class="xet-pdiv">
+                Step: <span id="xet-autofill-step"></span>
+              </div>
+              <div class="xet-pdiv">
+                Score: <span id="xet-autofill-score">0.00</span>
+                <span style="font-size:12px">
+                (<span id="xet-autofill-score-v">0.00</span> viab +
+                <span id="xet-autofill-score-p">0.00</span> popu +
+                <span id="xet-autofill-score-f">0.00</span> full)
+                </span>
+              </div>
+              <div class="xet-pdiv">
+                Time taken: <span id="xet-autofill-time">--</span> ms
+                (<span id="xet-autofill-speed">--</span> ms/step)
+              </div>
+              <div class="xet-pdiv">
+                Beam size: <span id="xet-autofill-curr-beam"></span>
+                 &nbsp;
+              </div>
+              <div class="xet-pdiv">
+                Last status: <span id="xet-autofill-status"></span>
+              </div>
+              <hr>
+              <div class="xet-pdiv xet-blue" id="xet-is-pangram"
+                  style="display:none">
+                Pangram!
+              </div>
+            </div>
+          </div>
+    `;
+  }
+
+  reset(status, longStatus='') {
+    this.beam = new ExetDher(this.beamWidth);
+    this.step = 0;
+    this.msUsed = 0;
+    this.triedHashes = {};
+    if (!this.running) {
       return;
     }
-    const beamWidth = parseInt(this.beamWidthInp.value);
-    if (isNaN(beamWidth) || beamWidth <= 0) {
-      this.beamWidthInp.value = this.beamWidth;
-    } else {
-      this.beamWidth = beamWidth;
-      this.beam.relimit(beamWidth);
-    }
-    this.boostPangram = this.pangramInp.checked;
-    this.loopForPangram = this.pangramLoopInp.checked;
-    this.pangramAll = this.pangramAllInp.checked;
-    this.pangramCircled = this.pangramCircledInp.checked;
-    this.pangramChecked = this.pangramCheckedInp.checked;
-    this.pangramUnchecked = this.pangramUncheckedInp.checked;
-    this.pangramFirsts = this.pangramFirstsInp.checked;
-    this.pangramLasts = this.pangramLastsInp.checked;
-
-    if (this.beam.size() == 0) {
-      const candidate = new ExetFillState(exet.fillState);
-      for (let s = 0; s < this.refinementSweeps && candidate.viable; s++) {
-        if (!exet.refineLightChoices(candidate, this.constrainerLimit)) break;
-      }
-      candidate.setScore(this);
-      if (!candidate.viable) {
-        alert('Autofill will not work on the current grid. Perhaps retry ' +
-              'after clearing some constraining lights or modifying the grid?');
-        return;
-      }
-      this.priorityClues = this.getPriorityClues(candidate);
-      this.priorityLoop = 0;
-      this.beam.add(candidate);
-      this.currBeamSpan.innerText = this.beam.size();
-    }
-    if (exet.viabilityUpdateTimer) {
-      clearTimeout(exet.viabilityUpdateTimer);
-      exet.viabilityUpdateTimer = null;
-    }
-
-    this.reshowSettings();
-    this.running = true;
-    this.status = 'Running';
-    this.accept.disabled = true;
-    this.clear.disabled = true;
-    exet.sweepIndicator.className = 'xet-sweeping-animated';
-    this.startstopButton.innerText = 'Pause';
-    this.startstopButton.className = 'xlv-button xet-pink-button';
-
     if (this.throttledTimer) {
       clearTimeout(this.throttledTimer);
+      this.throttledTimer = null;
     }
-    this.throttledTimer = setTimeout(() => {
-      this.beamSearchStep();
-    }, this.lag);
-  } else {
+    this.status = status;
+    this.statusSpan.innerHTML = longStatus || status;
+    this.activeDivMsg.innerHTML = status;
     this.running = false;
     exet.updateSweepInd();
     this.startstopButton.innerText = 'Start';
     this.startstopButton.className = 'xlv-button';
-    this.status = 'Paused';
-    this.accept.disabled = false;
-    this.clear.disabled = false;
-    clearTimeout(this.throttledTimer);
-    this.throttledTimer = null;
   }
-  this.statusSpan.innerHTML = this.status;
-  this.activeDivMsg.innerHTML = this.status;
-  this.activeDiv.style.display = 'block';
-}
 
-ExetAutofill.prototype.reshowSettings = function() {
-  this.preflexTotalSpan.innerText = exet.preflex.length;
-  this.unpreflexTotalSpan.innerText = exet.unpreflex.length;
-  this.minpopSpan.innerText = exet.minpop;
-  this.indexMinPopSpan.innerText = Number(
-      exet.indexMinPop - 1).toLocaleString();
-  this.properNounsSpan.innerText = exet.noProperNouns ?
-      "disallowed" : "allowed";
-  this.stemDupesSpan.innerText = exet.noStemDupes ?
-      "disallowed" : "allowed";
-  this.tryReversalsSpan.innerText = exet.tryReversals ?
-      "allowed" : "disallowed";
-}
+  startstop() {
+    if (!this.running) {
+      if (exet.puz.numCellsToFill == exet.puz.numCellsFilled) {
+        alert('The grid is already full');
+        return;
+      }
+      const beamWidth = parseInt(this.beamWidthInp.value);
+      if (isNaN(beamWidth) || beamWidth <= 0) {
+        this.beamWidthInp.value = this.beamWidth;
+      } else {
+        this.beamWidth = beamWidth;
+        this.beam.relimit(beamWidth);
+      }
+      this.boostPangram = this.pangramInp.checked;
+      this.loopForPangram = this.pangramLoopInp.checked;
+      this.pangramAll = this.pangramAllInp.checked;
+      this.pangramCircled = this.pangramCircledInp.checked;
+      this.pangramChecked = this.pangramCheckedInp.checked;
+      this.pangramUnchecked = this.pangramUncheckedInp.checked;
+      this.pangramFirsts = this.pangramFirstsInp.checked;
+      this.pangramLasts = this.pangramLastsInp.checked;
 
-ExetAutofill.prototype.refreshDisplay = function() {
-  this.pangramConstrSpan.style.display =
-      this.pangramAll ? 'none' : '';
-  this.isPangram.style.display = 'none';
+      if (this.beam.size() == 0) {
+        const candidate = new ExetFillState(exet.fillState);
+        for (let s = 0; s < this.refinementSweeps && candidate.viable; s++) {
+          if (!exet.refineLightChoices(candidate, this.constrainerLimit)) break;
+        }
+        candidate.setScore(this);
+        if (!candidate.viable) {
+          alert('Autofill will not work on the current grid. Perhaps retry ' +
+                'after clearing some constraining lights or modifying the grid?');
+          return;
+        }
+        this.priorityClues = this.getPriorityClues(candidate);
+        this.priorityLoop = 0;
+        this.beam.add(candidate);
+        this.currBeamSpan.innerText = this.beam.size();
+      }
+      if (exet.viabilityUpdateTimer) {
+        clearTimeout(exet.viabilityUpdateTimer);
+        exet.viabilityUpdateTimer = null;
+      }
 
-  let candidate = this.beam.peep(true);
-  if (!candidate) {
-    candidate = new ExetFillState(exet.fillState);
-    candidate.setScore(this);
-  }
-  this.pangramDetails.open = this.boostPangram && !this.pangramAll;
-  this.preflexUsedSpan.innerText = candidate.numPreflexUsed;
-  this.pangramSpan.innerText = candidate.numLettersUsed;
-  this.pangramConstrSpan.innerText =
-      `(${candidate.numConstrLetters} in pangram cells)`;
-  if (candidate.numLettersUsed == exetLexicon.letters.length) {
-    let isPangram = 'Pangram!';
-    if (!this.pangramAll &&
-        candidate.numConstrLetters == exetLexicon.letters.length) {
-      isPangram = 'Pangram <i>with</i> constraints!';;
+      this.reshowSettings();
+      this.running = true;
+      this.status = 'Running';
+      this.accept.disabled = true;
+      this.clear.disabled = true;
+      exet.sweepIndicator.className = 'xet-sweeping-animated';
+      this.startstopButton.innerText = 'Pause';
+      this.startstopButton.className = 'xlv-button xet-pink-button';
+
+      if (this.throttledTimer) {
+        clearTimeout(this.throttledTimer);
+      }
+      this.throttledTimer = setTimeout(() => {
+        this.beamSearchStep();
+      }, this.lag);
+    } else {
+      this.running = false;
+      exet.updateSweepInd();
+      this.startstopButton.innerText = 'Start';
+      this.startstopButton.className = 'xlv-button';
+      this.status = 'Paused';
+      this.accept.disabled = false;
+      this.clear.disabled = false;
+      clearTimeout(this.throttledTimer);
+      this.throttledTimer = null;
     }
-    this.isPangram.innerHTML = isPangram;
-    this.isPangram.style.display = '';
+    this.statusSpan.innerHTML = this.status;
+    this.activeDivMsg.innerHTML = this.status;
+    this.activeDiv.style.display = 'block';
   }
-  this.scoreSpan.innerText = candidate.score.toFixed(2);
-  this.scoreVSpan.innerText = candidate.scoreV.toFixed(2);
-  this.scorePSpan.innerText = candidate.scoreP.toFixed(2);
-  this.scoreFSpan.innerText = candidate.scoreF.toFixed(2);
-  this.reversalsSpan.innerText = candidate.reversals;
-}
 
-ExetAutofill.prototype.getPriorityClues = function(fillState) {
-  const pclues = [];
-  if (exet.preflex.length == 0) {
+  reshowSettings() {
+    this.preflexTotalSpan.innerText = exet.preflex.length;
+    this.tryReversalsSpan.innerText = exet.tryReversals ?
+        "allowed" : "disallowed";
+  }
+
+  refreshDisplay() {
+    this.pangramConstrSpan.style.display =
+        this.pangramAll ? 'none' : '';
+    this.isPangram.style.display = 'none';
+
+    let candidate = this.beam.peep(true);
+    if (!candidate) {
+      candidate = new ExetFillState(exet.fillState);
+      candidate.setScore(this);
+    }
+    this.pangramDetails.open = this.boostPangram && !this.pangramAll;
+    this.preflexUsedSpan.innerText = candidate.preflexUsed.size;
+    this.pangramSpan.innerText = candidate.numLettersUsed;
+    this.pangramConstrSpan.innerText =
+        `(${candidate.numConstrLetters} in pangram cells)`;
+    if (candidate.numLettersUsed == exetLexicon.letters.length) {
+      let isPangram = 'Pangram!';
+      if (!this.pangramAll &&
+          candidate.numConstrLetters == exetLexicon.letters.length) {
+        isPangram = 'Pangram <i>with</i> constraints!';;
+      }
+      this.isPangram.innerHTML = isPangram;
+      this.isPangram.style.display = '';
+    }
+    this.scoreSpan.innerText = candidate.score.toFixed(2);
+    this.scoreVSpan.innerText = candidate.scoreV.toFixed(2);
+    this.scorePSpan.innerText = candidate.scoreP.toFixed(2);
+    this.scoreFSpan.innerText = candidate.scoreF.toFixed(2);
+    this.reversalsSpan.innerText = candidate.reversals;
+  }
+
+  getPriorityClues(fillState) {
+    const pclues = [];
+    if (exet.preflex.length == 0) {
+      return pclues;
+    }
+    for (const ci in fillState.clues) {
+      const theClue = fillState.clues[ci];
+      if (theClue.solution.indexOf('?') < 0) continue;
+      if (exet.preflexByLen[theClue.enumLen]) {
+        const toTry = {};
+        for (const idx of exet.preflexByLen[theClue.enumLen]) {
+          toTry[idx] = true;
+        }
+        pclues.push([ci, toTry]);
+      }
+    }
+    exet.shuffle(pclues);
     return pclues;
   }
-  for (const ci in fillState.clues) {
-    const theClue = fillState.clues[ci];
-    if (theClue.solution.indexOf('?') < 0) continue;
-    if (exet.preflexByLen[theClue.enumLen]) {
-      const toTry = {};
-      for (const idx of exet.preflexByLen[theClue.enumLen]) {
-        toTry[idx] = true;
-      }
-      pclues.push([ci, toTry]);
+
+  maybeAddCandidate(candidate) {
+    if (!candidate.viable) return false;
+    const h = candidate.hash();
+    if (this.triedHashes[h]) {
+      return false;
     }
-  }
-  exet.shuffle(pclues);
-  return pclues;
-}
-
-ExetAutofill.prototype.maybeAddCandidate = function(candidate) {
-  if (!candidate.viable) return false;
-  const h = candidate.hash();
-  if (this.triedHashes[h]) {
-    return false;
-  }
-  this.triedHashes[h] = true;
-  if (candidate.hasPatternOfDeath()) {
-    return false;
-  }
-  this.beam.add(candidate);
-  return true;
-}
-
-ExetAutofill.prototype.addChildren = function() {
-  if (this.priorityClues.length > 0 && this.priorityLoop < this.priorityLoops) {
-    /**
-     * We're still doing the first phase of trying to fit the
-     * preflex entries.
-     */
-    this.autofillPriorityClues();
-    ++this.priorityLoop;
-    return;
-  }
-  if (this.beam.size() == 0) {
-    return;
-  }
-  const candidate = this.beam.pop(true);
-  if (!candidate || !candidate.unfilled || candidate.unfilled.length == 0) {
-    return;
-  }
-
-  // Try filling up to "toAdd" cells from the top few
-  let toAdd = 1;
-  const cellChoices = [];
-  if (this.boostPangram &&
-      candidate.numConstrLetters < exetLexicon.letters.length) {
-    /** prioritize the pangram, pick the top-priority cell */
-    cellChoices.push(0);
-    toAdd = 0;
-  }
-  const cellIndexLimit = Math.min(candidate.unfilled.length, 4);
-  for (let i = 0; i < toAdd; i++) {
-    let cellIndex = Math.floor(Math.random() * cellIndexLimit);
-    if (!cellChoices.includes(cellIndex)) {
-      cellChoices.push(cellIndex);
+    this.triedHashes[h] = true;
+    if (candidate.hasPatternOfDeath()) {
+      return false;
     }
+    this.beam.add(candidate);
+    return true;
   }
-  let numChildren = 0;
-  const maxChildren = 50;
-  for (let cellIndex of cellChoices) {
-    const row = candidate.unfilled[cellIndex][0];
-    const col = candidate.unfilled[cellIndex][1];
-    const cell = candidate.grid[row][col];
-    const choices = Object.keys(cell.cChoices);
-    for (let c of choices) {
-      const child = new ExetFillState(candidate);
-      const childCell = child.grid[row][col];
-      childCell.cChoices = {};
-      childCell.cChoices[c] = true;
-      childCell.currLetter = c;
-      child.delta = candidate.delta.slice();
-      child.delta.push([row, col, c]);
-      for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
-        if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
-      }
-      if (child.viable) {;
-        child.setScore(this);
-        if (this.maybeAddCandidate(child)) {
-          if (++numChildren >= maxChildren) {
-            break;
-          }
-        }
+
+  addChildren() {
+    if (this.priorityClues.length > 0 &&
+        this.priorityLoop < this.priorityLoops) {
+      /**
+       * We're still doing the first phase of trying to fit the
+       * preflex entries.
+       */
+      this.autofillPriorityClues();
+      ++this.priorityLoop;
+      return;
+    }
+    if (this.beam.size() == 0) {
+      return;
+    }
+    const candidate = this.beam.pop(true);
+    if (!candidate || !candidate.unfilled || candidate.unfilled.length == 0) {
+      return;
+    }
+
+    // Try filling up to "toAdd" cells from the top few
+    let toAdd = 1;
+    const cellChoices = [];
+    if (this.boostPangram &&
+        candidate.numConstrLetters < exetLexicon.letters.length) {
+      /** prioritize the pangram, pick the top-priority cell */
+      cellChoices.push(0);
+      toAdd = 0;
+    }
+    const cellIndexLimit = Math.min(candidate.unfilled.length, 4);
+    for (let i = 0; i < toAdd; i++) {
+      let cellIndex = Math.floor(Math.random() * cellIndexLimit);
+      if (!cellChoices.includes(cellIndex)) {
+        cellChoices.push(cellIndex);
       }
     }
-    if (numChildren >= maxChildren) {
-      break;
-    }
-  }
-}
-
-/**
- * Add a candidate to the beam that starts with the base and
- * adds as many preflexes as possible, in random order.
- */
-ExetAutofill.prototype.autofillPriorityClues = function() {
-  if (this.priorityClues.length == 0) {
-    return;
-  }
-  const usedP = {};
-  const child = new ExetFillState(exet.fillState);
-  child.delta = exet.fillState.delta.slice();
-  const priClueIndices = {};
-  for (let i = 0; i < this.priorityClues.length; i++) {
-    priClueIndices[i] = true;
-  }
-  while (child.viable) {
-    const rem = Object.keys(priClueIndices);
-    if (rem.length == 0) {
-      break;
-    }
-    const ki = Math.floor(Math.random() * rem.length);
-    const idx = rem[ki];
-    delete priClueIndices[idx];
-    const ciToTry = this.priorityClues[idx];
-    const ci = ciToTry[0];
-    const theClue = child.clues[ci];
-    if (!theClue || !theClue.lChoices || !theClue.lChoices.length) {
-      continue;
-    }
-    const numChoices = theClue.lChoices.length;
-    const toTry = ciToTry[1];
-    const numToTry = Object.keys(toTry).length;
-    for (let i = 0; i < numChoices; i++) {
-      const p = theClue.lChoices[i];
-      if (toTry[p] && !usedP[p]) {
-        const cells = exet.puz.getAllCells(ci, child.clues);
-        const entry = exetLexicon.getLex(p);
-        let key = exetLexicon.lexkey(entry);
-        if (p < 0) key.reverse();
-        child.clues[ci].lChoices = [p];
-        child.clues[ci].lRejects = [];
-        for (let j = 0; j < cells.length; j++) {
-          const row = cells[j][0];
-          const col = cells[j][1];
-          const childCell = child.grid[row][col];
-          const c = key[j];
-          childCell.cChoices = {};
-          childCell.cChoices[c] = true;
-          childCell.currLetter = c;
-          child.delta.push([row, col, c]);
-        }
-        usedP[p] = true;
+    let numChildren = 0;
+    const maxChildren = 50;
+    for (let cellIndex of cellChoices) {
+      const row = candidate.unfilled[cellIndex][0];
+      const col = candidate.unfilled[cellIndex][1];
+      const cell = candidate.grid[row][col];
+      const choices = Object.keys(cell.cChoices);
+      for (let c of choices) {
+        const child = new ExetFillState(candidate);
+        const childCell = child.grid[row][col];
+        childCell.cChoices = {};
+        childCell.cChoices[c] = true;
+        childCell.currLetter = c;
         for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
           if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
         }
+        if (child.viable) {;
+          child.setScore(this);
+          if (this.maybeAddCandidate(child)) {
+            if (++numChildren >= maxChildren) {
+              break;
+            }
+          }
+        }
+      }
+      if (numChildren >= maxChildren) {
         break;
       }
     }
-  }
-  for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
-    if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
-  }
-  if (child.viable) {
-    child.setScore(this);
-    this.maybeAddCandidate(child);
-  }
-}
-
-ExetAutofill.prototype.beamSearchStep = function() {
-  if (this.throttledTimer) {
-    clearTimeout(this.throttledTimer);
-  }
-  if (this.beam.size() == 0) {
     return;
   }
-  const startTS = Date.now();
-  this.throttledTimer = null;
-  this.step++;
-  this.stepSpan.innerText = this.step;
-  this.addChildren();
-  this.currBeamSpan.innerText = this.beam.size();
 
-  this.msUsed += (Date.now()- startTS);
-  this.timeSpan.innerText = this.msUsed;
-  this.speedSpan.innerText = (this.msUsed / this.step).toFixed(0);
-  this.refreshDisplay();
+  /**
+   * Add a candidate to the beam that starts with the base and
+   * adds as many preflexes as possible, in random order.
+   */
+  autofillPriorityClues() {
+    if (this.priorityClues.length == 0) {
+      return;
+    }
+    const usedP = {};
+    const child = new ExetFillState(exet.fillState);
+    const priClueIndices = {};
+    for (let i = 0; i < this.priorityClues.length; i++) {
+      priClueIndices[i] = true;
+    }
+    while (child.viable) {
+      const rem = Object.keys(priClueIndices);
+      if (rem.length == 0) {
+        break;
+      }
+      const ki = Math.floor(Math.random() * rem.length);
+      const idx = rem[ki];
+      delete priClueIndices[idx];
+      const ciToTry = this.priorityClues[idx];
+      const ci = ciToTry[0];
+      const theClue = child.clues[ci];
+      if (!theClue || !theClue.lChoices || !theClue.lChoices.length) {
+        continue;
+      }
+      const numChoices = theClue.lChoices.length;
+      const toTry = ciToTry[1];
+      const numToTry = Object.keys(toTry).length;
+      for (let i = 0; i < numChoices; i++) {
+        const p = theClue.lChoices[i];
+        if (toTry[p] && !usedP[p]) {
+          const cells = exet.puz.getAllCells(ci, child.clues);
+          const entry = exetLexicon.getLex(p);
+          let key = exetLexicon.lexkey(entry);
+          if (p < 0) key.reverse();
+          child.clues[ci].lChoices = [p];
+          child.clues[ci].lRejects = [];
+          for (let j = 0; j < cells.length; j++) {
+            const row = cells[j][0];
+            const col = cells[j][1];
+            const childCell = child.grid[row][col];
+            const c = key[j];
+            childCell.cChoices = {};
+            childCell.cChoices[c] = true;
+            childCell.currLetter = c;
+          }
+          usedP[p] = true;
+          for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
+            if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
+          }
+          break;
+        }
+      }
+    }
+    for (let s = 0; s < this.refinementSweeps && child.viable; s++) {
+      if (!exet.refineLightChoices(child, this.constrainerLimit)) break;
+    }
+    if (child.viable) {
+      child.setScore(this);
+      this.maybeAddCandidate(child);
+    }
+  }
 
-  const best = (this.step > (this.numCells * 3)) ? null : this.beam.peep(true);
-  if (best) {
-    best.updateExetFill();
-    if (best.isFull()) {
-      if (this.boostPangram &&
-          best.numConstrLetters != exetLexicon.letters.length &&
-          this.loopForPangram) {
-        this.accept.disabled = true;
-        this.clear.disabled = true;
-        this.reset('Running', 'Looping for pangram');
-        exet.resetViability();
-        this.startstop();
+  beamSearchStep() {
+    if (this.throttledTimer) {
+      clearTimeout(this.throttledTimer);
+    }
+    if (this.beam.size() == 0) {
+      return;
+    }
+    const startTS = Date.now();
+    this.throttledTimer = null;
+    this.step++;
+    this.stepSpan.innerText = this.step;
+    this.addChildren();
+    this.currBeamSpan.innerText = this.beam.size();
+
+    this.msUsed += (Date.now()- startTS);
+    this.timeSpan.innerText = this.msUsed;
+    this.speedSpan.innerText = (this.msUsed / this.step).toFixed(0);
+    this.refreshDisplay();
+
+    const best = (this.step > (this.numCells * 3)) ? null : this.beam.peep(true);
+    if (best) {
+      best.updateExetFill();
+      if (best.isFull()) {
+        if (this.boostPangram &&
+            best.numConstrLetters != exetLexicon.letters.length &&
+            this.loopForPangram) {
+          this.accept.disabled = true;
+          this.clear.disabled = true;
+          this.reset('Running', 'Looping for pangram');
+          exet.resetViability();
+          this.startstop();
+        } else {
+          this.accept.disabled = false;
+          this.clear.disabled = false;
+          this.reset('Succeeded!');
+        }
       } else {
-        this.accept.disabled = false;
-        this.clear.disabled = false;
-        this.reset('Succeeded!');
+        this.throttledTimer = setTimeout(() => {
+          exet.autofill.beamSearchStep();
+        }, this.lag);
       }
     } else {
-      this.throttledTimer = setTimeout(() => {
-        exet.autofill.beamSearchStep();
-      }, this.lag);
+      this.accept.disabled = true;
+      this.clear.disabled = true;
+      this.reset('Failed',
+                 '<span class="xet-red">Failed.</span> ' +
+                 '<span class="xet-small-action">Do try again; if failure ' +
+                 'persists, try lowering min popularity score or ' +
+                 'increasing beam width</span>');
+      exet.resetViability();
+      this.refreshDisplay();
     }
-  } else {
-    this.accept.disabled = true;
-    this.clear.disabled = true;
-    this.reset('Failed',
-               '<span class="xet-red">Failed.</span> ' +
-               '<span class="xet-small-action">Do try again; if failure ' +
-               'persists, try lowering min popularity score or ' +
-               'increasing beam width</span>');
-    exet.resetViability();
-    this.refreshDisplay();
   }
-}
-
+};

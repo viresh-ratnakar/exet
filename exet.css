@@ -5,7 +5,7 @@
  *
  * See the full license notice in exet.js.
  *
- * Current version: v1.04.2, April 11, 2026
+ * Current version: v1.05, April 28, 2026
  */
 
 body {
@@ -92,6 +92,9 @@ body {
 .xet-panel-right {
   flex-grow: 1;
   min-width: 300px;
+}
+.xet-pdiv {
+  padding: 4px;
 }
 .xet-half-section,
 .xet-section {

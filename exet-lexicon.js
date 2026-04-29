@@ -218,7 +218,11 @@ function exetLexiconInit() {
     return toLower ? out.toLowerCase() : out;
   }
 
+  /**
+   * Returns a sorted array.
+   */
   exetLexicon.stemGroup = function(idx) {
+    idx = Number(idx);
     console.assert(idx >= 0 && idx < this.lexicon.length);
     let group = [idx];
     if (!this.hasOwnProperty('stems') || (idx >= this.startLen)) {
@@ -357,8 +361,7 @@ function exetLexiconInit() {
   /**
    * partialSol can contain letters, question-marks, spaces, hyphens.
    * limit=0 for all matches, else return at most limit matches.
-   * dontReuse should be an object with dontReuse[idx] set to true for (+ve)
-   *     lexicon indices that have already been used.
+   * dontReuse should be a set of (+ve) lexicon indices that have already been used.
    * noProperNouns: disallow proper nouns
    * indexLimit: only consider lexicon indices less than this. 0 for no constraints.
    * tryRev: try reversals.
@@ -369,7 +372,7 @@ function exetLexiconInit() {
   exetLexicon.getLexChoices = function(
       partialSol,
       limit=0,
-      dontReuse={},
+      dontReuse=null,
       noProperNouns=false,
       indexLimit=0,
       tryRev=false,
@@ -379,7 +382,7 @@ function exetLexiconInit() {
     if (indexLimit <= 0) {
       indexLimit = this.startLen;
     }
-    let choices = [];
+    const choices = [];
     const key = this.lexkey(partialSol);
     const keylen = key.length;
     if (!keylen) return choices;
@@ -388,7 +391,7 @@ function exetLexiconInit() {
     const seen = {};
     if (preflexByLen[keylen]) {
       for (idx of preflexByLen[keylen]) {
-        if (dontReuse[idx]) continue;
+        if (dontReuse && dontReuse.has(idx)) continue;
         const phrase = this.lexicon[idx];
         if (regexp && !regexp.test(phrase)) {
           continue;
@@ -405,7 +408,7 @@ function exetLexiconInit() {
       }
     }
     const loops = tryRev ? 2 : 1;
-    for (let i = 0; (i < loops) && (limit <= 0 || choices.length < limit); i++) {
+    for (let i = 0; (i < loops) && (limit == 0 || choices.length < limit); i++) {
       const loopKey = (i == 0) ? key : rkey;
       let gkey = loopKey.join('');
       while (!this.index[gkey]) {
@@ -416,7 +419,7 @@ function exetLexiconInit() {
       const indices = this.index[gkey];
       for (let idx of indices) {
         if (idx >= indexLimit) break;
-        if (dontReuse[idx]) continue;
+        if (dontReuse && dontReuse.has(idx)) continue;
         if (unpreflexSet[idx]) continue;
         const phrase = this.lexicon[idx];
         if (noProperNouns && this.isProperNoun(phrase)) {

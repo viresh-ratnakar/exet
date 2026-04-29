@@ -1,5 +1,25 @@
 # Changelog
 
+### Exet v1.05, April 28, 2026
+
+- Refactoring changes, largely, mostly for autofill code, slowly working
+  towards letting autofill mutate the grid to maximize placement of preferred
+  fills.
+- Use a set called `preflexUsed` instead of an object dict with `true` values,
+  called `preflexInUse`.
+- Make `killInvalidatedClues()` a function in ExetFillState (so that we can use
+  it on any fill-state, not just the current global fill-state in the Exet
+  object).
+- Add code to ExetAutofill to note which parities in row/col indices have
+  lights (this will be used for future grid-mutation-in-autofill).
+- Move the autofill panel UI code to a static function within ExetAutofill.
+- For anagrams, charades, and containments, if the fodder is too long
+  (longer than 13), now we trim it down and indicate this trimming by
+  showing it in red and showing exclamation marks next to it. You can
+  generate the wordplay for the full untrimmed fodder by appending an
+  exclamation mark at the end (this can be SLOW and may lock up your
+  browser for a short while).
+
 ### Exet v1.04.2, April 11, 2026
 
 - Make the UI more responsive: figure out the available space to the right

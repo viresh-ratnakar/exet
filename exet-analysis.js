@@ -226,6 +226,31 @@ class ExetAnalysis {
     }
     return spans;
   }
+
+  /**
+   * Should only be called for chequered grids. Sets parityHasLight{Row,Col}[0/1]
+   * to true iff there is any row/col with that parity that has a light.
+   */
+  getChequeredParity = function(parityHasLightRow, parityHasLightCol) {
+    parityHasLightRow[0] = false;
+    parityHasLightRow[1] = false;
+    for (let i = 0; i < this.h; i++) {
+      const spans = this.acrossSpans(i);
+      if (spans.length > 0) {
+        parityHasLightRow[i % 2] = true;
+        break;
+      }
+    }
+    parityHasLightCol[0] = false;
+    parityHasLightCol[1] = false;
+    for (let i = 0; i < this.w; i++) {
+      const spans = this.downSpans(i);
+      if (spans.length > 0) {
+        parityHasLightCol[i % 2] = true;
+        break;
+      }
+    }
+  }
   
   isSymmetric() {
     for (let i = 0; i < this.h; i++) {

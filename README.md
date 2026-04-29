@@ -788,6 +788,12 @@ top in each tab. These tabs are:
   - Containments (A around B) are shown in a tabular form showing all
     anagrams of A and B. The anagram colouring/annotating scheme described
     above is used here too.
+  - For anagrams, charades, and containments, if the fodder is too long
+    (longer than 13), then we trim it down and indicate this trimming by
+    showing it in red and showing exclamation marks next to it. You can
+    generate the wordplay for the full untrimmed fodder by appending an
+    exclamation mark at the end (this can be SLOW and may lock up your
+    browser for a short while).
 - **Charades/-**: Shows candidate charades and anagrammed deletions.
     - Anagrammed deletions (`*(A - B*)`) are shown together above charades
       (for convenience: you can easily scroll past them if needed). Anagrammed
