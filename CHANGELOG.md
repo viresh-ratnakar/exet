@@ -1,5 +1,320 @@
 # Changelog
 
+### Exet v1.05, April 28, 2026
+
+- Refactoring changes, largely, mostly for autofill code, slowly working
+  towards letting autofill mutate the grid to maximize placement of preferred
+  fills.
+- Use a set called `preflexUsed` instead of an object dict with `true` values,
+  called `preflexInUse`.
+- Make `killInvalidatedClues()` a function in ExetFillState (so that we can use
+  it on any fill-state, not just the current global fill-state in the Exet
+  object).
+- Add code to ExetAutofill to note which parities in row/col indices have
+  lights (this will be used for future grid-mutation-in-autofill).
+- Move the autofill panel UI code to a static function within ExetAutofill.
+- For anagrams, charades, and containments, if the fodder is too long
+  (longer than 13), now we trim it down and indicate this trimming by
+  showing it in red and showing exclamation marks next to it. You can
+  generate the wordplay for the full untrimmed fodder by appending an
+  exclamation mark at the end (this can be SLOW and may lock up your
+  browser for a short while).
+
+### Exet v1.04.2, April 11, 2026
+
+- Make the UI more responsive: figure out the available space to the right
+  of the grid, and resize the panel accordingly.
+- The scratchpad was making this difficult. It's hardly ever used. It's
+  now been reverted back to its original place in Exolve: under the
+  grid, hidden by default, and revealed by clicking the "Jotter" link
+  (which is no longer hidden now).
+- To the right of the lights choice panel, we now place the fill-settings
+  block and the clues, in a column. Use flex/shrink to let the part to the
+  right of light choices fill up all remaining width.
+- When the RHS panel is smaller than a cutoff, then reduce the font-size
+  of the top menu entries.
+- Render Analysis and Autofill to the left of their parents, as that's
+  where there's more space, especially in lower width settings.
+
+### Exet v1.04.1, March 28, 2026
+
+- Make the ipad-friendly changes from 1.04 for Brazilian and Hindi too.
+- Bug fix in exet-brazilian.html (a typo had creeped in)
+
+### Exet v1.04, March 24, 2026
+
+- Update the English lexicon to v0.09.
+- 846 new entries.
+- Use JSON to wrap the exetLexicon struct in lufz-en-lexicon.js as it makes
+  the JavaScript parser on iPads choke otherwise (with stack overflow).
+
+### Minor update: Exet v1.03.4, February 14, 2026
+
+- Prepare for Exolve's plan to remove the above-clue next/prev buttons by
+  making Exet add its own versions.
+
+### Minor update: Exet v1.03.3, January 24, 2026
+
+- More autofill refactoring and some bug-fixes.
+- Autofill refactoring is towards making grid mutations to maximize preflex
+  packing (in a future release). We move the core functionality of
+  resetViability() to an ExetFillState function rather than an Exet function,
+  so that we can apply it to any ExetFillState object (and not just
+  exet.fillState).
+- Autofill: In setScore(), preflex scoring boost was inconsistent between
+  entries already in lexicon vs not-from-lexicon (latter were getting more
+  boost!). Fix that.
+- Autofill: Call refineLightChoices() on the starting candidate too.
+- In makeExolve(), if there's an exception in Exolve(), then call destroy()
+  on the temp Exolve object.
+- In updatePuzzle(), even when called for reposition() (from the last update),
+  if an ongoing autofill is active, abort it and show the "Aborted" status to
+  the user.
+
+### Minor update: Exet v1.03.2, January 8, 2026
+
+- Make reposition() handle the case of the window getting bigger when the
+  grid is known to be smaller than normal (likely because the grid was created
+  when the window was in some minimal state for some reason, such as a browser
+  restart). We were not letting Exolve do its own grid resizing (because
+  we Exet saves cetain extra things in puz.grid). The change is pretty simple
+  actually: we just call updatePuzzle(revType=0), which recreates the Exolve
+  puz but does not (unnecessarily) save again.
+
+### Minor update: Exet v1.03.1, January 5, 2026
+
+- When saving as PDF, the temp window created was too small, which created
+  tiny grids. Make it a 1000x1500 window.
+
+### Exet v1.03, December 26, 2025
+
+- Change thefreedictionary.org to use newTab=true as they too have now sadly
+  started setting x-frame-options to sameorigin.
+
+### Exet v1.02, December 18, 2025
+
+- Add support for [Exost](https://xlufz.ratnakar.org/exost.html), my new
+  crossoword hosting service. You can upload to it directly from Exet,
+  with or without solutions. Uploading again will update the previously
+  uploaded copy.
+- Oops, lots of refactoring (code moving from exet.js to exet-autofill.js)
+  also sneaked into this version, inadvertently! Should be OK, just preparing
+  for optionally incorporating grid mutations into autofill.
+
+### Exet v1.01, November 14, 2025
+
+- Mainly a substantial refactoring, moving all the autofill-related code
+  to exet-autofill.js.
+- The exet.autofill object is not of a new ExetAutofill class that encapsulates
+  most of the logic. The current fill state is in an ExetFillState object.
+- This will help in the upcoming feature for allowing automatic grid mutations
+  alongside autofill (the hope is to be able to pack more thematic words
+  into a grid).
+- Minor bug-fix in autofill: when looking for a "pattern of death" (which
+  is an unfilled crosser with identical filled letters running through it
+  in Across anf Down lights), we were overlooking the possibility of linked
+  lights.
+- Add a convenient status display for autofill to the Edit menu itself.
+- When autofill fails, revert fill-state instead of keeping the failed
+  state (accepting which would not make sense) as leaving it in place
+  unnecessarily makes the subsequent autofill call fail.
+
+### Exet v1.00, October 31, 2025
+
+- Add sorting by timestamp, space, title, id, in the choosePuzRev().
+- When sorting or after deleting some revisions, keep the chosen puzzle id
+  selected.
+- When selecting to open a puzzle, make the default sorting be by timestamp
+  decreasing.
+- When selecting to manage storage, make the default sorting be by space
+  decreasing.
+- When deleting a single revision, if it is the only remaining revision,
+  add a confirmation (basically falling into the "delete all revisions" flow).
+- Other minor tweaks to choosePuzRev (increase puz-choice table width, etc.)
+- Add filled entries to dupe-reporting in clue texts in Analysis.
+
+### Minor update: Exet v0.99.1, October 28, 2025
+
+- Increase the font size in the format panel a bit. Update its screenshot.
+
+### Exet v0.99, October 28, 2025
+
+- Move the prev/next clue buttons to go above the clue-editing panel. This
+  reduces clutter, and also allows us to:
+- Add a hamburger menu above the current clue. This menu features access
+  to some already-existing features (link/unlink, clear, reverse), and
+  a new one: regexp constraint.
+- Through the hamburger menu, allow setting/editing a light-specific
+  regular expression that is used as an additional constraint on fill
+  choices for that light.
+- Add an optional regexp parameter to ExetLexicon.getLexChoices().
+- When a light has a regexp constraint, show a "chain link" icon in its
+  fill-choices list. Clicking on this icon also brings up the regexp
+  setting/editing panel.
+- Add code to killInvalidatedClues() to remove/move regexp constraints
+  as dictated by grid mutations, reversals.
+- Font size/colour tweaks for a few above-clue-editing widgets.
+- When the mouse enters an Exet menu item, any existing modal is cleared.
+  This is wai when that modal was from another Exet menu item, but it
+  did not make sense for other modals (such as the regexp editing panel).
+  Add a check to only clear the existing modal if it's from another
+  Exet menu item (i.e., has class xet-dropdown-content).
+- Add a confirmation dialog before doing light reversal.
+- Remove horizontal scroll bar that had started appearing in the clues
+  list. This was because the inner panel had an unnecessary width
+  (which probably got violated by Chrome deciding to make the vertical
+  scroll bar slightly thicker).
+
+### Minor update: Exet v0.98.1, October 17, 2025
+
+- Bug fix: `ExetRevManager.mergeRevisionsFile()` had a bug introduced by
+  a recent change: need to refer to the `exetRevManager` object, not `this`
+  in a particular context.
+
+### Exet v0.98, October 6, 2025
+
+- Increase limit on number of preflexes from 10,000 to 50,000.
+- Process preflex updates in chunks, to keep the UI responsive.
+- Change color of "Web sources" button text to black from green (to
+  avoid conflating with preferred fills), but add a light background.
+- In the fill-choices list, show preferred words entries in
+  green. Mention these colour semantics in the tooltip.
+- Allow min popularity threshold to be set to 100 (and make that
+  set "indexMinPop" to 1, effectively limiting word choices
+  to those in the preferred fills list.
+- Re-format the fill settings box (and add a tooltip) to bring more
+  clarity to the fact that preferred fills are tried first and
+  then the top K words from the lexicon that meet the popularity
+  threshold (which could be no words at all, with threshold = 100).
+- Add "Auto-Free!" storage option. This is a short-cut to first
+  save all current revisions, and then free up space by purging
+  some old revisions. For each crossword, the latest 25 revisions
+  as well as any revisions created within the previous hour are
+  retained. Amon the other revisions, every other one is deleted.
+- When going through local storage keys, skip Exolve/ExolvePlayer
+  keys. For other keys, add console logs for any weird ones
+  encountered.
+- When parsing local storage, always log error messages for weird
+  stuff. Skip Exolve and Exolve Player keys though.
+
+### Minor update: Exet v0.97.2, October 4, 2025
+
+- On Windows, with Chrome as well as Edge, printing or saving PDFs
+  was not working. This is a bug in these platforms, but some
+  research indicated that changing `window.print()` to
+  `document.exetCommand('print')` would fix the issue. Verified
+  (details in https://github.com/viresh-ratnakar/exet/issues/41).
+
+### Minor update: Exet v0.97.1, September 21, 2025
+
+- Delete saved state for the temp Exolve puzzles created for printing.
+- Override Ctrl-s (Cmd-s for Mac) to save the puzzle as HTML (Exolve)
+  with solutions. Add a tip for that. Add the shortcut info to the
+  Save menu entry.
+- For other uses of Ctrl key (such as when formatting), also allow the
+  Cmd key on macs.
+- In the documentation, consistently use the lower-case letter after
+  Ctr-/Cmd- (except for Ctrl-q and Ctrl-Q, which are different).
+
+### Exet v0.97, September 16, 2025
+
+- Refactor local-storage-related code into exet-storage.js
+- Change the way we save preflexes and unpreflexes to local storage.
+  Used to be the case that we would save the full list with every
+  saved revision. This was wasteful and made us limit the size of
+  preflexes to only 100. We now save preflexes and unpreflexes
+  under separate local storage keys (that look like
+  `<special-prefix>-{preflex,unpreflex}-<id>`).
+- The entries in these saved preflex/unpreflex local storage entries
+  are objects keyed by the hash of the preflex/unpreflex arrays (the
+  values stored are the arrays themselves).
+- From the saved revision, we locate the needed array of preflex/unpreflex
+  by having preflexHash/unpreflexHash stored in the revision.
+- We make the code backward compatible for states saved the old way.
+- We garbage-collect old hash-keys in preflex/unpreflex storage when
+  - preflex/unpreflex is updated
+  - puzzle/revision deletion is invoked
+  - all revisions are saved
+  - if we have just detected that local-storage (that was running low) has
+    been freed up.
+- Also, in the old way, we were storing lexicon indices of unpreflex
+  entries, which was buggy as it would have created problems after
+  lexicon updates. We now save the words themselves.
+- Update the max size of preflex entries to be 10,000 now.
+- Refactor the old "Open" menu into separate "New"/"Open" menus.
+- When checking if the latest saved revision was the same as the
+  current state, we had a bug: the compared "exolve" strings
+  would always differ because the current one included the current
+  timestamp. Fixed by comparing after removing the Timestamp line.
+- Abandoned WIP for adding support for custom wordlists (rationale
+  is now listed in `README.md`, but TLDR: too much complexity).
+- Reuse Exolve.protype.fileDownload() instead of replicating its
+  code for all file-downloading needs.
+- Combine with/without-solutions entries in the Save menu, using
+  a submenu in each case.
+- Add Save menu options to download SVG image of the grid. Do this
+  by creating a temp HTML page. Share code for that with the
+  similarly done printing/PDF creation code.
+
+### Minor update: Exet v0.96.2, July 5, 2025
+
+- All changes relate to automagic blocks.
+- Bug-fix: we were skipping x = minwhby2 if w and h were different.
+- Shuffle rowcol spans.
+- When invoking automagic blocks from the edit menu, do not set
+  a target num-clues.
+- For chequered grids, increase the target num-clues slightly.
+
+### Minor update: Exet v0.96.1, May 26, 2025
+
+- Restore functionality to insert a space between clue and enum if
+  missing, when enums are required.
+
+### Exet v0.96, May 18, 2025
+
+- Allow reading and writing .ipuz files.
+- Reorder the new-grid menu.
+- Whether or not enums are used (and enforced) is now a crossword-specific
+  option that you specify from the menu choice for a blank grid. When loading
+  an existing puzzle, if all clues in the puzzle have enums, then requireEnums
+  is set to true, otherwise it's falsse (allowing a US-style enum-less puzzle).
+- Adjust the desired max number of lights to 78 (when adding automagic blocks
+  to a 15x15 US-style grid) by adjusting the factor.
+
+### Minor update: Exet v0.95.2 April 25, 2025
+
+- In Exolve v1.62, we added exolve-to-puz.js, factoring out code from Exet.
+  This version makes Exet switch to using that code, deleting its own.
+- A couple of clue text formatting functions also moved from Exet to Exolve,
+  with this change, we update Exet to use those variants, deleting its own.
+
+### Minor update: Exet v0.95.1 March 17, 2025
+
+- Bug fix: unsetting css color needs to be via 'inherit' not 'default'.
+
+### Version: Exet v0.95, March 12, 2025
+
+- Separated out local storage menus and backing up menus into a
+  new menu called "Storage"
+- Added check to periodically monitor available local storage and last backup
+  time (did this by extending and renaming the function that was periodically
+  checking version).
+- If available storage is too low, or last backup is too stale (1 week), then
+  the Storage menu is turned red and a tool tip is shown on it, encouraging
+  the user to take steps to remedy the situation.
+- The last backup time initially is set to the current time, so the first
+  warning will be seen a week after this update is adopted.
+- Upgrade "Toggle block" to be a top-level member of the Edit menu (apparently
+  some folks didn't find it)
+- Make automagic-block-adding loop till a minimal number (heuristically
+  derived) of lights exists, so that auto-created grids start out in a more
+  directly usable state.
+- Refactor the "New crossword" menus, using the phrase "lattice grid" instead
+  of "chequered grid", and upgrading the the creation of a US-style grid to be
+  a top-level menu item.
+- Make the order of the Exet tab menus be more natural:
+  Open, Edit, Analysis, Save, Storage.
+
 ### Minor update: Exet v0.94.6 October 21, 2024
 
 - Bug-fix: when a preferred fill entry was not in the lexicon, recent

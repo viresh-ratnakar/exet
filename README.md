@@ -4,7 +4,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v0.94, October 6, 2024
+#### Version: Exet v1.04.2, April 11, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -37,19 +37,23 @@ These are all the files needed from this repository:
 - [`exet-analysis.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-analysis.js),
 - [`exet.css`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.css),
 - [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js),
+- [`exet-storage.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-storage.js),
 - [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
 - [`exet-version.txt`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-version.txt),
 - [`no-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-unches.png),
   [`t-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/t-unches.png),
   [`l-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/l-unches.png),
   [`tl-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/tl-unches.png),
-  [`no-blocks.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-blocks.png).
 
 And here are the files needed from Exolve:
 
 - [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
 - [`exolve-m.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.js),
 - [`exolve-from-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-puz.js).
+- [`exolve-to-puz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-puz.js).
+- [`exolve-from-ipuz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-from-ipuz.js).
+- [`exolve-to-ipuz.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-to-ipuz.js).
+- [`exolve-exost.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-exost.js).
 
 Exet comes with a permissive MIT license. The full license notice is provided in
 the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
@@ -69,6 +73,10 @@ format, and as PDFs. You can also grab embeddable HTML code for adding your
 crossword to any web site or blog, using Exolve (but see the
 [known caveats in the Exolve
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-widget)).
+
+In late 2025, I set up a free, no-strings-attached crossword hosting
+service called [Exost](https://xlufz.ratnakar.org/exost.html). You can upload
+crosswords to it from its own site, or from Exolve Player, or from Exet.
 
 As of now, Exet only suggests English, Hindi, and Portuguese (Brazilian).
 I'll add support for more languages over time.
@@ -107,6 +115,8 @@ following modifications to the UKACD words list:
   implementation in
   [wink-porter2-stemmer](https://github.com/winkjs/wink-porter2-stemmer).
   Details are in the Lufz README file.
+- I have been periodically updating the lexicon, adding words and
+  phrases scoured from various web sources.
 
 ### Hindi
 
@@ -146,6 +156,28 @@ by loading two script files.
 This provides functionality such as getting anagrams, homophones, spoonerisms,
 and words/phrases matching a pattern.
 
+### Custom wordlists are *not* supported (*but*):
+
+Exet is a webapp. Most of the memory usage comes from the large lexicon and
+supporting indices (for word look-ups, anagrams, pronunciations, etc.).
+Allowing users to point to a wordlist file of their own and have that be used
+instead of Exet's default lexicon *is* possible, in theory. It would bring in
+a whole bunch of additional complexity. Like, using `indexedDB` to store the
+base lexicon and variants, so that the user can switch between lexicons.
+Like, adding background workers to "prepare" a new wordlist before it can
+be used, which would involve building indices, borrowing pronunciations from
+the base lexicon where possible, etc.). I did go down this path and was about
+60% done, before deciding to abandon it, in September 2025. I abandoned that
+path primarily because of the substantial additional complexity (without
+commensurate pay-off, in my opinion).
+
+You can use the "preferred fills" feature as a substitute for full custom
+wordlists: just load your custom wordlist as the list of preferred fills,
+and then set the minimum popularty threshold to 100% (which will prevent
+any words outside the preferred fills list from getting suggested or used
+in autofill). The only limitation is that you're limited to 50,000 words
+(which is probably sufficient for most users).
+
 ## Crossword construction walk-through
 
 To use Exet, you simply open a link to `exet.html`, such as [this one on
@@ -160,10 +192,12 @@ After it loads, your browser screen should look something like this:
 
 Normally, Exet would start with the last crossword that you were working
 on. When you open Exet for the very first time, it creates a 15x15
-blocked grid of the British variety, with blocks added "automagically"
-(see below). You can pass a URL option to default to a completely blank grid
-as the first grid it creates:
-[exet.html?newgrid=blank](exet.html?newgrid=blank).
+blocked grid of the "Commonwealth" variety (i.e., a standard chequered grid,
+as opposed to a U.S.-style grid where each square is doubly checked), with
+blocks added "automagically" (see below). You can pass a URL option to default
+to a completely blank grid as the first grid it creates:
+[exet.html?newgrid=blank](exet.html?newgrid=blank). You can always use the
+menu to create a "New" grid of the sort you need.
 
 There are three phases in crossword construction:
 
@@ -181,30 +215,54 @@ made by Debsamita Basu.
 
 ### Constructing the grid
 
-The "Open" menu allows you to start with blocked blank grids following a few
-checkquered templates and the completely blank "No blocks" template. You will
-also see a checkbox when creating a new blank grid, to "Add automagic blocks,"
-and it will be checked by default (you can uncheck it if you do want to start
-with a chequered template with no added blocks or with a completely blank
-template). After creating a grid, you can customize it by manually
-adding/removing blocks/bars, or by letting the software automatically add
-blocks.
+The "New" menu allows you to start with several "new grid" options:
 
-You can also create a 3-D grid from the "Open" menu. In a 3-D grid, there are
-multiple "layers", with "down" clues running through the layers and "across"
+- New blocked lattice grid (with blocks added)
+  - This allows you to create one of four variants of a chequered grid, wih
+    blocks added to create a reasonable grid. You can always edit it further
+    by adding or removing blocks. This is the standard blocked grid used
+    in "commonwealth" puzzles (i.e., non-U.S.-style).
+- New blocked lattice grid (no added blocks)
+  - This allows you to create one of four variants of a chequered grid, wih
+    no further blocks added. You can add blocks to such a grid manually or
+    "automagically" at any later point in time.
+- New US-style doubly checked grid (with blocks added)
+  - This creates a U.S.-style crossword (each square is doubly checked), with
+    blocks added to create a reasonable grid. You can always edit it further
+    by adding or removing blocks.
+- New blank grid (add blocks/bars later)
+  - This is a completely blank grid to which you would manually add blocks
+    or bars (or both). For barred grids, or for blocked grids that you want
+    to craft yourselves, this is where you should start. A sub-menu lets You
+    choose whether you want the grid to be a U.S.-style puzzle without enums.
+
+After creating a grid, you can customize it by manually adding/removing
+blocks/bars, or by letting the software "automagically" add blocks.
+
+You can also create a 3-D grid from the "New" menu. In a 3-D grid, there are
+multiple "layers," with "down" clues running through the layers and "across"
 and "away" clues within the layers. See the
 [Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
 for details on 3-D crosswords.
 
+The "Open" menu lets you open previously created crosswords, or return to
+an older revision of the current crossword, or open an Exolve file or a
+.puz/.ipuz file. When you open an existing HTML file that contains a puzzle
+in the Exolve format, the software remembers the HTML part that comes before
+and after the Exolve part, and will replicate it whenever you save again
+in the Exolve format.
 
+Next to the "Open" menu is the "Edit" menu, useful for tweaking the grid,
+autofilling it, and adding/modifying crossword features such as ninas:
+
+- Toggle block (.)
 - Add automagic blocks (#)
-- Autofill:
-  - _Leads to an autofill options panel._
-- Accept autofilled entries (=)
-- Edit grid cell:
-  - Toggle block (.)
+- Toggle barred cell:
   - Toggle bar-after (|)
   - Toggle bar-under (\_)
+- Autofill
+  - _Leads to an autofill options panel._
+- Accept autofilled entries (=)
 - Mark grid cell:
   - Toggle encircling (@)
   - Toggle marking prefilled (!)
@@ -237,10 +295,13 @@ two formats is the state of the grid at that time. "Add automagic blocks"
 can be used repeatedly. More details on what "Add automagic blocks" does
 are [provided in the appendix](#automagic-blocks).
 
-You can also open a .puz file, or any existing HTML file that contains a puzzle
-in the Exolve format (when you save such a crossword after editing it, the saved
-Exolve file will replicate whatever is there before and after the Exolve part in
-the original HTML file that you opened).
+When you add or remove blocks/bars, that invalidates all the lights
+whose lists of cells changes as a result of the modification. Other lights
+may be impacted only with a number change (other than that impact, they
+continue their previous state made up of any existing clues, linked
+group memberships, regexp constraints). Invalidated lights get reset (they
+lose any existing clues, regexp constraints, and any linked groups that
+they were a part of get broken up).
 
 #### Reversing the current light
 When you choose the option to reverse a light from the Edit menu, the
@@ -251,11 +312,17 @@ orientation of the cell is reversed. This entails the following direction change
 - Away (aw) &harr; Towards (to) in 3-D
 - Down (dn) &harr; Up (up) in 3-D
 
+Exet will prompt you to confirm before going ahead with a reversal (as it
+is such a drastic action).
+
 When you reverse a light, you retain the clue (and annotation) that you might
 have already written for it (but you will probably need to revise it!). You will
 also retain any linked group that the light may be a part of (but the order of
 cells in the group will change!). Reversing a light has no impact on other
 lights/clues (except that their numbering may change).
+
+If there was a regexp constraint on the light, it is retained after reversal
+(but note that it will now be applied in the reversed direction).
 
 ### Filling the grid
 
@@ -273,11 +340,14 @@ phrase (for example, by changing "(10)" to "(4,6)") then the grid-fill
 suggestions will be reordered to prefer entries that match the implied
 punctuation, i.e., the presence of interword space/dash/apostrophe characters.
 
+Note that if you start with a US-style crossword, enums are not shown in clues,
+unless you explicitly add them.
+
 To the right of the fill suggestions table, near the top, you have some
 settings that control the nature of fill suggestions. These are:
 
-- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.06"), as of
-  May 2023, has 268,740 entries. Providing a popularity threshold
+- A minimum "popularity" threshold. The lexicon ("Lufz-en-v0.09"), as of
+  March 2026, has 270,372 entries. Providing a popularity threshold
   can be useful to avoid obscure words as well as to make autofill go faster.
   If you are an experienced setter, you may want to set this to 0 to see the
   widest possible set of choices for each fill. This threshold is set to **80**
@@ -287,15 +357,15 @@ settings that control the nature of fill suggestions. These are:
 
   | Threshold | #Entries | Last included entries    |
   |-----------|----------|--------------------------|
-  |       0   | 269,526  | The bells of Hell go ting-a-ling-a-ling |
-  |       25  | 202,144  | involucels, nicht wahr |
-  |       50  | 134,762  | potica, Naskhi |
-  |       60  | 107,810  | toothaches, sociolects, minor canon |
-  |       70  |  80,857  | trembled, die down, catfight |
-  |   **80**  |**53,904**|**lor, prow, varus**        |
-  |       85  |  40,428  | devious, culling, despatch  |
-  |       90  |  26,952  | Suisse, gluten, flatter |
-  |       95  |  13,475  | clocks, stimuli, World Bank |
+  |       0   | 270,372  | The bells of Hell go ting-a-ling-a-ling |
+  |       25  | 202,778  | Christmassy, glass jaws |
+  |       50  | 135,185  | cense, mayst |
+  |       60  | 108,148  | virtuously, monography, sanyasins |
+  |       70  |  81,110  | grandfather clock, difference engine |
+  |   **80**  |**54,073**|**wagtail, thallus, skaldic**        |
+  |       85  |  40,554  | Dead Sea Scrolls, private enterprise  |
+  |       90  |  27,036  | URL, Tess, kindly |
+  |       95  |  13,517  | insulin, right side, transmitting |
 
 - Whether to exclude proper nouns.
 - Whether to avoid reusing words with common stems. This option only works
@@ -336,19 +406,69 @@ background (and a warning tooltip).
 
 When Exet determines (using its lexicon) that for some unfilled cell, exactly
 one letter choice is viable, it shows that letter choice in gray. You can use
-the Edit menu's "Accept autofilled entries" option to accept all such autofilled
-letter suggestions.
+the Edit > Autofill menu's "Accept autofilled entries" option to accept all
+such autofilled letter suggestions.
 
-You can provide up to 100 preferred words/phrases for using in the grid, by
-clicking on the button labelled "Set preferred fills" in the Exet tab, just
+#### Preferred and excluded words/phrases
 
-Clicking anywhere outside the panel of preferred fills will dismiss the panel.
+You can provide up to 50,000 preferred words/phrases for using in the grid, by
+clicking on the button labelled "Set preferred fills" in the Exet tab.
+When showing fill suggestions, the words entered here will be shown first
+(in green). When using autofill, these words will be preferred (even if
+they do not meet the minimum popularity threshold).
 
 Similarly, you can provide a set of words that you do *not* want to appear
 in the crossword, by clicking on the "Set fill exclusions" button.
 
-Clicking anywhere outside the shown panel (for preferred fills or fill
-exclusions) dismisses it.
+If a line begins with '#" in the text entered in these panels, then it will be
+ignored.
+
+Clicking anywhere outside the panel shown for preferred fills or fill
+exclusions dismisses it.
+
+Note that if you specify preferred fills, and you set the minimum popularity
+threshold to 100%, then you are effectively using the preferred fills list
+as your custom wordlist, as no words outside of that list will be shown in
+fill suggestions or used in autofill.
+
+#### Light-specific menu
+Just above the editable version of the current clue (shown above the grid),
+there are three buttons shown. The first one has a hamburger menu (&#9776;)
+and the other two are for navigating to the previous and next clues.
+
+The hamburger menu provides convenient access to a few features that are
+available from other places (linking/unlinking, clearing, reversing). It
+also provides access to a panel where you can specify/edit a "regexp constraint"
+in the entry in the light. This is described next.
+
+#### Regexp constraints on entries
+You can specify a regular expression ("regexp") constraining the entries in a
+light. This is done in a panel that can be accessed by clicking the
+"&#128279; Regexp constraint" option in the light-specific hamburger menu.
+
+The regexp would be tested against entries in the lexicon (that fit any
+existing crossing letters), including spaces and capitalizations. Any entries
+that do not match the regexp would be removed from consideration. Clearing a
+previously-specified regexp would make the light entry unconstrained again.
+Any changes you make are automatically applied after a short lag.
+
+This is a powerful mechanism, but it does require a good understanding
+of [JavaScript RegExp workings and
+features](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp).
+
+Here are some illustrative examples of regexp usage:
+
+- `^[ae]` would only allow entries starting with "a" or "e".
+- `/egg/i` would match entries containing the substring "egg", ignoring case.
+  You can use the `/.../..` syntax to add regexp flags.
+- `(.)\1$` would only allow entries that end with two identical characters.
+- `^(.)(.).\2\1$` would only allow 5-letter palindromes.
+- `^[belgium]*$` would only allow entries that contain letters from the
+  word "belgium".
+
+When a regexp constraint is active for a light, an icon with the chain-link
+symbol (&#128279;) is shown in the list of available light choices. Clicking
+on this icon also brings up the regexp editing panel.
 
 #### Going back-and forth between filling the grid and changing the grid
 
@@ -375,9 +495,12 @@ its control panel and hiding it (by moving the mouse out): you can return to
 monitoring its status again by clicking again on "Autofill" in the "Edit" menu.
 
 Note that Autofill tries to prefer words/phrases in the "preferred fills" list.
-Autofill also respects the "fill exclusions" settings (min-popularity,
-exclusion of proper nouns, as well as any entries in the explicitly forbidden
-list) and the setting for allowing reversals.
+Autofill also respects fill preferences settings (min-popularity, exclusion of
+proper nouns and entries in the explicitly forbidden list, stem-dupes avoidance,
+light-specific regexp constraints) and the setting for allowing reversals. As
+noted earlier, if you've set min-popularity threshold to 100%, then you're
+effectively limiting autofill to words in the preferred fills list (i.e.,
+treating it like a custom wordlist).
 
 If Autofill fails, you can try to rerun it a few times. It may succeed
 on a subsequent run, because of the slight randomness in the choices that it
@@ -449,6 +572,9 @@ no word/phrase from the lexicon fits. You have to use your own judgment to
 decide whether a word or phrase obtained from a web source is usable, as
 these matches may not necessarily be dictionary entries or common phrases.
 
+Listings for web sources do *not* use any light-specific regexp constraints
+that you may have specified.
+
 For English, the web sources made available are Nutrimatic, Onelook, and Qat.
 My personal experience is that Nutrimatic can sometimes find
 common-enough-to-be-fair-in-crosswords phrases that are missing from the
@@ -477,15 +603,13 @@ In the clues list in the Exet panel (to the right of the grid), clues in
 draft mode get shown with a `[DRAFT]` marker and their clue numbers get shown
 coloured gray.
 
-You can also edit the enum part of the clue, but the software will reset it
-to the previous value if it does not add up to the needed number. For example,
-if a light spans 10 cells, and you edit the enum part to be "(5-4)," the
-software will reset it to "(10)," (or "(5,5)" or whatever was the last value).
-When it does this, Exet will also surface a relevant tip under the "Tips"
-area, showing how you can use `exolve-option: ignore-enum-mismatch` to avoid
-this strict checking, if desired.
-Note that when you save the crossword to Exolve or PUZ or PDF formats,
-you can always chose to not list the enums (using a checkbox in the Save menu).
+In a puzzle where enums are required (i.e., non-US-style), you can also edit the
+enum part of the clue, but the software will reset it to the previous value if
+it does not add up to the needed number. For example, if a light spans 10
+cells, and you edit the enum part to be "(5-4)," the software will reset it to
+"(10)," (or "(5,5)" or whatever was the last value). When it does this, Exet
+will also surface a relevant tip under the "Tips" area, showing how you can use
+`exolve-option: ignore-enum-mismatch` to avoid this strict checking, if desired.
 
 You can also leave an enum incompletely specified, as in these examples:
 "(one word)", "(2 wds)". You can specify the total length and omit the
@@ -510,7 +634,7 @@ if you change the setting, depending on some browser peculiarities, the
 updated setting may only become active after you have navigated to a new
 clue and/or clicked on the clue or anno.
 
-##### Modifying the grid after some clues have been provided
+#### Modifying the grid after some clues have been provided
 
 If you make changes to the grid (such as adding/removing blocks/bars) that
 result in a modified numbering of clues, any clues or annotations that you
@@ -557,14 +681,16 @@ applicable).
 
 | Format | Keystrokes | Context | Notes          |
 |--------|------------|---------|----------------|
-| Def | Ctrl-D | Clue | Toggles wrapping/unwrapping in the def wrapper, `~{...}~` |
-| _I_      | Ctrl-I | Clue/Anno | Toggles wrapping/unwrapping in `<i>...</i>` |
-| **B**        | Ctrl-B | Anno | Toggles wrapping/unwrapping in `<b>...</b>` |
-| <u>U</u>   | Ctrl-U | Anno | Toggles wrapping/unwrapping in `<u>...</u>` |
-| ~S~ | Ctrl-S | Anno | Toggles wrapping/unwrapping in `<s>...</s>` |
+| Def | Ctrl-d | Clue | Toggles wrapping/unwrapping in the def wrapper, `~{...}~` |
+| _I_      | Ctrl-i | Clue/Anno | Toggles wrapping/unwrapping in `<i>...</i>` |
+| **B**        | Ctrl-b | Anno | Toggles wrapping/unwrapping in `<b>...</b>` |
+| <u>U</u>   | Ctrl-u | Anno | Toggles wrapping/unwrapping in `<u>...</u>` |
+| ~S~ | Ctrl-s | Anno | Toggles wrapping/unwrapping in `<s>...</s>` |
 | CAPs   |  | Anno | Toggles capitalization of letters |
 | **A**l**T**s   |  | Anno | Marks every odd letter as bold and in upper case |
 | ~_*T*_~   |  | Clue/Anno | Clears formatting |
+
+On Macs, the Cmd key can be used instead of the Ctrl key.
 
 This feature is not intended to be a fancy WYSIWYG editor, and has some
 idiosyncrasies:
@@ -589,7 +715,10 @@ You can link clues, creating sequences of lights that make up a single solution
 that is clued using the "parent" clue (the first one in the sequence). To
 create such linkages, you can click on the clue number of the current clue,
 which will bring up a panel through which you can add a linked clue to the
-current clue. You have to specify the clue to be linked by providing its
+current clue. There is also a hamburger menu button (&#9776;) above the current
+clue, from which you can access this panel.
+
+You have to specify the clue to be linked by providing its
 number as well as direction suffix ("7d" or "9a" or "6u" or "13b" or—in
 3-D—"7dn" or "9ac" or "8aw" or "12up" or "19ba" or "3to", etc.). The same panel
 also provides a button for breaking up a group of
@@ -610,15 +739,15 @@ usage, pronunciation, and etymology. The "Research" tab lets you do that
 by using reputed online resources, conveniently linking directly to the
 word/phrase in the current light:
 
-- **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Wiktionary**: [en.wiktionary.org](https://en.wiktionary.org)
 - **Merriam-Webster Dictionary & Thesaurus**: [www.merriam-webster.com](https://www.merriam-webster.com)
 - **Onelook**: [onelook.com](https://onelook.com)
 - **DictionaryAPI**: [api.dictionaryapi.dev](https://api.dictionaryapi.dev)
 - **Etymonline**: [www.etymonline.com](https://www.etymonline.com)
+- **The Free Dictionary**: [thefreedictionary.com](https://thefreedictionary.com)
 - **Chambers Dictionary & Thesaurus**: [chambers.co.uk](https://chambers.co.uk).
-  Note that Chambers now does not allow embedding their pages in
-  iframes, so these links open in new tabs.
+  Note that The Free Dictionary and Chambers now do not allow embedding their
+  pages in iframes, so these links open in new tabs.
 
 In addition, the "Research" tab lets you search
 [**cryptics.georgeho.org**](https://cryptics.georgeho.org/), which is an excellent
@@ -661,6 +790,12 @@ top in each tab. These tabs are:
   - Containments (A around B) are shown in a tabular form showing all
     anagrams of A and B. The anagram colouring/annotating scheme described
     above is used here too.
+  - For anagrams, charades, and containments, if the fodder is too long
+    (longer than 13), then we trim it down and indicate this trimming by
+    showing it in red and showing exclamation marks next to it. You can
+    generate the wordplay for the full untrimmed fodder by appending an
+    exclamation mark at the end (this can be SLOW and may lock up your
+    browser for a short while).
 - **Charades/-**: Shows candidate charades and anagrammed deletions.
     - Anagrammed deletions (`*(A - B*)`) are shown together above charades
       (for convenience: you can easily scroll past them if needed). Anagrammed
@@ -757,46 +892,77 @@ edited. Similarly, you can edit the copyright notice for the puzzle. All three
 of these editable fields are optional, and you can simply edit them to be
 empty.
 
-### Downloading Exolve or .puz files
+### Exost
+
+In late 2025, I set up a free, no-strings-attached crossword hosting
+service called [Exost](https://xlufz.ratnakar.org/exost.html). You can upload
+crosswords to it from its own site, or from Exolve Player, or from Exet.
+On that site, you can use exolve, puz, or ipuz formats. From Exolve Player
+and from Exet, you can upload the current crossword to Exost. From
+Exolve Player, you have the additional ability to start from just the text
+of the clues. From Exet, you have an additional option of uploading a
+crossword without its solutions. This can be useful if you want to first
+put up a crossword without solutions and then perhaps after some time
+replace it with a version that does provide solutions.
+
+You can access this functionality from the "Save" menu's
+"Upload for hosting at Exost" option.
+
+### Downloading Exolve or .puz or .ipuz files
 
 The "Save" menu lets you download or grab the puzzle in various ways. In the
 following, \<title\> in a filename stands for the puzzle title.
 
+- **Download Exolve HTML file...**
+  - **With solutions (exet-exolve-\<title\>.html)**:
+    Download an HTML file that uses Exolve and that allows solvers to check/see
+    solutions. Such files can also be opened by Exet from the "Open" menu and
+    can be further edited. This might be useful, for example, when you want to
+    edit an old crossword that you have deleted from Exet's limited local
+    storage. **Shortcut: Ctrl-s** (this most common saving operation overrides
+    the browser's default "Save").
+  - **Without solutions (exet-exolve-\<title\>-sans-solutions.html)**:
+    Download an HTML file that uses Exolve and does not allow solvers to
+    check/see solutions.
+- **Print or download PDF file...**
+  - **With solutions**: Print the crossword, or save
+    it as a PDF file, in a compact, two-column format, with solutions.
+  - **Without solutions**: Print the crossword, or save
+    it as a PDF file, in a compact, two-column format, without solutions.
 - **Download PUZ file (exet-\<title\>.puz)**: Download a .puz file. Note that
   .puz does not support many crossword features (afaik) such as barred grids.
   The software will alert you if it is not able to provide a .puz download.
   Note also that when exporting the crossword in the .puz format, any rich
   formatting in clues will get stripped out as the .puz format does not support
   it (.puz does not support annotations either).
-- **Download Exolve file with solutions
-  (exet-exolve-\<title\>-with-solutions.html)**:
-  Download an HTML file that uses Exolve and that allows solvers to check/see
-  solutions.  Such files can also be opened by Exet from the "Open" menu and
-  can be further edited. This might be useful, for example, when you want to
-  edit an old crossword that you have deleted from Exet's limited local storage.
-- **Download Exolve file without solutions
-  (exet-exolve-\<title\>-sans-solutions.html)**:
-  Download an HTML file that uses Exolve and does not allow solvers to check/see
-  solutions.
-- **Copy Exolve widget code with solutions 📋**: Copy (into the clipboard)
-  embeddable Exolve widget HTML code (with solvers able to check/see solutions).
-- **Copy Exolve widget code without solutions 📋**: Copy (into the clipboard)
-  embeddable Exolve widget HTML code (with solvers not able to check/see
-  solutions).
-- **Print or download PDF file with solutions**: Print the crossword, or save
-  it as a PDF file, in a compact, two-column format, with solutions.
-- **Print or download PDF file without solutions**: Print the crossword, or save
-  it as a PDF file, in a compact, two-column format, without solutions.
+- **Download IPUZ file (exet-\<title\>.ipuz)**: Download a .ipuz file. Note that
+  .puz does not support many crossword features (afaik). The software will alert
+  you if it is not able to provide a .ipuz download.
+- **Download grid image SVG file...**
+  - **With solutions (exet-\<title\>-solution-grid.svg)**: Download
+    the grid image as an SVG file, with solution letters (and ninas).
+  - **Without solutions (exet-\<title\>-blank-grid.svg)**: Download
+    the blank grid image as an SVG file, without solution letters or ninas.
+- **Copy Exolve HTML widget code...**
+  - **With solutions 📋**: Copy (into the clipboard)
+    embeddable Exolve widget HTML code (with solvers able to check/see solutions).
+  - **Without solutions 📋**: Copy (into the clipboard)
+    embeddable Exolve widget HTML code (with solvers not able to check/see
+    solutions).
+- **Upload for hosting at Exost**
 
-In the first three "download" variants, a file with the name shown will be
+In the "Save" options that download a file, a file with the name shown will be
 downloaded into the browser's Downloads directory/folder. If there already
 exists a file with that name, the system will use a variant of the name
-as per its usual conventions.
+as per its usual conventions (such as appending "(1)" to the name).
 
-The Save menu also lets you change a couple of settings:
+Note that Ctrl-s/Cmd-s would not save the crossword when you're editing
+a clue annotation (Ctrl-s is used for adding "strike-through" formatting in that
+context). You can simply click somewhere outside the annotation-editing box
+and then use Ctrl-s to save the crossword, if desired.
 
-- **Show enums in clues**: You can turn this off to download American-style
-  puzzles that do not show enums in clues.
+The Save menu also lets you change some settings:
+
 - **Exolve URL prefix**: You can change this to your own custom location
   of the `exolve-m.css` and `exolve-m.js` files in downloaded Exolve files.
   You can press the Escape key inside the text entry area to revert to the
@@ -805,7 +971,7 @@ The Save menu also lets you change a couple of settings:
   you modify the puzzle and download as Exolve subsequently, the downloaded
   file will simply copy everything (other than the modified puzzle specs)
   from the original file, including the URL prefix (i.e., this setting will
-  not get used).
+  not get used). Note that this has no impact on "Upload for hosting at Exost".
 
 These Save settings are sticky: Exet saves their current values in local
 storage.
@@ -821,25 +987,46 @@ by clicking on it, when it is being edited above the grid).
 The "Open" menu lets you pick any old revision of any crossword. It also shows
 a preview of the puzzle revision that you select.
 
+### Storage
+
 Browsers typically limit the amount of local storage (5 MB in Chrome as of
-May 2023). When this limit is reached, Exet will warn you that it cannot
-save crossword revisions. You can use the "Manage storage" menu option in the
-"Open" menu at any time to delete old revisions of some crosswords and/or
-entirely delete old crosswords (after downloading Exolve files with solutions
-for them as these files can be opened in Exet to recover the crosswords
-completely).
+October 2025). When this limit is reached, Exet will warn you that it cannot
+save crossword revisions. You can use the "Manage local storage" menu option in
+the "Storage" menu at any time to delete old revisions of some crosswords and/or
+entirely delete old crosswords (after saving a backup or after downloading
+Exolve files with solutions for your crosswords, as these files can be opened
+in Exet to recover the crosswords completely).
 
-### Backing up the revisions stored in local storage
+### Backing up the crosswords to a file
 
-The "Open" menu also has a "Save all revisions to file" option, which saves the
-entire revision history to a JSON file (named exet-revisions-_timestamp_.json),
-as a way of having a back-up beyond the browser's local storage. Apart from
-using as a back-up mechanism, you can also use this to transfer all the
-crosswords that you're working on to a different computer. The companion option,
-"Merge saved revisions file," lets you read a saved JSON file, merging all
-revision state from it. This allows limiting to just the latest version of each
-crossword (instead of its full revision history). The revisions are _merged_: in
-the sense that if a revision already exists then it is not duplicated.
+The "Storage" menu has a "Back uo all current crosswords to ..." option,
+which saves the entire revision history to a JSON file
+(named exet-backup-_timestamp_.json), as a way of having a back-up beyond the
+browser's local storage. Apart from using as a back-up mechanism, you can also
+use this to transfer all the crosswords that you're working on to a different
+computer. The companion option, "Merge saved back-ups file," lets you read a
+saved JSON file, merging all revision state from it. This allows limiting to
+just the latest version of each crossword (instead of its full revision
+history). The revisions are _merged_: in the sense that if a revision already
+exists then it is not duplicated.
+
+Exet also keeps track of when you last did a back up, and alerts you if over
+a week has passed since you backed up.
+
+### Auto-Free!
+
+There's a convenient menu option under Storage called "Auto-Free!" that can be
+used for saving a back-up file _plus_ purging some old revisions to free up
+space. It first saves all current versions to a back-up file (as described in
+the previous section), and then, for each crossword, it deletes some old
+versions. The latest 25 revisions as well as any revisions saved within the last
+hour are left untouched. Revisions prior to these cutoffs are trimmed in half
+(only every other revision is deleted).
+
+If you're low on space and Auto-Free fails to free up space, that probably
+means that you have too many active crosswords. Auto-Free would display an
+alert to that effect in that scenario, and would point you to use the
+"Manage local storage" option to delete some revisions manually.
 
 ## Analysis
 
@@ -864,7 +1051,8 @@ properties of crosswords:
 - Words (other than very common ones) should not be repeated in clues,
   especially if they are used as cryptic wordplay indicators. For
   English, the Analysis page reports duplication in terms of stemmed
-  forms of words.
+  forms of words. We include solution entries too, when checking for such
+  dupes in clue texts.
 - Long common substrings in solution entries may not be desirable.
 - The number of long and very long clues should ideally be limited.
 - Wordplay types in cryptic clues should have a good mix of variety.
@@ -1152,6 +1340,8 @@ creating a new blank grid or whether you invoke it on an existing grid):
   grid has barred cells, then "Add automagic blocks" does not make any changes.
 - It makes 0 or 1 random change to each row, and then 0 or 1 random change to
   each column, while maintaining certain grid properties as listed below.
+  The rows and columns are visited in shuffled order to better randomize the
+  created grids.
 - If an existing grid is of the American variety with every white square
   being a part of an across light as well as a down light (i.e., is "checked"),
   then, ensure that:
@@ -1170,6 +1360,9 @@ creating a new blank grid or whether you invoke it on an existing grid):
     blank grid, "Add automagic blocks" will create a British grid variety.)
 - No cell where you've already entered a grid-fill letter will be turned into a
   block.
+- The above procedure loops until a heuristically-determined minimum number of
+  lights is reached, when a new grid is being created. There is no target set
+  if you use the "Edit > Add automagic blocks" option.
 
 ## Copyright notices
 

@@ -5,7 +5,7 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.94, October 6, 2024
+Current version: v1.04.2, April 11, 2026
 */
 
 /**
@@ -225,6 +225,31 @@ class ExetAnalysis {
       spans.push([start, len]);
     }
     return spans;
+  }
+
+  /**
+   * Should only be called for chequered grids. Sets parityHasLight{Row,Col}[0/1]
+   * to true iff there is any row/col with that parity that has a light.
+   */
+  getChequeredParity = function(parityHasLightRow, parityHasLightCol) {
+    parityHasLightRow[0] = false;
+    parityHasLightRow[1] = false;
+    for (let i = 0; i < this.h; i++) {
+      const spans = this.acrossSpans(i);
+      if (spans.length > 0) {
+        parityHasLightRow[i % 2] = true;
+        break;
+      }
+    }
+    parityHasLightCol[0] = false;
+    parityHasLightCol[1] = false;
+    for (let i = 0; i < this.w; i++) {
+      const spans = this.downSpans(i);
+      if (spans.length > 0) {
+        parityHasLightCol[i % 2] = true;
+        break;
+      }
+    }
   }
   
   isSymmetric() {
@@ -591,7 +616,7 @@ class ExetAnalysis {
   }
 
   /**
-   * Finds minThroughCuts() along both dimensions and returns truw iff both
+   * Finds minThroughCuts() along both dimensions and returns true iff both
    * are at least as big as one-fourth of the size along that dimension.
    */
   throughCutsBigEnough() {

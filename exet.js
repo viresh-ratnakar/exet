@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v0.94, October 6, 2024
+Current version: v1.04.2, April 11, 2026
 */
 
 function ExetModals() {
@@ -45,12 +45,12 @@ ExetModals.prototype.handleClick = function(e) {
 // If caller calls this in response to a click event e, then caller should also
 // call e.stopPropagation().
 ExetModals.prototype.showModal = function(elt) {
-  this.hide()
+  this.hide();
   if (!elt) {
-    return
+    return;
   }
   this.modal = elt;
-  this.modal.style.display = 'block'
+  this.modal.style.display = 'block';
 }
 
 ExetModals.prototype.hide = function() {
@@ -64,622 +64,26 @@ ExetModals.prototype.hide = function() {
   this.modal = null;
 }
 
-function ExetRevManager() {
-  this.REV_LOADED_FROM_FILE = 1;
-  this.REV_CREATED_BLANK = 2;
-  this.REV_CREATED_AUTOBLOCK = 3;
-  this.REV_JUMPED_TO_REV = 10;
-  this.REV_GRID_CHANGE = 20;
-  this.REV_LIGHT_REVERSAL = 24;
-  this.REV_AUTOFILL_GRIDFILL_CHANGE = 28;
-  this.REV_GRIDFILL_CHANGE = 30;
-  this.REV_ENUM_CHANGE = 40;
-  this.REV_CLUE_CHANGE = 50;
-  this.REV_METADATA_CHANGE = 60;
-  this.REV_FILL_OPTIONS_CHANGE = 65;
-  this.REV_PREFLEX_CHANGE = 70;
-  this.REV_OPTIONS_CHANGE = 80;
-
-  this.revMsgs = {};
-  this.revMsgs[this.REV_LOADED_FROM_FILE] = "Loaded from a file";
-  this.revMsgs[this.REV_CREATED_BLANK] = "Created a blank grid";
-  this.revMsgs[this.REV_CREATED_AUTOBLOCK] = "Created a blank grid " +
-      "with automagic blocks";
-  this.revMsgs[this.REV_JUMPED_TO_REV] = "Jumped to a previous revision";
-  this.revMsgs[this.REV_GRID_CHANGE] = "Grid change";
-  this.revMsgs[this.REV_LIGHT_REVERSAL] = "Light reversal";
-  this.revMsgs[this.REV_AUTOFILL_GRIDFILL_CHANGE] = "Autofilled grid-fill " +
-      "change";
-  this.revMsgs[this.REV_GRIDFILL_CHANGE] = "Grid-fill change";
-  this.revMsgs[this.REV_ENUM_CHANGE] = "Enum change";
-  this.revMsgs[this.REV_CLUE_CHANGE] = "Clue or anno change";
-  this.revMsgs[this.REV_METADATA_CHANGE] = "Metadata change";
-  this.revMsgs[this.REV_FILL_OPTIONS_CHANGE] = "Change in options " +
-      "for suggested fills";
-  this.revMsgs[this.REV_PREFLEX_CHANGE] = "Change in the list of or options " +
-      "for preferred words";
-  this.revMsgs[this.REV_OPTIONS_CHANGE] = "Crossword options change";
-
-  /* State for throttled revision-saving */
-  this.throttleRevTimer = null;
-  this.saveLagMS = 5000
-  this.throttlingLastRev = 0;
-
-  /**
-   * Special localStorage key for storing preferences and state,
-   * qualified by non-default lexicon properties.
-   */
-  this.SPECIAL_KEY_PREFIX = '42-exet-42';
-  this.SPECIAL_KEY = this.SPECIAL_KEY_PREFIX;
-  if ('en' != exetLexicon.language || 'Latin' != exetLexicon.script ||
-      1 != exetLexicon.maxCharCodes) {
-    this.SPECIAL_KEY += `-${exetLexicon.language}-${exetLexicon.script}` +
-                        `-${exetLexicon.maxCharCodes}`;
-  }
-  this.spaceUsedAtStart = 0
-  for (let idx = 0; idx < window.localStorage.length; idx++) {
-    let id = window.localStorage.key(idx)
-    this.spaceUsedAtStart += window.localStorage.getItem(id).length
-  }
-  this.spaceUsed = this.spaceUsedAtStart
-
-  let k500 = '1234567812345678'
-  while (k500.length < 500000) {
-    k500 = k500 + k500
-  }
-  let tempKey = '42-exet-cap-42-'
-  this.spaceLeftAtStart = 0
-  for (let i = 0; i < 20; i++) {
-    // Only count up to 10 MB
-    try {
-      window.localStorage.setItem(tempKey + i, k500)
-      this.spaceLeftAtStart += k500.length
-    } catch (err) {
-      break
-    }
-  }
-  for (let i = 0; i < 20; i++) {
-    window.localStorage.removeItem(tempKey + i)
-  }
-
-  // Id for previews
-  this.previewId = `exet-preview-${Math.random().toString(36).substring(2, 8)}`
-};
-
-ExetRevManager.prototype.inMB = function(num) {
-  return (num / 1000000).toFixed(2)
-}
-
-ExetRevManager.prototype.choosePuzRev = function(manageStorage,
-                                                 puz, elt, callback) {
-  let choices = [];
-  if (puz) {
-    let stored = window.localStorage.getItem(puz.id);
-    let spaceUsed = stored.length;
-    choices = [{id: puz.id, title: puz.title, space: spaceUsed}];
-  } else {
-    this.spaceUsed = 0;
-    for (let idx = 0; idx < window.localStorage.length; idx++) {
-      let id = window.localStorage.key(idx);
-      let stored = window.localStorage.getItem(id);
-      let spaceUsed = stored.length;
-      this.spaceUsed += spaceUsed;
-      if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
-        continue;
-      }
-      try {
-        stored = JSON.parse(stored);
-      } catch (err) {
-        continue;
-      }
-      if (!stored || !stored["id"] || !stored["revs"] || !stored["maxRevNum"]) {
-        continue;
-      }
-      let title = '';
-      if (stored.revs.length > 0) {
-        title = stored.revs[stored.revs.length - 1].title;
-      }
-      choices.push({id: stored.id, title: title, space: spaceUsed});
-    }
-  }
-  const storageUsedMB = this.inMB(this.spaceUsed);
-  const storageFreeMB = this.inMB(this.spaceUsedAtStart +
-      this.spaceLeftAtStart - this.spaceUsed);
-  exet.storageUsed.innerText = storageUsedMB;
-  exet.storageFree.innerText = storageFreeMB;
-  let html = `
-  <table>
-    <tr>
-      <td><i>Select puzzle ID/Title</i></td>
-      <td>
-        <i>Select revision</i>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <div class="xet-choices-box" id="xet-choose-id">
-          <table class="xet-choices" id="xet-id-choices">`
-  for (let i = 0; i < choices.length; i++) {
-    html = html + `
-      <tr id="xet-id-choice-${i}">
-        <td>${choices[i].id}</td>
-        <td>${choices[i].title}</td>
-        <td>${this.inMB(choices[i].space)} MB</td></tr>`
-  }
-  html = html + `
-          </table>
-        </div>
-      </td>
-      <td>
-        <div class="xet-choices-box" id="xet-choose-rev">
-          <table class="xet-choices" id="xet-rev-choices">
-          </table>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td colspan="2">
-        <div>
-          <span>Space used: ${storageUsedMB} MB</span>
-          <span>Space available: <span
-            class="xet-red">${storageFreeMB}</span> MB</span>
-          <button id="xet-puz-rev-deleter"
-            style="float:right;margin: 0 16px; display: none"
-            class="xlv-button">Delete rev</button>
-          <button id="xet-puz-prior-deleter"
-            style="float:right;margin: 0 16px; display: none"
-            class="xlv-button">Delete older revs!</button>
-          <button id="xet-puz-deleter"
-            style="float:right;margin: 0 16px; display: none"
-            class="xlv-button">Delete!</button>
-          <button id="xet-puz-rev-selector"
-            style="float:right;margin: 0 16px; display: none"
-            class="xlv-button">Open</button>
-        </div>
-        <div id="xet-preview" class="xet-preview">
-        </div>
-      </td>
-    </tr>
-  </table>
-  `
-  elt.innerHTML = html
-  this.idChoicesBox = document.getElementById('xet-choose-id')
-  this.idChoicesBox.style.width = '270px'
-  this.idChoicesBox.style.height = '200px'
-  this.idChoices = document.getElementById('xet-id-choices')
-  this.revChoicesBox = document.getElementById('xet-choose-rev')
-  this.revChoicesBox.style.width = '500px'
-  this.revChoicesBox.style.height = '200px'
-  this.revChoices = document.getElementById('xet-rev-choices')
-  this.preview = document.getElementById('xet-preview')
-  this.idChoice = ''
-  this.revChoice = -1
-  this.puzDeleter = document.getElementById('xet-puz-deleter')
-  this.puzPriorDeleter = document.getElementById('xet-puz-prior-deleter')
-  this.puzRevDeleter = document.getElementById('xet-puz-rev-deleter')
-  this.puzRevSelector = document.getElementById('xet-puz-rev-selector')
-  this.manageStorage = manageStorage
-  if (manageStorage) {
-    this.puzDeleter.style.display = ''
-    this.puzPriorDeleter.style.display = ''
-    this.puzRevDeleter.style.display = ''
-    this.puzDeleter.disabled = true
-    this.puzPriorDeleter.disabled = true
-    this.puzRevDeleter.disabled = true
-    let deleter = (types, e) => {
-      if (!confirm('Are you sure you want to delete ' + types +
-                   ' revision(s)?')) {
-        return
-      }
-      this.idChoices.className = 'xet-choices'
-      this.revChoices.className = 'xet-choices'
-      if (types == 'all') {
-        window.localStorage.removeItem(this.idChoice)
-      } else {
-        if (this.revChoice < 0 || !this.storedRevs ||
-            this.storedRevs.revs.length == 0 ||
-            this.revChoice >= this.storedRevs.revs.length) {
-          console.log('Weird, did not find revChoice/storedRevs to delete from')
-          return
-        }
-        let lastToDelete = this.revChoice
-        if (types == 'prior') lastToDelete--
-        let numToDelete = (types == 'prior' ? lastToDelete + 1 : 1)
-        let newRevs = []
-        if (lastToDelete - numToDelete >= 0) {
-          newRevs = this.storedRevs.revs.slice(
-              0, lastToDelete - numToDelete + 1)
-        }
-        this.storedRevs.revs = newRevs.concat(
-            this.storedRevs.revs.slice(lastToDelete + 1))
-        this.saveLocal(this.idChoice, JSON.stringify(this.storedRevs))
-      }
-      this.choosePuzRev(true, null, exet.revChooser, null)
-      e.stopPropagation()
-    }
-    this.puzDeleter.addEventListener('click', deleter.bind(this, 'all'))
-    this.puzPriorDeleter.addEventListener('click', deleter.bind(this, 'prior'))
-    this.puzRevDeleter.addEventListener('click', deleter.bind(this, 'this'))
-  } else {
-    this.puzRevSelector.style.display = ''
-    this.puzRevSelector.disabled = true
-    this.puzRevSelector.addEventListener('click', e => {
-      if (this.revChoice < 0 || !this.storedRevs ||
-          this.storedRevs.revs.length == 0 ||
-          this.revChoice >= this.storedRevs.revs.length) {
-        console.log('Hmm: bad selection! Check ExetRevManager:')
-        console.log(this)
-        return
-      }
-      exetModals.hide()
-      this.idSelectors = []
-      this.revSelectors = []
-      this.preview.innerHTML = ''
-      if (exolvePuzzles[this.previewId]) {
-        exolvePuzzles[this.previewId].destroy();
-      }
-      callback(this.storedRevs.revs[this.revChoice])
-    })
-  }
-
-  this.idSelectors = []
-  this.revSelectors = []
-  this.storedRevs = null
-  if (puz) {
-    this.idChoice = puz.id
-    document.getElementById("xet-id-choice-0").className = 'xet-chosen'
-    this.chooseRev()
-    return
-  }
-  for (let i = 0; i < choices.length; i++) {
-    let selector = document.getElementById(`xet-id-choice-${i}`)
-    this.idSelectors.push(selector)
-    let id = choices[i].id
-    selector.addEventListener('click', e => {
-      this.preview.innerHTML = ''
-      if (exolvePuzzles[this.previewId]) {
-        exolvePuzzles[this.previewId].destroy();
-      }
-      this.puzDeleter.disabled = true
-      this.puzPriorDeleter.disabled = true
-      this.puzRevDeleter.disabled = true
-      this.revChoices.innerHTML = ''
-      this.revChoices.className = 'xet-choices'
-      this.revChoice = -1
-      this.revSelectors = []
-      this.storedRevs = null
-      this.puzRevSelector.disabled = true
-      if (id == this.idChoice) {
-        this.idChoice = null
-        selector.className = ''
-        this.idChoices.className = 'xet-choices'
-      } else {
-        for (let j = 0; j < choices.length; j++) {
-          if (j != i) {
-            this.idSelectors[j].className = ''
-          }
-        }
-        this.idChoice = id
-        this.puzDeleter.disabled = false
-        selector.className = 'xet-chosen'
-        this.idChoices.className = 'xet-choices xet-picked'
-        this.chooseRev()
-      }
-    })
-  }
-};
-
-Exet.prototype.renderPreview = function(spec, eltId) {
-  try {
-    let newPuz = new Exolve(spec, eltId, null, false, 0, 400, false)
-    document.getElementById(
-        `${newPuz.prefix}-controls-etc`).style.display = 'none';
-    document.getElementById(
-        `${newPuz.prefix}-clear-area`).style.display = 'none'
-    newPuz.revealAll(false)
-  } catch (err) {
-    console.log(err);
-  }
-}
-
-ExetRevManager.prototype.chooseRev = function() {
-  let stored = window.localStorage.getItem(this.idChoice)
-  if (!stored) {
-    return
-  }
-  this.storedRevs = JSON.parse(stored)
-  let html = ''
-  for (let idx = this.storedRevs.revs.length - 1; idx >= 0; idx--) {
-    let rev = this.storedRevs.revs[idx]
-    let revTime = new Date(rev.timestamp)
-    html = html + `
-      <tr id="xet-rev-choice-${idx}">
-        <td>${rev.title}</td>
-        <td>#${rev.revNum}</td>
-        <td>${revTime.toLocaleString()}</td>
-        <td>${exetRevManager.revMsgs[rev.revType]}</td>
-        <td>${rev.details}</td>
-      </tr>`
-  }
-  this.revChoices.innerHTML = html
-  this.revSelectors = []
-  this.revChoice = -1
-  for (let i = 0; i < this.storedRevs.revs.length; i++) {
-    let selector = document.getElementById(`xet-rev-choice-${i}`)
-    this.revSelectors.push(selector)
-    selector.addEventListener('click', e => {
-      if (!this.storedRevs) {
-        return
-      }
-      this.puzPriorDeleter.disabled = true
-      this.puzRevDeleter.disabled = true
-      this.puzRevSelector.disabled = true
-      this.preview.innerHTML = ''
-      if (exolvePuzzles[this.previewId]) {
-        exolvePuzzles[this.previewId].destroy();
-      }
-      if (i == this.revChoice) {
-        this.revChoice = -1
-        selector.className = ''
-        this.revChoices.className = 'xet-choices'
-      } else {
-        for (let j = 0; j < this.revSelectors.length; j++) {
-          if (j != i) {
-            this.revSelectors[j].className = ''
-          }
-        }
-        this.revChoice = i
-        selector.className = 'xet-chosen'
-        this.revChoices.className = 'xet-choices xet-picked'
-        let exolve = this.storedRevs.revs[i].exolve.replace(
-            /exolve-id:[^\n]*/, `exolve-id: ${this.previewId}`)
-        exet.renderPreview(exolve, "xet-preview")
-        this.puzPriorDeleter.disabled = (i <= 0)
-        this.puzRevDeleter.disabled = false
-        this.puzRevSelector.disabled = false
-      }
-    })
-  }
-};
-
-ExetRevManager.prototype.saveLocal = function(k, v) {
-  try {
-    window.localStorage.setItem(k, v)
-  } catch (err) {
-    alert('No available local storage left. Please use the ' +
-          '"Manage local storage" menu option to free up some space.');
-    console.log('Could not save value of length ' + v.length + ' for key: ' + k)
-  }
-}
-
-ExetRevManager.prototype.saveRev = function(revType, details="") {
-  if (!exet || !exet.puz || !exet.puz.id) {
-    console.log('Cannot save revision when there is no puzzle!');
-    return;
-  }
-  let stored = window.localStorage.getItem(exet.puz.id);
-  if (!stored) {
-    stored = {
-      id: exet.puz.id,
-      maxRevNum: 0,
-      revs: []
-    };
-  } else {
-    stored = JSON.parse(stored);
-  }
-  let exolve = exet.getExolve();
-  if (stored.revs.length > 0) {
-    let lastRev = stored.revs[stored.revs.length - 1]
-    if (lastRev.exolve == exolve &&
-        lastRev.prefix == exet.prefix && lastRev.suffix == exet.suffix &&
-        lastRev.scratchPad == exet.puz.scratchPad.value &&
-        lastRev.preflex &&
-        JSON.stringify(lastRev.preflex) == JSON.stringify(exet.preflex) &&
-        lastRev.unpreflex &&
-        JSON.stringify(lastRev.unpreflex) == JSON.stringify(exet.unpreflex) &&
-        lastRev.noProperNouns == exet.noProperNouns &&
-        lastRev.noStemDupes == exet.noStemDupes &&
-        lastRev.tryReversals == exet.tryReversals &&
-        lastRev.minpop == exet.minpop &&
-        lastRev.asymOK == exet.asymOK) {
-      return;
-    }
-  }
-  stored.maxRevNum++;
-  let exetRev = new ExetRev(exet.puz.id, (exet.puz.title ? exet.puz.title : ''),
-                            stored.maxRevNum, revType, Date.now(), details);
-  exetRev.maxRevNum = stored.maxRevNum;
-  exetRev.prefix = exet.prefix;
-  exetRev.suffix = exet.suffix;
-  exetRev.exolve = exolve;
-  exetRev.scratchPad = exet.puz.scratchPad.value;
-  exetRev.navState = [exet.puz.currDir, exet.puz.currRow, exet.puz.currCol];
-  exetRev.preflex = exet.preflex;
-  exetRev.unpreflex = exet.unpreflex;
-  exetRev.noProperNouns = exet.noProperNouns;
-  exetRev.noStemDupes = exet.noStemDupes;
-  exetRev.asymOK = exet.asymOK;
-  exetRev.tryReversals = exet.tryReversals;
-  exetRev.minpop = exet.minpop;
-  stored.revs.push(exetRev);
-  this.saveLocal(exet.puz.id, JSON.stringify(stored));
-};
-
-ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
-  let urgent = revType <= 10;
-  if (this.throttleRevTimer) {
-    clearTimeout(this.throttleRevTimer);
-    if (this.throttlingRevType > 0 && revType < this.throttlingRevType) {
-      urgent = true
-    }
-  }
-  this.throttleRevTimer = null;
-  this.throttlingRevType = 0;
-  if (urgent) {
-    this.saveRev(revType, details)
-    return
-  }
-  this.throttlingRevType = revType;
-  this.throttleRevTimer = setTimeout(() => {
-    this.saveRev(revType, details)
-    this.throttleRevTimer = null;
-    this.throttlingRevType = 0;
-  }, this.saveLagMS);
-}
-
-ExetRevManager.prototype.saveAllRevisions = function() {
-  const storage = {}
-  for (let idx = 0; idx < window.localStorage.length; idx++) {
-    let id = window.localStorage.key(idx)
-    if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
-      continue
-    }
-    let storedRevsBlob = window.localStorage.getItem(id)
-    let storedRevs = null
-    try {
-      storedRevs = JSON.parse(storedRevsBlob)
-    } catch (err) {
-      continue
-    }
-    if (!storedRevs || !storedRevs['revs']) {
-      continue
-    }
-    storage[id] = storedRevs
-  }
-  const json = JSON.stringify(storage, null, 2)
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.href = window.URL.createObjectURL(
-    new Blob([json], {type: 'text/json'})
-  );
-  let filename = `exet-revisions-${(new Date()).toISOString()}.json`
-  a.setAttribute('download', filename)
-  a.click();
-  window.URL.revokeObjectURL(a.href);
-  document.body.removeChild(a);
-  exetModals.hide()
-}
-
-ExetRevManager.prototype.mergeRevisionsFile = function() {
-  exetModals.hide()
-  let fr = new FileReader(); 
-  fr.onload = function(){ 
-    let allSavedRevs = {}
-    try {
-      allSavedRevs = JSON.parse(fr.result)
-    } catch (err) {
-      alert('Could not parse the saved revisions file')
-      return
-    }
-    existingRevs = {}
-    for (let idx = 0; idx < window.localStorage.length; idx++) {
-      let id = window.localStorage.key(idx)
-      if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
-        continue
-      }
-      let storedRevsBlob = window.localStorage.getItem(id)
-      let storedRevs = null
-      try {
-        storedRevs = JSON.parse(storedRevsBlob)
-      } catch (err) {
-        continue
-      }
-      if (!storedRevs || !storedRevs['revs']) {
-        continue
-      }
-      for (rev of storedRevs['revs']) {
-        const revHash = exetLexicon.javaHash(JSON.stringify(rev))
-        existingRevs[revHash] = true
-      }
-    }
-    let numRevs = 0
-    let numRevsMerged = 0
-    let numDupRevs = 0
-    let numNonLatest = 0
-    const mergeOnlyLatest = document.getElementById(
-      'xet-merge-only-latest-revs').checked ? true : false;
-    for (let id in allSavedRevs) {
-      savedRevs = allSavedRevs[id]['revs']
-      if (!savedRevs || savedRevs.length == 0) {
-        continue
-      }
-      const start = mergeOnlyLatest ? savedRevs.length - 1 : 0
-      if (mergeOnlyLatest) {
-        numNonLatest += savedRevs.length - 1
-      }
-      revsToSplice = []
-      for (let i = start; i < savedRevs.length; i++) {
-        numRevs++
-        const rev = savedRevs[i]
-        const revHash = exetLexicon.javaHash(JSON.stringify(rev))
-        if (existingRevs[revHash]) {
-          numDupRevs++
-          continue
-        }
-        revsToSplice.push(rev) 
-      }
-      if (revsToSplice.length == 0) {
-        continue
-      }
-      let stored = window.localStorage.getItem(id)
-      if (stored) {
-        try {
-          stored = JSON.parse(stored)
-        } catch (err) {
-          console.log('Skipped id in merging as JSON.parse() failed, id: ' + id)
-          continue;
-        }
-      }
-      if (!stored) {
-        stored = { id: id, maxRevNum: 0, revs: [] }
-      }
-      for (rev of revsToSplice) {
-        stored['revs'].push(rev)
-      }
-      stored['revs'].sort((r1, r2) => r1.timestamp - r2.timestamp);
-      for (rev of stored['revs']) {
-        if (rev.revNum > stored.maxRevNum) {
-          stored.maxRevNum = rev.revNum
-        }
-      }
-      exetRevManager.saveLocal(id, JSON.stringify(stored))
-      numRevsMerged += revsToSplice.length
-    }
-    const ignored = (numNonLatest > 0) ?
-        `Ignored ${numNonLatest} non-latest revisions.` : '';
-    alert(`From ${numRevs} revisions considered across ` +
-          `${Object.keys(allSavedRevs).length} crosswords, merged ` +
-          `${numRevsMerged} revisions. There were ${numDupRevs} revisions ` +
-          `that already existed. ${ignored}`);
-  } 
-  let f = document.getElementById('xet-merge-revs-file').files[0]
-  fr.readAsText(f)
-}
-
-function ExetRev(id, title, revNum, revType, timestamp, details="") {
-  this.id = id;
-  this.title = title
-  this.revNum = revNum;
-  this.revType = revType;
-  this.timestamp = timestamp;
-  this.details = details;
-  // prefix, suffix, exolve should be set directly.
-};
-
 function Exet() {
-  this.version = 'v0.94, October 6, 2024';
+  this.version = 'v1.04.2, April 11, 2026';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
   this.exolveOtherSec = '';
   this.preflex = [];
-  this.preflexInUse = {};
-  this.unpreflex = {};
+  this.preflexSet = {};
+  this.preflexHash = null;
+  this.preflexUsed = new Set;
+  this.unpreflex = [];
+  this.unpreflexSet = {};
+  this.unpreflexHash = null;
   this.noProperNouns = false;
+  this.requireEnums = true;
   this.noStemDupes = exetLexicon.hasOwnProperty('stems');
   this.asymOK = false;
   this.tryReversals = false;
+  this.lightRegexps = {};
+  this.lightRegexpsC = {};
   this.DEFAULT_MINPOP = exetConfig.defaultPopularity;
   this.setMinPop(this.DEFAULT_MINPOP)
   this.DRAFT = '[DRAFT]';
@@ -701,6 +105,15 @@ function Exet() {
     alt: {inClue: [false]},
   }
 
+  /**
+   * Max lengths of preferred/disallowed word lists.
+   */
+  this.MAX_PREFLEX = 50000;
+  /**
+   * Max fodder length for anagramming/charades/containments listing.
+   */
+  this.MAX_FODDER_LENGTH = 13;
+
   // Start in the Exet tab
   this.currTab = "exet"
   this.savedIndsSelect = ""
@@ -713,27 +126,40 @@ function Exet() {
   this.throttledMetadataTimer = null;
   this.throttledCharadeTimer = null;
   this.viabilityUpdateTimer = null;
-  this.inputLagMS = 400
-  this.longInputLagMS = 2000
-  this.sweepMS = 500
+  this.throttledLightRegexpTimer = null;
+  this.inputLagMS = 400;
+  this.longInputLagMS = 2000;
+  this.sweepMS = 500;
 
   // Params for light choices shown.
-  this.sweepMaxChoices = 5000
-  this.sweepMaxChoicesSmall = 4
-  this.shownLightChoices = 200
+  this.sweepMaxChoices = 5000;
+  this.sweepMaxChoicesSmall = 4;
+  this.shownLightChoices = 200;
+
+  /**
+   * Local storage usage. Filled by the first call to checkStorage().
+   */
+  this.lsUsed = -1;
+  this.lsUsedAtStart = -1;
+  this.lsLeftAtStart = -1;
+  this.lsLeftIsAmple = true;
 
   this.tipsList = [
     `If you want to allow enum mismatches, then add the line
      <blockquote>exolve-option: ignore-enum-mismatch</blockquote>
      using
      <i>Edit &gt; Add/Edit special sections: &gt; Other Exolve sections</i>.`,
-    `You can specify up to a 100 desired words to fill, using the
-     <span style="color:green">"Set preferred fills"</span> button near
+    `You can specify up to ${this.MAX_PREFLEX} desired words to fill, using
+     the <span style="color:green">"Set preferred fills"</span> button near
      the bottom. These words will be prioritized in autofill as well
      as in the suggested fills list.`,
     `In a cryptic clue, you can specify a part of the clue to be the definition
-     part using Ctrl-D after selecting it. This part gets underlined when
+     part using Ctrl-d after selecting it. This part gets underlined when
      the solution is revealed.`,
+    `When looking at any list of indicators through the "Lists" tab, you
+     can type a topic word that describes the clue surface that you're
+     trying to craft (in the blank provided near the top-right corner), and
+     hit Enter, to highlight all words that might be related to that topic.`,
     `The "Analysis" button shows useful information about the grid, the
      grid-fill, and the clues. You can use it to check for issues such
      as: grids that are not fully connected, consecutive unchecked cells,
@@ -748,52 +174,86 @@ function Exet() {
     `Wordplay tabs such as "Charades" and "Anagrams" show candidate wordplays
      for the currently selected entry. However, you can edit the fodder text
      directly in the tab to experiment with alternatives.`,
+    `Saving the crossword as HTML (Exolve format) with solutions included
+     can be done using the keyboard shortcut Ctrl-s (Cmd-s on Mac). Exet
+     overrides the browser's default "save" functionality.`,
     `You can use autofill to create pangrams, and even <i>constrained</i>
      pangrams, where all the letters in the alphabet get used over some
      specified cells, such as circled cells and unchecked cells.`,
+    `You can specify a regular expression that constrains fill-choices
+     shown for a light (for example, forcing a palindrome, or a specific
+     substring) using the "Regexp constraint" option in the hamburger menu above
+     the current clue.`,
     `You can create a <i>3-D</i> crossword using
      <i>Open &gt; New 3-D grid:</i>. You can also reverse some lights with
      <i>Edit &gt; Reverse current light</i>. You can let autofill suggest
      reversals using the "Try reversals: [ ]" option on the main Exet tab.
      Reversed lights are often seen in 3-D crosswords.`,
+    `For some wordplay suggestions (anagrams, charades, containments), if the
+     fodder is too long (longer than ${this.MAX_FODDER_LENGTH}), then we trim
+     it down and indicate this trimming by showing it in red and showing
+     exclamation marks next to it. You can generate the wordplay for the
+     full untrimmed fodder by appending an exclamation mark at the end (this
+     will be SLOW and may lock up your browser for a short while).`,
   ];
   this.tipIdx = -1;
   this.TIP_ENUM_MISMATCH = 0;
-  this.TIP_ANALYSIS = 3;
+  this.TIP_ANALYSIS = 4;
+  this.TIP_LONG_FODDER = 12;
   this.lastTipShownTime = 0;
 };
 
+
+Exet.prototype.renderPreview = function(spec, eltId) {
+  try {
+    let newPuz = new Exolve(spec, eltId, null, false, 0, 400, false)
+    document.getElementById(
+        `${newPuz.prefix}-controls-etc`).style.display = 'none';
+    document.getElementById(
+        `${newPuz.prefix}-clear-area`).style.display = 'none'
+    newPuz.revealAll(false)
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 Exet.prototype.setMinPop = function(m) {
-  if (m < 0) m = 0
-  this.minpop = m
-  this.indexMinPop = Math.floor(exetLexicon.startLen * (100 - m) / 100)
+  if (m < 0) {
+    m = 0;
+  }
+  if (m > 100) {
+    m = 100;
+  }
+  this.minpop = m;
+  this.indexMinPop = Math.max(
+      1, Math.floor(exetLexicon.startLen * (100 - m) / 100));
 }
 
 Exet.prototype.startNav = function(dir='A', row=0, col=0) {
   if (!this.puz) return;
   if (row < 0 || row >= this.puz.gridHeight ||
       col < 0 || col >= this.puz.gridWidth) {
-    row = 0
-    col = 0
+    row = 0;
+    col = 0;
   }
   if (dir != 'A' && dir != 'D' && dir != 'Z') {
-    dir = 'A'
-    let gridCell = this.puz.grid[row][col]
+    dir = 'A';
+    const gridCell = this.puz.grid[row][col];
     if (gridCell.isLight && !gridCell.acrossClueLabel) {
       if (gridCell.downClueLabel) {
-        dir = 'D'
+        dir = 'D';
       } else if (gridCell.z3dClueLabel) {
-        dir = 'Z'
+        dir = 'Z';
       }
     }
   }
-  this.puz.currRow = row
-  this.puz.currCol = col
-  this.puz.currDir = dir
+  this.puz.currRow = row;
+  this.puz.currCol = col;
+  this.puz.currDir = dir;
   if (this.puz.grid[row][col].isLight) {
-    this.puz.activateCell(row, col)
+    this.puz.activateCell(row, col);
   } else {
-    this.navDarkness(row, col)
+    this.navDarkness(row, col);
   }
 }
 
@@ -801,6 +261,35 @@ Exet.prototype.hideExolveElement = function(suffix) {
   const elt = document.getElementById(this.puz.prefix + '-' + suffix);
   if (elt) {
     elt.style.display = 'none';
+  }
+}
+
+Exet.prototype.markClueEnds = function() {
+  for (let r = 0; r < this.puz.gridHeight; r++) {
+    for (let c = 0; c < this.puz.gridWidth; c++) {
+      const gridCell = this.puz.grid[r][c];
+      if (!gridCell.isLight) {
+        continue;
+      }
+      if (gridCell.startsAcrossClue) {
+        const last =
+            gridCell.startsAcrossClue[gridCell.startsAcrossClue.length - 1];
+        const lastCell = this.puz.grid[last[0]][last[1]];
+        lastCell.endsAcrossClue = gridCell.startsClueLabel;
+      }
+      if (gridCell.startsDownClue) {
+        const last =
+            gridCell.startsDownClue[gridCell.startsDownClue.length - 1];
+        const lastCell = this.puz.grid[last[0]][last[1]];
+        lastCell.endsDownClue = gridCell.startsClueLabel;
+      }
+      if (gridCell.startsZ3dClue) {
+        const last =
+            gridCell.startsZ3dClue[gridCell.startsZ3dClue.length - 1];
+        const lastCell = this.puz.grid[last[0]][last[1]];
+        lastCell.endsZ3dClue = gridCell.startsClueLabel;
+      }
+    }
   }
 }
 
@@ -837,9 +326,9 @@ Exet.prototype.setPuzzle = function(puz) {
   }
   if (puz.columnarLayout) {
     puz.columnarLayout = false;
-    puz.gridcluesContainer.className = 'xlv-grid-and-clues-flex';
-    puz.cluesContainer.className = 'xlv-clues xlv-clues-flex';
   }
+  puz.gridcluesContainer.className = 'xlv-grid-and-clues-flex';
+  puz.cluesContainer.className = 'xlv-clues';
   let gridFillChanges = false;
   for (let i = 0; i < puz.gridHeight; i++) {
     for (let j = 0; j < puz.gridWidth; j++) {
@@ -887,7 +376,7 @@ Exet.prototype.setPuzzle = function(puz) {
         '<\/body>\n' +
         '<\/html>\n'
   }
-  this.exolveOtherSec = ''
+  this.exolveOtherSec = '';
 
   const sectionsToSkip = ['begin', 'grid', 'width', 'height', 'id', 'title',
                           'setter', 'copyright', 'nina', 'colour', 'color',
@@ -1043,67 +532,70 @@ Exet.prototype.setPuzzle = function(puz) {
   }
 
   this.replaceHandlers()
+
   this.hideExolveElement('controls');
   this.hideExolveElement('saving');
   this.hideExolveElement('tools-link');
   this.hideExolveElement('print');
   this.hideExolveElement('webifi');
   this.hideExolveElement('notes');
-  this.hideExolveElement('jotter');
   this.hideExolveElement('report-bug');
   this.hideExolveElement('exolve-link');
   this.hideExolveElement('postscript');
 
-  this.copyright = document.getElementById(`${this.puz.prefix}-copyright`)
-  this.copyright.innerHTML = `<span class="xet-action">Copyright Ⓒ &nbsp;</span><span
+  this.copyright = document.getElementById(`${this.puz.prefix}-copyright`);
+  this.copyright.innerHTML = `<span class="xet-action">Edit optional
+      copyright notice: Ⓒ &nbsp;</span><span
       class="xet-editable"
       id="xet-copyright" contenteditable=true spellcheck=false
-      oninput="exet.updateMetadata()">${this.puz.copyright}</span>`
-  this.copyright.style.display = ''
-  this.xetCopyright = document.getElementById('xet-copyright')
-  this.xetCopyright.title = 'Click to edit copyright'
+      oninput="exet.updateMetadata()">${this.puz.copyright}</span>`;
+  this.copyright.style.display = '';
+  this.xetCopyright = document.getElementById('xet-copyright');
+  this.xetCopyright.title = 'Click to edit copyright';
 
-  this.title = document.getElementById(`${this.puz.prefix}-title`)
-  this.title.innerHTML = `<span class="xet-action">Title</span><span
+  this.title = document.getElementById(`${this.puz.prefix}-title`);
+  this.title.innerHTML = `<span class="xet-action">Edit optional
+      title:</span><span
       class="xet-editable"
       id="xet-title" contenteditable=true spellcheck=false
-      oninput="exet.updateMetadata()">${this.puz.title}</span>`
-  this.title.style.display = ''
-  this.xetTitle = document.getElementById('xet-title')
-  this.xetTitle.title = 'Click to edit title'
+      oninput="exet.updateMetadata()">${this.puz.title}</span>`;
+  this.title.style.display = '';
+  this.xetTitle = document.getElementById('xet-title');
+  this.xetTitle.title = 'Click to edit title';
 
-  this.setter = document.getElementById(`${this.puz.prefix}-setter`)
-  this.setter.innerHTML = `<span class="xet-action">Setter(s)</span><span
+  this.setter = document.getElementById(`${this.puz.prefix}-setter`);
+  this.setter.innerHTML = `<span class="xet-action">Edit optional
+      setter(s):</span><span
       class="xet-editable"
       id="xet-setter" contenteditable=true spellcheck=false
-      oninput="exet.updateMetadata()">${this.puz.setter}</span>`
-  this.setter.style.display = ''
-  this.xetSetter = document.getElementById('xet-setter')
-  this.xetSetter.title = 'Click to edit setter'
+      oninput="exet.updateMetadata()">${this.puz.setter}</span>`;
+  this.setter.style.display = '';
+  this.xetSetter = document.getElementById('xet-setter');
+  this.xetSetter.title = 'Click to edit setter';
 
-  this.preamble = document.getElementById(`${this.puz.prefix}-preamble`)
-  this.explanations = document.getElementById(`${this.puz.prefix}-explanations`)
+  this.preamble = document.getElementById(`${this.puz.prefix}-preamble`);
+  this.explanations = document.getElementById(`${this.puz.prefix}-explanations`);
 
   // Make clues-box divs wider
-  const cbs = document.getElementsByClassName('xlv-clues-box')
+  const cbs = document.getElementsByClassName('xlv-clues-box');
   for (let x = 0; x < cbs.length; x++) {
-    cbs[x].style.width = '600px'
+    cbs[x].style.width = '600px';
   }
 
-  const aLabel = document.getElementById(`${this.puz.prefix}-across-label`)
-  aLabel.insertAdjacentHTML('beforeend', ` (${numA} clues)`)
-  const dLabel = document.getElementById(`${this.puz.prefix}-down-label`)
-  dLabel.insertAdjacentHTML('beforeend', ` (${numD} clues)`)
-  const zLabel = document.getElementById(`${this.puz.prefix}-z3d-label`)
-  zLabel.insertAdjacentHTML('beforeend', ` (${numZ} clues)`)
+  const aLabel = document.getElementById(`${this.puz.prefix}-across-label`);
+  aLabel.insertAdjacentHTML('beforeend', ` (${numA} clues)`);
+  const dLabel = document.getElementById(`${this.puz.prefix}-down-label`);
+  dLabel.insertAdjacentHTML('beforeend', ` (${numD} clues)`);
+  const zLabel = document.getElementById(`${this.puz.prefix}-z3d-label`);
+  zLabel.insertAdjacentHTML('beforeend', ` (${numZ} clues)`);
 
-  this.frame = document.createElement('div')
-  this.frame.className = 'xet-frame'
-  this.frame.id = 'xet-frame'
-  this.puz.gridPanel.after(this.frame)
+  this.frame = document.createElement('div');
+  this.frame.className = 'xet-frame';
+  this.frame.id = 'xet-frame';
+  this.puz.gridPanel.after(this.frame);
 
-  delete this.shownChoicesHash
-  this.populateFrame()
+  delete this.shownChoicesHash;
+  this.populateFrame();
 
   // Make current cell closer to white (so nina/colour can be seen better
   // when overlapping).
@@ -1117,7 +609,7 @@ Exet.prototype.setPuzzle = function(puz) {
   // Add darkness and viability indicators ("viablots").
   for (let i = 0; i < puz.gridHeight; i++) {
     for (let j = 0; j < puz.gridWidth; j++) {
-      let gridCell = puz.grid[i][j]
+      const gridCell = puz.grid[i][j]
       if (gridCell.isLight && gridCell.solution == '?') {
         const viablot =
             document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -1127,20 +619,20 @@ Exet.prototype.setPuzzle = function(puz) {
         viablot.setAttributeNS(
             null, 'cy', puz.cellTopPos(i, puz.circleR + puz.GRIDLINE +
                                           (puz.cellH/2 - puz.circleR)));
-        viablot.setAttributeNS(null, 'class', 'xet-viablot');
-        viablot.style.fill = 'transparent'
+        viablot.setAttributeNS(null, 'class', 'xlv-cell-circle');
+        viablot.style.fill = 'transparent';
         viablot.setAttributeNS(null, 'r', puz.circleR * 0.1);
-        gridCell.viablot = viablot
-        gridCell.cellGroup.appendChild(viablot)
+        gridCell.viablot = viablot;
+        gridCell.cellGroup.appendChild(viablot);
         viablot.addEventListener('click', puz.cellActivator.bind(puz, i, j));
       } else if (!gridCell.isLight) {
-        const border = 4
-        let darkness =
+        const border = 4;
+        const darkness =
           document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         darkness.setAttributeNS(null, 'x', this.puz.cellLeftPos(
-            j, this.puz.GRIDLINE + border))
+            j, this.puz.GRIDLINE + border));
         darkness.setAttributeNS(null, 'y', this.puz.cellTopPos(
-            i, this.puz.GRIDLINE + border))
+            i, this.puz.GRIDLINE + border));
         darkness.setAttributeNS(null, 'width',
                                 this.puz.cellW - (2 * border));
         darkness.setAttributeNS(null, 'height',
@@ -1150,42 +642,43 @@ Exet.prototype.setPuzzle = function(puz) {
           gridCell.cellGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           this.puz.svg.appendChild(gridCell.cellGroup);
         }
-        gridCell.cellGroup.appendChild(darkness)
-        gridCell.darkness = darkness
-        gridCell.cellGroup.addEventListener('click', this.navDarkness.bind(this, i, j))
+        gridCell.cellGroup.appendChild(darkness);
+        gridCell.darkness = darkness;
+        gridCell.cellGroup.addEventListener('click', this.navDarkness.bind(this, i, j));
       }
     }
   }
 
   // Display lexicon info
-  const status = document.getElementById(`${this.puz.prefix}-status`)
+  const status = document.getElementById(`${this.puz.prefix}-status`);
   status.insertAdjacentHTML(
       'beforeend',
       `<span> Lexicon: ${exetLexicon.id} ${exetLexicon.language}
-          ${exetLexicon.script}${exetLexicon.maxCharCodes > 1 ? ' [' + exetLexicon.maxCharCodes + ']' : ''}.</span>`)
+          ${exetLexicon.script}${exetLexicon.maxCharCodes > 1 ? ' [' + exetLexicon.maxCharCodes + ']' : ''}.</span>`);
   // Make the puzzle ID visible. But in a div, saving vspace.
-  const idPara = document.getElementById(this.puz.prefix + '-id')
+  const idPara = document.getElementById(this.puz.prefix + '-id');
   if (idPara) {
     status.insertAdjacentHTML(
         'beforebegin', `<div class="xlv-metadata">${idPara.innerHTML}</div>`);
   }
 
   // Display sweeping activity indicator
-  const gridParent = document.getElementById(`${this.puz.prefix}-grid-parent`)
+  const gridParent = document.getElementById(`${this.puz.prefix}-grid-parent`);
   gridParent.insertAdjacentHTML('beforeend',
     `<div class="xet-sweeping-box"
        title="When there is a flashing red circle here, Exet is ` +
        'autofilling and/or pruning away non-viable grid-fill suggestions ' +
        'in the background"> ' +
-       '<div class="xet-sweeping" id="xet-sweeping"></div></div>')
-  this.sweepIndicator = document.getElementById('xet-sweeping')
+       '<div class="xet-sweeping" id="xet-sweeping"></div></div>');
+  this.sweepIndicator = document.getElementById('xet-sweeping');
 
-  this.puz.viable = true
-  this.fillState = new ExetFillState(this.puz)
-
-  this.initAutofill()
+  this.markClueEnds();  /** Needed for some autofill options */
+  this.fillState = new ExetFillState(this.puz);
   this.resetViability();
-  this.updateSweepInd()
+
+  this.autofill = new ExetAutofill();
+
+  this.updateSweepInd();
   this.reposition();
 }
 
@@ -1197,102 +690,137 @@ Exet.prototype.makeExetTab = function() {
     <ul>
       <li class="xet-dropdown">
         <div class="xet-dropbtn"
-            title="Click to open a new or previously saved puzzle">Open</div>
+            title="Click to create a new puzzle">New</div>
         <div class="xet-dropdown-content">
-          <div class="xet-dropdown-item" id="xet-show-puz-chooser">
-            Choose a puzzle previously opened with Exet
+          <div class="xet-dropdown-div">
+            <div style="font-style:italic">
+              <label for="xet-w">Width:</label>
+              <input id="xet-w" name="xet-w" value="${exetConfig.defaultDimension}"
+                type="text" size="3" maxlength="3" placeholder="W">
+              </input>
+              &times;
+              <label for="xet-h">Height:</label>
+              <input id="xet-h" name="xet-h" value="${exetConfig.defaultDimension}"
+                type="text" size="3" maxlength="3" placeholder="H">
+              </input>
+              Unique ID:
+              <input id="xet-id" name="xet-id"
+                value="xet-${Math.random().toString(36).substring(2, 8)}"
+                title="Please change to a meaningful alphanumeric id (beginning with a letter) to identify easily later"
+                type="text" size="15" maxlength="30" placeholder="alphanumeric unique id">
+              </input>
+            </div>
           </div>
-          <div class="xet-dropdown-item" id="xet-show-rev-chooser">
-            Go back to a specific revision of the current puzzle
-          </div>
-          <div class="xet-dropdown-item">
-            Open Exolve or .puz file: <input id="xet-file"
-                onchange="exetLoadFile();" type="file"></input>
-          </div>
-          <div class="xet-dropdown-item">
-            New grid:
-            <div class="xet-dropdown-submenu">
-              <div style="padding:4px;text-align:center">
-                <div>
-                  <label for="xet-w">Width:</label>
-                  <input id="xet-w" name="xet-w" value="${exetConfig.defaultDimension}"
-                    type="text" size="3" maxlength="3" placeholder="W">
-                  </input>
-                  &times;
-                  <label for="xet-h">Height:</label>
-                  <input id="xet-h" name="xet-h" value="${exetConfig.defaultDimension}"
-                    type="text" size="3" maxlength="3" placeholder="H">
-                  </input>
-                </div>
-                <br>
-                <div>
-                  Unique ID:
-                  <input id="xet-id" name="xet-id"
-                    value="xet-${Math.random().toString(36).substring(2, 8)}"
-                    title="Please change to a meaningful alphanumeric id (beginning with a letter) to identify easily later"
-                    type="text" size="15" maxlength="30" placeholder="alphanumeric unique id">
-                  </input>
-                </div>
-                <br>
-                <div title="When this is checked, Exet will automagically ` +
-                  'add blocked cells to create a valid grid. You can ' +
-                  'further edit the blocks and add more automagic blocks ' +
-                  'from the Edit menu">' +
-                  `Add automagic blocks:
-                  <input id="xet-autoblock" name="xet-autoblock"
-                      value="autoblock" checked=true type="checkbox">
-                  </input>
-                </div>
+          <hr>
+          <div class="xet-dropdown-div" style="padding-bottom:0"
+              title="Chequered grid with already added blocks that you can modify as needed">
+            New blocked lattice grid (with blocks added):
+            <div class="xet-controls-row">
+              <div class="xet-dropdown-item"
+                   title="Blocked with no top/left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `true, true, false, false);">
+                <img class="xet-icon" src="no-unches.png"/>
               </div>
-              <hr>
-              <div class="xet-controls-row">
-                <div class="xet-dropdown-subitem"
-                     title="Blocked with no top/left unches"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, 1, ` +
-                      `document.getElementById('xet-id').value, ` +
-                      `document.getElementById('xet-autoblock').checked, ` +
-                      `true, false, false);">
-                  <img class="xet-icon" src="no-unches.png"/>
-                </div>
-                <div class="xet-dropdown-subitem"
-                     title="Blocked with top but not left unches"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, 1, ` +
-                      `document.getElementById('xet-id').value, ` +
-                      `document.getElementById('xet-autoblock').checked, ` +
-                      `true, true, false);">
-                  <img class="xet-icon" src="t-unches.png"/>
-                </div>
-                <div class="xet-dropdown-subitem"
-                     title="Blocked with left but not top unches"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, 1, ` +
-                      `document.getElementById('xet-id').value, ` +
-                      `document.getElementById('xet-autoblock').checked, ` +
-                      `true, false, true);">
-                  <img class="xet-icon" src="l-unches.png"/>
-                </div>
-                <div class="xet-dropdown-subitem"
-                     title="Blocked with top/left unches"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, 1, ` +
-                      `document.getElementById('xet-id').value, ` +
-                      `document.getElementById('xet-autoblock').checked, ` +
-                      `true, true, true);">
-                  <img class="xet-icon" src="tl-unches.png"/>
-                </div>
-                <div class="xet-dropdown-subitem" title="No blocks"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                      `document.getElementById('xet-h').value, 1, ` +
-                      `document.getElementById('xet-id').value, ` +
-                      `document.getElementById('xet-autoblock').checked, ` +
-                      `false);">
-                  <img class="xet-icon" src="no-blocks.png"/>
-                </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with top but not left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `true, true, true, false);">
+                <img class="xet-icon" src="t-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with left but not top unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `true, true, false, true);">
+                <img class="xet-icon" src="l-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with top/left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `true, true, true, true);">
+                <img class="xet-icon" src="tl-unches.png"/>
               </div>
             </div>
           </div>
+          <hr>
+          <div class="xet-dropdown-div" style="padding-bottom:0"
+              title="Starting point for a chequered grid to which you will manually add blocks">
+            New blocked lattice grid (no added blocks):
+            <div class="xet-controls-row">
+              <div class="xet-dropdown-item"
+                   title="Blocked with no top/left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, false, false);">
+                <img class="xet-icon" src="no-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with top but not left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, true, false);">
+                <img class="xet-icon" src="t-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with left but not top unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, false, true);">
+                <img class="xet-icon" src="l-unches.png"/>
+              </div>
+              <div class="xet-dropdown-item"
+                   title="Blocked with top/left unches"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, true, true, true);">
+                <img class="xet-icon" src="tl-unches.png"/>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <div class="xet-dropdown-item"
+              title="Doubly checked U.S.-style blocked grid with already added blocks that you can modify as needed"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                  `document.getElementById('xet-h').value, 1, ` +
+                  `document.getElementById('xet-id').value, ` +
+                  `true, false, false, false, false);">
+              New U.S.-style doubly-checked grid (with blocks added)
+          </div>
+          <hr>
+          <div class="xet-dropdown-item"
+              title="Blank starting-point-grid for a blocked or barred grid to which you will manually add blocks/bars">
+            New blank grid (add blocks/bars later), choose style:
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-subitem"
+                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, false, false, false, true);">
+                With enums
+              </div>
+              <div class="xet-dropdown-subitem"
+                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                    `document.getElementById('xet-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `false, false, false, false, false);">
+                Without enums (U.S.-style)
+              </div>
+            </div>
+          </div>
+          <hr>
+          <hr>
           <div class="xet-dropdown-item">
             New 3-D grid:
             <div class="xet-dropdown-submenu">
@@ -1336,92 +864,22 @@ Exet.prototype.makeExetTab = function() {
               </div>
             </div>
           </div>
-          <hr>
-          <hr>
-          <div class="xet-dropdown-item" id="xet-manage-storage">
-            Manage local storage (Used:
-                <span id="xet-storage-used">${exetRevManager.inMB(exetRevManager.spaceUsed)}</span> MB
-            Available: 
-              <span class="xet-red" id="xet-storage-free">${exetRevManager.inMB(
-                  exetRevManager.spaceUsedAtStart +
-                  exetRevManager.spaceLeftAtStart -
-                  exetRevManager.spaceUsed)}</span> MB)
-          </div>
-          <div class="xet-dropdown-item"
-             onclick="exetRevManager.saveAllRevisions()">
-            Save all revisions to file (exet-revisions-<i>timestamp</i>.json)
-          </div>
-          <div class="xet-dropdown-item">
-            Merge saved revisions file:
-            <input id="xet-merge-revs-file"
-               onchange="exetRevManager.mergeRevisionsFile()" type="file"
-               accept=".json"></input><br>
-            <input id="xet-merge-only-latest-revs"
-               name="xet-merge-only-latest-revs"
-              checked=true value="merge-only-latest-revs" type="checkbox">
-            </input>
-            Take only the latest revision per crossword
-          </div>
         </div>
       </li>
       <li class="xet-dropdown">
-        <div class="xet-dropbtn" title="Click to save, with some formatting options">Save</div>
-        <div class="xet-dropdown-content" id="xet-save" title="The * shown in file names will be replaced by '-[title]', if there is a non-empty puzzle title">
-          <div class="xet-dropdown-div">
-            <b>Settings:</b>
-            <div title="Set this option for American-style grids that do ` +
-              `not show enums in clues">
-              Show enums in clues:
-              <input id="xet-show-enums" name="xet-show-enums"
-                ${exetState.showEnums ? "checked=true" : ""}
-                value="show-enums" type="checkbox">
-              </input>
-            </div>
-            <div title="Change this to your own URL prefix for exolve-m.js ` +
-              `and exolve-m.css. Only used when saving as Exolve if the ` +
-              `Exolve data did not already have these URLs. Press Esc after ` +
-              `clicking in the box to revert to default.">
-              Exolve URL prefix:
-              <input id="xet-xlv-url-prefix" name="xet-xlv-url-prefix"
-                value="${exetState.exolveUrl}"
-                placeholder="Press Esc after clicking in the box to revert ` +
-                  `to default" type="text" size="40" maxlength="100">
-              </input>
-            </div>
+        <div class="xet-dropbtn"
+            title="Click to open a puzzle file or a previously saved puzzle">Open</div>
+        <div class="xet-dropdown-content">
+          <div class="xet-dropdown-item" id="xet-show-puz-chooser">
+            Choose a puzzle previously opened with Exet
           </div>
-          <hr>
-          <div id="xet-save-warnings" class="xet-dropdown-div xet-red"></div>
-          <hr>
-          <div class="xet-dropdown-item" onclick="exet.download(true)">
-              Download Exolve file with solutions<br>(exet-exolve-<span
-                  class="xet-filetitle"></span>-with-solutions.html)</div>
-          <div class="xet-dropdown-item" onclick="exet.download(false)">
-              Download Exolve file without solutions<br>(exet-exolve-<span
-                  class="xet-filetitle"></span>-sans-solutions.html)</div>
-          <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">
-              Download PUZ file<br>
-              (exet-<span class="xet-filetitle"></span>.puz)
+          <div class="xet-dropdown-item" id="xet-show-rev-chooser">
+            Go back to a specific revision of the current puzzle
           </div>
-          <div class="xet-dropdown-item"
-              onclick="exet.toClipboard(true, 'xet-xlv-widget')">
-            Copy Exolve widget code with solutions &#128203;
-            <div class="xet-dropdown-submenu">
-              <textarea rows="25" cols="40" id="xet-xlv-widget">
-              </textarea>
-            </div>
+          <div class="xet-dropdown-item">
+            Open Exolve or .puz or .ipuz file: <input id="xet-file"
+                onchange="exetLoadFile();" type="file"></input>
           </div>
-          <div class="xet-dropdown-item"
-              onclick="exet.toClipboard(false, 'xet-xlv-widget-nosol')">
-            Copy Exolve widget code without solutions &#128203;
-            <div class="xet-dropdown-submenu">
-              <textarea rows="25" cols="40" id="xet-xlv-widget-nosol">
-              </textarea>
-            </div>
-          </div>
-          <div class="xet-dropdown-item" onclick="exet.print(true)">
-              Print or download PDF file with solutions</div>
-          <div class="xet-dropdown-item" onclick="exet.print(false)">
-              Print or download PDF file without solutions</div>
         </div>
       </li>
       <li class="xet-dropdown">
@@ -1430,211 +888,39 @@ Exet.prototype.makeExetTab = function() {
             `also note the listed keyboard shortcuts)">Edit</div>
         <div class="xet-dropdown-content">
 
+          <div title="Toggle whether the current cell is a block or not" ` +
+              `class="xet-dropdown-item" onclick="exet.handleKeyDown('.')">
+            Toggle block (.)
+          </div>
           <div title="Try to autmatically add random blocks while ` +
               `maintaining a valid grid"
               class="xet-dropdown-item" onclick="exet.handleKeyDown('#')">
             Add automagic blocks (#)
           </div>
-
-          <div title="Try to autofill the remaining grid"
-            class="xet-dropdown-item" id="xet-autofill">Autofill:
-            <div class="xet-dropdown-submenu xet-autofill-panel">
-              <div>
-                <button id="xet-autofill-startstop"
-                    class="xlv-button">Start</button>
-                <button id="xet-autofill-accept" style="float:right"
-                  title="Accept autofill suggestions"
-                  class="xlv-button">Accept</button>
-                <button id="xet-autofill-clear" style="float:right"
-                  title="Stop the autofill and clear all its suggestions"
-                  class="xlv-button">Clear</button>
-              </div>
-              <hr>
-              <div title="Increasing this may make the algorithm slower but may improve its success rate"
-                  style="padding:4px">
-                Beam search width:
-                <input id="xet-autofill-max-beam"
-                    name="xet-autofill-max-beam"
-                    value="64" type="text" size="4" maxlength="4"
-                    style="padding:0;margin:0">
-                </input>
-              </div>
-              <div style="padding:4px">
-                Try to find a pangram:
-                <input id="xet-autofill-boost-pangram"
-                    name="xet-autofill-boost-pangram" value="pangram"
-                    type="checkbox">
-                </input>
-                &nbsp;
-                <span title="Keep looping until the desired pangram is found (or until failure)">
-                  <span class="xet-small">Loop until pangram?</span>
-                  <input id="xet-autofill-pangram-loop"
-                      name="xet-autofill-pangram-loop" value="pangram-loop"
-                      type="checkbox">
-                  </input>
-                </span>
-              </div>
-              <div style="padding:4px">
-                <details id="xet-autofill-pangram-details">
-                  <summary>Try to constrain the pangram to these cells:</summary>
-                  <table>
-                    <tr>
-                      <td>
-                        <input id="xet-autofill-pangram-all"
-                            name="xet-autofill-pangram-all"
-                            value="pangram-all" type="checkbox">
-                        </input>
-                        All
-                      </td>
-                      <td>&nbsp;</td>
-                      <td>
-                        <input id="xet-autofill-pangram-checked"
-                            name="xet-autofill-pangram-checked"
-                            value="pangram-checked" type="checkbox">
-                        </input>
-                        Checked
-                      </td>
-                      <td>&nbsp;</td>
-                      <td>
-                        <input id="xet-autofill-pangram-unchecked"
-                            name="xet-autofill-pangram-unchecked"
-                            value="pangram-unchecked" type="checkbox">
-                        </input>
-                        Unchecked
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <input id="xet-autofill-pangram-circled"
-                            name="xet-autofill-pangram-circled"
-                            value="pangram-circled" type="checkbox">
-                        </input>
-                        Circled
-                      </td>
-                      <td>&nbsp;</td>
-                      <td>
-                        <input id="xet-autofill-pangram-firsts"
-                            name="xet-autofill-pangram-firsts"
-                            value="pangram-firsts" type="checkbox">
-                        </input>
-                        Starts
-                      </td>
-                      <td>&nbsp;</td>
-                      <td>
-                        <input id="xet-autofill-pangram-lasts"
-                            name="xet-autofill-pangram-lasts"
-                            value="pangram-lasts" type="checkbox">
-                        </input>
-                        Ends
-                      </td>
-                    </tr>
-                  </table>
-                </details>
-              </div>
-              <hr>
-              <div style="padding:4px" title="You can edit the list of ` +
-                  `preferred fills by clicking on the 'Set preferred ` +
-                  `fills' button">
-                Preferred fills used: <span
-                  id="xet-autofill-preflex-used">0</span> of <span
-                  id="xet-autofill-preflex-total"
-                  >${this.preflex.length}</span>
-              </div>
-              <div title="You can edit the list of undesired fills, ` +
-                `restrict fills by a popularity cutoff, and allow/` +
-                `disallow proper nouns by clicking on the 'Set fill ` +
-                `exclusions' button">
-                <div style="padding:4px">
-                  Min popularity: <span
-                      id="xet-autofill-minpop">${this.minpop}</span> %ile
-                  (<span id="xet-autofill-index-minpop">${Number(
-                        this.indexMinPop - 1).toLocaleString()}` +
-                  `</span> entries)
-                </div>
-                <div style="padding:4px" title="You can edit the list ` +
-                    `of undesired fills by clicking on the 'Set fill ` +
-                    `exclusions' button. You can restrict fills by a ` +
-                    `popularity cutoff, and allow/disallow proper ` +
-                    `nouns, stem-dupes, and reversals from the Exet tab.">
-                  Proper nouns: <span
-                    id="xet-autofill-proper-nouns">${this.noProperNouns ?
-                          "disallowed" : "allowed"}</span>&nbsp;
-                  <div style="padding:4px"></div>
-                  Stem dupes: <span
-                    id="xet-autofill-stem-dupes">${this.noStemDupes ?
-                          "disallowed" : "allowed"}</span>&nbsp;
-                  <div style="padding:4px"></div>
-                  Undesired fills: <span
-                      id="xet-autofill-unpreflex-total">${Object.keys(
-                          this.unpreflex).length}</span>
-                  <div style="padding:4px"></div>
-                  Trying reversals: <span
-                    id="xet-autofill-try-reversals">${this.tryReversals ?
-                          "allowed" : "disallowed"}</span>
-                  (<span id="xet-autofill-reversals">0</span> reversed)
-                </div>
-              </div>
-              <div style="padding:4px">
-                Letters used: <span id="xet-autofill-letters">0</span>
-                <span id="xet-autofill-pangram-cletters">(0 in pangram cells)</span>
-                of ${exetLexicon.letters.length}
-              </div>
-              <hr>
-              <div style="padding:4px">
-                Step: <span id="xet-autofill-step"></span>
-              </div>
-              <div style="padding:4px">
-                Score: <span id="xet-autofill-score">0.00</span>
-                <span style="font-size:12px">
-                (<span id="xet-autofill-score-v">0.00</span> viab + 
-                <span id="xet-autofill-score-p">0.00</span> popu + 
-                <span id="xet-autofill-score-f">0.00</span> full)
-                </span>
-              </div>
-              <div style="padding:4px">
-                Time taken: <span id="xet-autofill-time">--</span> ms
-                (<span id="xet-autofill-speed">--</span> ms/step)
-              </div>
-              <div style="padding:4px">
-                Beam size: <span id="xet-autofill-curr-beam"></span>
-                 &nbsp;
-              </div>
-              <div style="padding:4px">
-                Last status: <span id="xet-autofill-status"></span>
-              </div>
-              <hr>
-              <div style="padding:4px" class="xet-blue" id="xet-is-pangram"
-                  style="display:none">
-                Pangram!
-              </div>
-            </div>
-          </div>
-
-          <div title="Accept all current autofilled entries"
-              class="xet-dropdown-item" onclick="exet.acceptAll()">
-            Accept autofilled entries (=)
-          </div>
-
           <div class="xet-dropdown-item">
-            Edit grid cell:
+            Toggle barred cell:
             <div class="xet-dropdown-submenu">
               <div class="xet-dropdown-subitem"
-                  title="Toggle making this cell a block"
-                  onclick="exet.handleKeyDown('.')">
-                Toggle block (.)
-              </div>
-              <div class="xet-dropdown-subitem"
-                  title="Toggle bar after this cel"
+                  title="Toggle bar after this cell"
                   onclick="exet.handleKeyDown('|')">
                 Toggle bar-after (|)
               </div>
               <div class="xet-dropdown-subitem"
-                  title="Toggle bar under this cel;"
+                  title="Toggle bar under this cell"
                   onclick="exet.handleKeyDown('_')">
                 Toggle bar-under (_)
               </div>
             </div>
           </div>
+
+          <hr>
+          ${ExetAutofill.getUI()}
+
+          <div title="Accept all current autofilled entries"
+              class="xet-dropdown-item" onclick="exet.acceptAll()">
+            Accept autofilled entries (=)
+          </div>
+          <hr>
 
           <div class="xet-dropdown-item">
             Mark grid cell:
@@ -1666,19 +952,25 @@ Exet.prototype.makeExetTab = function() {
             </div>
           </div>
 
-          <div class="xet-dropdown-item" onclick="exet.puz.clearCurr()">
+          <div class="xet-dropdown-item"
+              title="Will not ask for confirmation before clearing."
+              onclick="exet.puz.clearCurr()">
              Clear current light (Ctrl-q)
           </div>
 
-          <div class="xet-dropdown-item" onclick="exet.puz.clearAll()">
+          <div class="xet-dropdown-item"
+              title="Will ask for confirmation before clearing."
+              onclick="exet.puz.clearAll()">
              Clear all the lights! (Ctrl-Q)
           </div>
 
           <div class="xet-dropdown-item"
-               title="Reverse the orientation of the currently active light. If it's part of a linked group of clues, the linked group will get broken up."
+               title="Reverse the orientation of the currently active light (will ask for confirmation). If it's part of a linked group of clues, the linked group will get broken up."
                onclick="exet.reverseLight()">
              Reverse current light
           </div>
+
+          <hr>
 
           <div class="xet-dropdown-item">
             Add/edit special sections:
@@ -1728,6 +1020,130 @@ Exet.prototype.makeExetTab = function() {
         <div class="xet-dropdown-content xet-analysis" id="xet-analysis">
         </div>
       </li>
+      <li class="xet-dropdown">
+        <div class="xet-dropbtn" title="Click to save, with some formatting options">Save</div>
+        <div class="xet-dropdown-content" id="xet-save">
+          <div class="xet-dropdown-div">
+            <b>Settings:</b>
+            <div title="Change this to your own URL prefix for exolve-m.js ` +
+              `and exolve-m.css. Only used when saving as Exolve if the ` +
+              `Exolve data did not already have these URLs. Press Esc after ` +
+              `clicking in the box to revert to default.">
+              Exolve URL prefix:<br>
+              <input id="xet-xlv-url-prefix" name="xet-xlv-url-prefix"
+                value="${exetState.exolveUrl}"
+                placeholder="Press Esc after clicking in the box to revert ` +
+                  `to default" type="text" size="40" maxlength="100">
+              </input>
+            </div>
+          </div>
+          <hr>
+          <div id="xet-save-warnings" class="xet-dropdown-div xet-red"></div>
+          <hr>
+          <div class="xet-dropdown-item">
+            Download Exolve HTML file...
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-subitem" onclick="exet.download(true)">
+                With solutions (Ctrl-s)<br>
+                (exet-exolve-<span class="xet-filetitle"></span>.html)
+              </div>
+              <div class="xet-dropdown-subitem" onclick="exet.download(false)">
+                Without solutions<br>
+                (exet-exolve-<span class="xet-filetitle"></span>-sans-solutions.html)
+              </div>
+            </div>
+          </div>
+          <div class="xet-dropdown-item">
+            Print or download PDF file...
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-subitem" onclick="exet.print(true)">
+                With solutions
+              </div>
+              <div class="xet-dropdown-subitem" onclick="exet.print(false)">
+                Without solutions
+              </div>
+            </div>
+          </div>
+          <div class="xet-dropdown-item" onclick="exet.downloadDotPuz()">
+              Download PUZ file<br>
+              (exet-<span class="xet-filetitle"></span>.puz)
+          </div>
+          <div class="xet-dropdown-item" onclick="exet.downloadIPuz()">
+              Download IPUZ file<br>
+              (exet-<span class="xet-filetitle"></span>.ipuz)
+          </div>
+          <div class="xet-dropdown-item">
+            Download grid image SVG file...
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-subitem" onclick="exet.saveGridSvg(true)">
+                With solutions<br>
+                (exet-<span class="xet-filetitle"></span>-solution-grid.svg)
+              </div>
+              <div class="xet-dropdown-subitem" onclick="exet.saveGridSvg(false)">
+                Without solutions<br>
+                (exet-<span class="xet-filetitle"></span>-blank-grid.svg)
+              </div>
+            </div>
+          </div>
+          <div class="xet-dropdown-item">
+            Copy Exolve HTML widget code...
+            <div class="xet-dropdown-submenu">
+              <div class="xet-dropdown-div">
+                <textarea rows="15" cols="32" id="xet-xlv-widget">
+                </textarea>
+              </div>
+              <div class="xet-dropdown-subitem"
+                  onclick="exet.toClipboard(true, 'xet-xlv-widget')">
+                With solutions &#128203;
+              </div>
+              <div class="xet-dropdown-subitem"
+                  onclick="exet.toClipboard(false, 'xet-xlv-widget')">
+                Without solutions &#128203;
+              </div>
+            </div>
+          </div>
+          <hr>
+          <div id="xet-xst-show-panel" class="xet-dropdown-item">
+            Upload for hosting at Exost
+          </div>
+        </div>
+      </li>
+      <li class="xet-dropdown">
+        <div class="xet-dropbtn" id="xet-storage-heading">Storage</div>
+        <div class="xet-dropdown-content" id="xet-storage">
+          <div class="xet-dropdown-item" onclick="exetRevManager.autofree()"
+              title="Back up all current crosswords to exet-backup-[timestamp].json and then purge every other old revision (keeping latest 25 and latest hour's revisions untouched). A convenient combination of the next two menu choices."
+              id="xet-auto-free-space">
+            <span class="xet-green">Auto-Free!</span>: Save back-up file, then purge some old revisions
+          </div>
+          <div class="xet-dropdown-item" id="xet-manage-storage">
+            Manage local storage (Used =
+                <span id="xet-local-storage-used"></span> MB,
+            Available &asymp; 
+              <span id="xet-local-storage-free"></span> MB)
+          </div>
+          <div class="xet-dropdown-item"
+             onclick="exetRevManager.saveAllRevisions()">
+            Back up all current crosswords to exet-backup-<i>timestamp</i>.json
+            <br></br>
+            <span id="xet-last-backup">Last backed up at:
+              <span id="xet-last-backup-time"></span></span>
+          </div>
+          <div class="xet-dropdown-item">
+            Merge saved back-ups file:
+            <input id="xet-merge-revs-file"
+               onchange="exetRevManager.mergeRevisionsFile()" type="file"
+               accept=".json"></input><br>
+            <input id="xet-merge-only-latest-revs"
+               name="xet-merge-only-latest-revs"
+              checked=true value="merge-only-latest-revs" type="checkbox">
+            </input>
+            Take only the latest revision per crossword
+          </div>
+          <hr>
+          <hr>
+        </div>
+      </li>
       <li class="xet-dropdown" style="float:right;">
         <div class="xet-dropbtn" id="xet-about" title="Click to see notes, ` +
             `notices, and pointers about Exet...">About <span
@@ -1766,13 +1182,15 @@ Exet.prototype.makeExetTab = function() {
   <div id="xet-temp" style="display:none">
   </div>
 
-  <div class="xet-controls-row xet-panel xet-high-tall-box">
-    <div class="xet-controls-col" style="position:relative">
+  <div class="xet-controls-row xet-high-tall-box">
+    <div class="xet-controls-col xet-panel-left" style="position:relative">
+      <span class="xet-light-regexp-icon"
+          title="This light has a regexp constraint, click to view/edit."
+          id="xet-light-regexp-icon">&#128279;</span>
       <div class="xet-fills-heading">
-        <span style="font-weight:bold" title="Please note that any lexicon ` +
-            `in use by this software is inevitably likely to have some ` +
-            `errors and omissions.">Choose grid-fill:</span>
-        <button class="xlv-small-button" style="padding:5px 4px"
+        <span style="font-weight:bold" title="Click on a suggestion below to ` +
+            `select it.">Choose grid-fill:</span>
+        <button class="xlv-small-button" style="padding:5px 4px;color:black"
             title="Click to see grid-fill possibilities from web sources of words and phrases"
             id="xet-show-web-fills">Web sources
           <div class="xet-web-fills-panel"
@@ -1783,20 +1201,21 @@ Exet.prototype.makeExetTab = function() {
       </div>
       <div class="xet-choices-box" id="xet-light-choices-box">
         <table id="xet-light-choices"
-          title="Click to choose this entry"
+          title="Click to choose this entry (green if in the preferred fills list)"
           class="xet-choices">
         </table>
         <table id="xet-light-rejects"
-          title="Click to choose this entry that matches the letters filled so far, but does not seem viable towards a complete grid-fill"
+          title="Click to choose this entry that matches the letters filled so far, but does not seem viable towards a complete grid-fill (green if in the preferred fills list)"
           class="xet-choices">
         </table>
       </div>
-      <div title="You can provide up to 100 preferred words/phrases to try ` +
+      <div title="You can provide up to ${this.MAX_PREFLEX} preferred words/phrases to try ` +
           `and use in the grid-fill" class="xet-long-button">
         <button class="xlv-small-button" style="padding:5px 4px"
           id="xet-edit-preflex">Set preferred fills</button>
-        <span id="xet-preflex-used">0</span>/<span
-          id="xet-preflex-size">${this.preflex.length}</span> used
+        <span class="xet-smaller-text">
+          <span id="xet-preflex-used">0</span>/<span id="xet-preflex-size">${this.preflex.length}</span> used
+        </span>
       </div>
       <div title="You can provide words/phrases to exclude from the ` +
         `grid-fill, set a minimum popularity, and include/exclude proper nouns"
@@ -1804,18 +1223,23 @@ Exet.prototype.makeExetTab = function() {
         <button class="xlv-small-button"
             style="padding:5px 4px;color:var(--red)"
             id="xet-edit-unpreflex">Set fill exclusions</button>
-        <span id="xet-unpreflex-size">${Object.keys(
-            this.unpreflex).length}</span> set
+        <span class="xet-smaller-text">
+          <span id="xet-unpreflex-size">${this.unpreflex.length}</span> set
+        </span>
       </div>
       <div class="xet-text-editor"
           title="Click anywhere outside this box to dismiss it"
           id="xet-preflex-editor" style="display:none">
         <div>
-          <b>Preferred Fills (up to 100)</b>
+          List of preferred words/phrases (up to ${this.MAX_PREFLEX}):
+          <span class="xet-processing" style="display:none"
+              id="xet-preflex-processing">
+            (processing...)
+          </span>
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <div style="height:100ch;width:30ch" id="xet-preflex-input"
-            contenteditable="true"
+            contenteditable="true" class="xet-preflex-entry"
             oninput="exet.throttledUpdatePreflex()"></div>
         </div>
       </div>
@@ -1827,68 +1251,59 @@ Exet.prototype.makeExetTab = function() {
         </div>
         <div class="xet-choices-box xet-mid-tall-box">
           <textarea rows="100" cols="25" id="xet-unpreflex-input"
+            class="xet-unpreflex-entry"
             oninput="exet.throttledUpdateUnpreflex()"></textarea>
         </div>
       </div>
     </div>
-    <div class="xet-controls-col">
-      <div class="xet-controls-row xet-clues-box">
-        <div class="xet-fill-settings">
-          <div>
-            <b title="Limit fill suggestions to words/phrases above this ` +
-              `percentile threshold of popularity">Minimum popularity</b>
+    <div class="xet-controls-col xet-panel-right">
+      <div id="xet-fill-settings" class="xet-fill-settings">
+        <div class="xet-controls-col">
+          <div title="Limit fill suggestions to words/phrases above this ` +
+              `percentile threshold of popularity. Set this to 100 to use ` +
+              `only the preferred fills list.">
+            <b>Minimum popularity score:</b>
             <input id="xet-minpop" name="xet-minpop" class="xlv-answer"
-              size="4" maxlength="4" type="text"></input> %ile<br>
-            <span id="xet-minpop-incl">${Number(
-                this.indexMinPop - 1).toLocaleString()}</span> out of
-            ${Number(exetLexicon.startLen - 1).toLocaleString()} words/phrases
-            <br>
-            <br>
-            <b title="If checked, this excludes proper nouns from ` +
-                `fill suggestions">No proper nouns</b>
-            <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
-                value="no-proper-nouns" type="checkbox">
-            </input>
-            <b title="If checked, this allows trying reversals of unfilled ` +
-                `lights, when finding fill suggestions">Try reversals</b>
-            <input id="xet-try-reversals" name="xet-try-reversals"
-                value="try-reversals" type="checkbox">
-            </input>
-            <table>
-            <tr>
-              <td>
-                <b title="If checked, this excludes proper nouns from ` +
-                    `fill suggestions">No proper nouns:</b>
-                <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
-                    value="no-proper-nouns" type="checkbox">
-                </input>
-              </td>
-              <td>
-                <b title="If checked, this allows trying reversals of unfilled ` +
-                    `lights, when finding fill suggestions">Try reversals:</b>
-                <input id="xet-try-reversals" name="xet-try-reversals"
-                    value="try-reversals" type="checkbox">
-                </input>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <b title="If checked, this excludes word choices that have ` +
-                    `the same stemmed forms as any other entries (e.g., if ` +
-                    `SWIM is picked, then SWIMS will not be considered)">` +
-                    `No stem-dupes:</b>
-                <input id="xet-no-stem-dupes" name="xet-no-stem-dupes"
-                    value="no-stem-dupes" type="checkbox">
-                </input>
-              </td>
-              <td>
-              </td>
-            </tr>
-            </table>
+              size="4" maxlength="4" type="text"></input> %ile
+            <span class="xet-fill-settings-summary"
+                title="Note that the number of lexicon entries indicated here could include some already counted in preferred fills, if there is overlap.">
+              (<span id="xet-minpop-incl">${Number(
+                  this.indexMinPop - 1).toLocaleString()}</span> of
+              ${Number(exetLexicon.startLen - 1).toLocaleString()} words/phrases)
+            </span>
+          </div>
+          <div class="xet-controls-row">
+            <span>
+              <b title="If checked, this excludes proper nouns from ` +
+                `fill suggestions">No proper nouns:</b>
+              <input id="xet-no-proper-nouns" name="xet-no-proper-nouns"
+                  value="no-proper-nouns" type="checkbox">
+              </input>
+            </span>
+            &nbsp;
+            <span>
+              <b title="If checked, this allows trying reversals of unfilled ` +
+                  `lights, when finding fill suggestions">Try reversals:</b>
+              <input id="xet-try-reversals" name="xet-try-reversals"
+                  value="try-reversals" type="checkbox">
+              </input>
+            </span>
+            &nbsp;
+            <span>
+              <b title="If checked, this excludes word choices that have ` +
+                  `the same stemmed forms as any other entries (e.g., if ` +
+                  `SWIM is picked, then SWIMS will not be considered)">` +
+                  `No stem-dupes:</b>
+              <input id="xet-no-stem-dupes" name="xet-no-stem-dupes"
+                  value="no-stem-dupes" type="checkbox">
+              </input>
+            </span>
           </div>
         </div>
-        <div id="xet-scratch-pad" class="xet-scratch-pad">
-        </div>
+      </div>
+      <div id="xet-clues" class="xet-panel xet-clues-panel xet-clues-box"
+        title="You can edit the current clue as shown above ` +
+          `the grid by clicking on it.">
       </div>
     </div>
   </div>
@@ -1947,32 +1362,32 @@ Exet.prototype.makeExetTab = function() {
 </div>
   `;
   // Set up menu click handling
-  const menuButtons = exetTab.content.getElementsByClassName('xet-dropbtn')
+  const menuButtons = exetTab.content.getElementsByClassName('xet-dropbtn');
   for (let i = 0; i < menuButtons.length; i++) {
-    let menuPanel = menuButtons[i].nextElementSibling
+    let menuPanel = menuButtons[i].nextElementSibling;
     menuButtons[i].addEventListener('click', e => {
       if (menuPanel.id && menuPanel.id == "xet-analysis") {
-        exet.updateAnalysis(menuPanel)
+        exet.updateAnalysis(menuPanel);
       } else if (menuPanel.id && menuPanel.id == "xet-save") {
-        exet.updateSavePanel(menuPanel)
+        exet.updateSavePanel(menuPanel);
       }
-      exetModals.showModal(menuPanel)
-      e.stopPropagation()
-    })
+      exetModals.showModal(menuPanel);
+      e.stopPropagation();
+    });
     menuButtons[i].addEventListener('mouseenter', e => {
-      exetModals.hide()
-    })
+      if (!exetModals.modal ||
+          !exetModals.modal.classList.contains('xet-dropdown-content')) {
+        return;
+      }
+      exetModals.hide();
+    });
   }
-  this.tips = document.getElementById("xet-tips")
-  this.tip = document.getElementById("xet-tip")
+  this.tips = document.getElementById("xet-tips");
+  this.tip = document.getElementById("xet-tip");
   this.setRandomTip();
 
   this.lChoices = document.getElementById("xet-light-choices");
   this.lRejects = document.getElementById("xet-light-rejects");
-  this.preflexUsed = document.getElementById("xet-preflex-used");
-  this.preflexSize = document.getElementById("xet-preflex-size");
-  this.preflexEditor = document.getElementById("xet-preflex-editor");
-  this.preflexInput = document.getElementById("xet-preflex-input");
   this.webFillsPanel = document.getElementById("xet-web-fills-panel");
   this.showWebFillsButton = document.getElementById("xet-show-web-fills");
   if (!exetConfig.webFills || exetConfig.webFills.length == 0) {
@@ -1980,40 +1395,23 @@ Exet.prototype.makeExetTab = function() {
   } else {
     this.showWebFillsButton.addEventListener('click', e=> {
       exet.showWebFills();
-      e.stopPropagation()
+      e.stopPropagation();
     });
   }
-  /* populate with existing preflex */
-  let preflexText = '';
-  for (let p of this.preflex) {
-    preflexText += '\n';
-    preflexText += p;
-  }
-  this.preflexInput.innerHTML = preflexText.trim();
-  document.getElementById("xet-edit-preflex").addEventListener('click', e=> {
-    exet.updatePreflex();
-    exetModals.showModal(exet.preflexEditor);
-    e.stopPropagation();
-  });
-  this.unpreflexSize = document.getElementById("xet-unpreflex-size");
-  this.unpreflexEditor = document.getElementById("xet-unpreflex-editor");
-  this.unpreflexInput = document.getElementById("xet-unpreflex-input");
-  this.renderUnpreflex();
-  document.getElementById("xet-edit-unpreflex").addEventListener('click', e=> {
-    exetModals.showModal(exet.unpreflexEditor);
-    e.stopPropagation();
-  });
+
+  this.fillSettings = document.getElementById("xet-fill-settings");
   this.minpopInclSpan = document.getElementById("xet-minpop-incl");
   this.minpopInput = document.getElementById("xet-minpop");
   this.minpopInput.value = this.minpop;
+  this.renderMinPop();
   this.minpopInput.addEventListener('change', e => {
     if (isNaN(this.minpopInput.value) ||
-        this.minpopInput.value < 0 || this.minpopInput.value >= 100) {
+        this.minpopInput.value < 0 || this.minpopInput.value > 100) {
       this.minpopInput.value = this.minpop;
       return;
     }
     this.setMinPop(this.minpopInput.value);
-    this.minpopInclSpan.innerText = Number(this.indexMinPop - 1).toLocaleString();
+    this.renderMinPop();
     this.resetViability();
     exetRevManager.throttledSaveRev(exetRevManager.REV_FILL_OPTIONS_CHANGE);
   });
@@ -2040,44 +1438,76 @@ Exet.prototype.makeExetTab = function() {
     this.noProperNounsInput.disabled = true;
     this.noProperNounsInput.title = 'Proper-noun filtering is only available for Latin currently';
   }
-  this.tryReversalsInput = document.getElementById("xet-try-reversals")
-  this.tryReversalsInput.checked = this.tryReversals
+  this.tryReversalsInput = document.getElementById("xet-try-reversals");
+  this.tryReversalsInput.checked = this.tryReversals;
   this.tryReversalsInput.addEventListener('change', e => {
-    this.tryReversals = this.tryReversalsInput.checked
-    this.resetViability()
-    exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE)
-  })
+    this.tryReversals = this.tryReversalsInput.checked;
+    this.resetViability();
+    exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE);
+  });
 
-  this.revChooser = document.getElementById("xet-rev-chooser")
-  let showPuzChooser = document.getElementById("xet-show-puz-chooser")
+  this.lightRegexpIcon = document.getElementById("xet-light-regexp-icon");
+  this.lightRegexpIcon.style.display = 'none';
+  this.lightRegexpIcon.addEventListener('click', this.showLightRegexpPanel.bind(this));
+
+  this.preflexUsedDisp = document.getElementById("xet-preflex-used");
+  this.preflexSize = document.getElementById("xet-preflex-size");
+  this.preflexEditor = document.getElementById("xet-preflex-editor");
+  this.preflexInput = document.getElementById("xet-preflex-input");
+  this.preflexWait = document.getElementById("xet-preflex-processing");
+  this.renderPreflex();
+  document.getElementById("xet-edit-preflex").addEventListener('click', e=> {
+    exet.renderPreflex();
+    exetModals.showModal(exet.preflexEditor);
+    e.stopPropagation();
+  });
+  this.unpreflexSize = document.getElementById("xet-unpreflex-size");
+  this.unpreflexEditor = document.getElementById("xet-unpreflex-editor");
+  this.unpreflexInput = document.getElementById("xet-unpreflex-input");
+  this.renderUnpreflex();
+  document.getElementById("xet-edit-unpreflex").addEventListener('click', e=> {
+    exetModals.showModal(exet.unpreflexEditor);
+    e.stopPropagation();
+  });
+
+  this.revChooser = document.getElementById("xet-rev-chooser");
+  let showPuzChooser = document.getElementById("xet-show-puz-chooser");
   showPuzChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(false, null, exet.revChooser, exetFromHistory);
-    exetModals.showModal(exet.revChooser)
-    e.stopPropagation()
+    exetRevManager.choosePuzRev({
+        elt: exet.revChooser,
+        callback: exetFromHistory,
+        sortBy: 'timestamp',
+        sortOrder: 'decreasing'
+    });
+    exetModals.showModal(exet.revChooser);
+    e.stopPropagation();
   })
-  const showRevChooser = document.getElementById("xet-show-rev-chooser")
+  const showRevChooser = document.getElementById("xet-show-rev-chooser");
   showRevChooser.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(false, this.puz, exet.revChooser,
-                                exetFromHistory);
-    exetModals.showModal(exet.revChooser)
-    e.stopPropagation()
+    exetRevManager.choosePuzRev({
+        onlyPuz: this.puz,
+        elt: exet.revChooser,
+        callback: exetFromHistory,
+    });
+    exetModals.showModal(exet.revChooser);
+    e.stopPropagation();
   })
-  const manageStorage = document.getElementById("xet-manage-storage")
-  this.storageUsed = document.getElementById("xet-storage-used")
-  this.storageFree = document.getElementById("xet-storage-free")
+  const manageStorage = document.getElementById("xet-manage-storage");
+  this.lsUsedSpan = document.getElementById("xet-local-storage-used");
+  this.lsFreeSpan = document.getElementById("xet-local-storage-free");
+  this.storageHeading = document.getElementById("xet-storage-heading");
   manageStorage.addEventListener('click', e => {
-    exetRevManager.choosePuzRev(true, null, exet.revChooser, null);
-    exetModals.showModal(exet.revChooser)
-    e.stopPropagation()
-  })
+    exetRevManager.choosePuzRev({
+        forStorage: true,
+        elt: exet.revChooser,
+        sortBy: 'space',
+        sortOrder: 'decreasing'
+    });
+    exetModals.showModal(exet.revChooser);
+    e.stopPropagation();
+  });
 
   // Saving options
-  const showEnums = document.getElementById("xet-show-enums")
-  showEnums.addEventListener('change', e => {
-    exetState.showEnums = showEnums.checked ? true : false;
-    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
-                             JSON.stringify(exetState))
-  });
   const exolveUrl = document.getElementById("xet-xlv-url-prefix")
   exolveUrl.addEventListener('change', e => {
     exolveUrl.value = exolveUrl.value.trim();
@@ -2086,15 +1516,13 @@ Exet.prototype.makeExetTab = function() {
       exolveUrl.value = exolveUrl.value + '/';
     }
     exetState.exolveUrl = exolveUrl.value;
-    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
-                             JSON.stringify(exetState))
+    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
   });
   exolveUrl.addEventListener('keyup', e => {
     if (e.key == "Escape") {
       exolveUrl.value = "https://viresh-ratnakar.github.io/";
       exetState.exolveUrl = exolveUrl.value;
-      exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
-                               JSON.stringify(exetState))
+      exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
     }
   });
 
@@ -2103,17 +1531,17 @@ Exet.prototype.makeExetTab = function() {
   asymOKButton.checked = this.asymOK;
   asymOKButton.addEventListener('change', e => {
     exet.asymOK = asymOKButton.checked ? true : false;
-    exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE);
   });
 
   const preamble = document.getElementById("xet-preamble")
   this.preambleText = document.getElementById("xet-preamble-text")
   this.preambleText.value = this.preamble.innerHTML;
   this.preambleText.addEventListener('input', e => {
-    const text = exet.preambleText.value.trim()
-    this.preamble.innerHTML = text
-    this.preamble.style.display = text ? '' : 'none'
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+    const text = exet.preambleText.value.trim();
+    this.preamble.innerHTML = text;
+    this.preamble.style.display = text ? '' : 'none';
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
   });
   document.getElementById("xet-edit-preamble").addEventListener('click', e => {
     this.puz.deactivator();
@@ -2136,7 +1564,7 @@ Exet.prototype.makeExetTab = function() {
     const text = explanationsText.value.trim()
     this.explanations.innerHTML = text
     this.explanations.style.display = text ? '' : 'none'
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
   });
   document.getElementById("xet-edit-explanations").addEventListener(
       'click', e => {
@@ -2148,6 +1576,12 @@ Exet.prototype.makeExetTab = function() {
   document.getElementById("xet-edit-questions").addEventListener('click', e => {
     this.populateQuestions(questions);
     exetModals.showModal(questions)
+    e.stopPropagation();
+  });
+
+  document.getElementById("xet-xst-show-panel").addEventListener(
+      'click', e => {
+    this.showExostPanel();
     e.stopPropagation();
   });
 
@@ -2186,27 +1620,11 @@ Exet.prototype.makeExetTab = function() {
         this.puz.activateCell(row, col)
       }
     }
-    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY,
-                             JSON.stringify(exetState))
+    exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
   });
 
-  // Move the scratch pad over to here.
-  const scratchP = document.getElementById("xet-scratch-pad")
-  this.puz.scratchPad.rows = "3"
-  this.puz.scratchPad.cols = "32"
-  const scratchPLabel = document.getElementById(this.puz.prefix + '-shuffle')
-  scratchPLabel.style.padding = '8px 0'
-  scratchPLabel.style.fontWeight = 'bold'
-  scratchP.appendChild(scratchPLabel)
-  scratchP.appendChild(this.puz.scratchPad)
-
   // Pull in the clues.
-  this.cluesPanel = document.createElement('div')
-  this.cluesPanel.id = 'xet-clues'
-  this.cluesPanel.className = 'xet-panel xet-mid-tall-box xet-clues-box'
-  this.cluesPanel.title = 'You can edit the current clue as shown above ' +
-                          'the grid by clicking on it.'
-  scratchP.after(this.cluesPanel)
+  this.cluesPanel = document.getElementById("xet-clues");
   this.cluesPanel.appendChild(document.getElementById(
         `${this.puz.prefix}-clues`))
 }
@@ -2367,7 +1785,7 @@ Exet.prototype.getLightInfos = function() {
         index = fillClue.lChoices[0];
         solText = exetLexicon.getLex(index);
       }
-      let pop = 5 * Math.round(20 * (lexl - index) / lexl);
+      const pop = 5 * Math.round(20 * (lexl - index) / lexl);
       label += ': ' + solText;
       this.addStat(allInfo.popularities, pop, label);
       this.addStat(dirInfo.popularities, pop, label);
@@ -2376,16 +1794,26 @@ Exet.prototype.getLightInfos = function() {
         this.addStat(allInfo.substrings, substring, label);
         this.addStat(dirInfo.substrings, substring, label);
       }
+      /**
+       * Include filled entries in reporting stem-dupes in clues.
+       */
+      const depunctSol = exetLexicon.depunct(solText, true /* forDeduping */);
+      const words = depunctSol.split(' ');
+      for (const word of words) {
+        const stem = exetLexicon.stem(word).toLowerCase();
+        this.addStat(allInfo.words, stem, label);
+        this.addStat(dirInfo.words, stem, label);
+      }
     }
     this.addStat(allInfo.lengths, theClue.enumLen, label);
     this.addStat(dirInfo.lengths, theClue.enumLen, label);
-    let depunctClue = exetLexicon.depunct(theClue.clue, true /* forDeduping */);
+    const depunctClue = exetLexicon.depunct(theClue.clue, true /* forDeduping */);
     if (depunctClue && !this.isDraftClue(theClue.clue)) {
       allInfo.set += 1;
       dirInfo.set += 1;
       const labelAndClue = label + ' [' + depunctClue + ']';
-      let words = depunctClue.split(' ');
-      for (let word of words) {
+      const words = depunctClue.split(' ');
+      for (const word of words) {
         const stem = exetLexicon.stem(word).toLowerCase();
         this.addStat(allInfo.words, stem, labelAndClue);
         this.addStat(dirInfo.words, stem, labelAndClue);
@@ -2396,7 +1824,7 @@ Exet.prototype.getLightInfos = function() {
     if (theClue.anno) {
       allInfo.annos += 1;
       dirInfo.annos += 1;
-      let anno = this.essenceOfAnno(theClue.anno);
+      const anno = this.essenceOfAnno(theClue.anno);
       if (anno) {
         this.addStat(allInfo.annotations, anno, label);
         this.addStat(dirInfo.annotations, anno, label);
@@ -2698,7 +2126,7 @@ Exet.prototype.updateMetadata = function() {
     }
     this.restoreCursor()
     this.throttledMetadataTimer = null;
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
   }, 2000);
 }
 
@@ -2713,10 +2141,12 @@ Exet.prototype.updateOtherSections = function() {
     'exolve-submit': true,
     'exolve-option': true,
     'exolve-relabel': true,
+    'exolve-no-rebus': true,
     'exolve-force-hyphen-right': true,
     'exolve-force-hyphen-below': true,
     'exolve-force-bar-right': true,
     'exolve-force-bar-below': true,
+    'exolve-cell-decorator': true,
   }
   this.otherSecError.innerText = '';
   if (this.throttledOtherSecTimer) {
@@ -2754,7 +2184,7 @@ Exet.prototype.updateOtherSections = function() {
       exolvePuzzles[tempId].destroy();
     }
     if (specsOK) {
-      this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
+      this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
       if (this.postscript) {
         this.postscript.style.display = '';
       }
@@ -2762,6 +2192,126 @@ Exet.prototype.updateOtherSections = function() {
       this.exolveOtherSec = saved;
     }
   }, 2000);
+}
+
+Exet.prototype.uploadToExost = function(solved=true) {
+  const exolve = this.getExolve('', false, solved);
+  this.exost.uploadExolve(exolve, this.puz);
+}
+
+Exet.prototype.exostUploadCallback = function(result) {
+  /** Can't use "this" as we detach this function before use */
+  if (result.error) {
+    console.log('Exost upload failed: ' + result.error);
+    return;
+  }
+  if (result.url) {
+    exet.exostState.url = result.url;
+    exet.exostState.urlElt.href = result.url;
+    exet.exostState.urlElt.innerText = result.url;
+    exet.exostState.urlRow.style.display = '';
+  }
+}
+
+Exet.prototype.showExostPanel = function() {
+  /**
+   * We reuse an Exost panel across multiple crosswords so that the user's
+   * email address and password fields are retained.
+   */
+  if (!this.exostState) {
+    this.exostState = {id: ''};
+    this.exostState.panel = document.createElement('div');
+    this.exostState.panel.className = 'xet-xst-panel';
+    this.exostState.panel.style.display = 'none';
+    this.exostState.panel.innerHTML = `
+      <p>
+        <b>Upload/update at <a target="_blank"
+           href="https://xlufz.ratnakar.org/exost.html">Exost</a>
+           crossword hosting</b>
+      </p>
+      <table>
+        <tr>
+          <td colspan="2">
+            <label for="xet-xst-email">Email: </label>
+            <input type="email" class="xlv-answer" id="xet-xst-email" size="32" placeholder="your@email.address">
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <label for="xet-xst-pwd">Password: </label>
+            <input type="password" class="xlv-answer" id="xet-xst-pwd" size="28" placeholder="Retrievable via email">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Get your password emailed to you:
+          </td>
+          <td>
+            <button class="xlv-small-button" onclick="exet.exost.requestPwd()">Request</button>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <span class="xet-xst-status" id="xet-xst-pwd-status"></span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Upload/update Exost-hosted version:
+          </td>
+          <td>
+            <button class="xlv-small-button" onclick="exet.uploadToExost(true)">With solutions</button>
+            <button class="xlv-small-button" onclick="exet.uploadToExost(false)">Sans solutions</button>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <span class="xet-xst-status" id="xet-xst-upload-status"></span>
+          </td>
+        </tr>
+        <tr id="xet-xst-url-row">
+          <td colspan="2">
+            Exost URL: <a class="xet-xst-status" target="_blank" id="xet-xst-url"></a>
+            <button id="xet-xst-cpurl-u" onclick="exet.exost.copyURL(exet.exostState.url, false, 'xet-xst-cpurl-u')"
+              title="Copy Exost URL">&#128279;</button>
+            <button id="xet-xst-cpurl-e" onclick="exet.exost.copyURL(exet.exostState.url, true, 'xet-xst-cpurl-e')"
+              title="Copy Exost iframe embed code">&lt;/&gt;</button>
+          </td>
+        </tr>
+      </table>
+      <p style="font-size:90%;font-style:italic">
+        You can view the list of all your uploaded crosswords (and delete any,
+        if you wish to) at the <a target="_blank"
+          href="https://xlufz.ratnakar.org/exost.html">Exost</a> site. Please
+        note that by uploading your crossword, you're agreeing to the simple
+        terms and conditions listed on the Exost site. In particular, please
+        note that if you've opened someone else's crossword on this page, you
+        shouldn't be uploading it for hosting anywhere unless you've received
+        explicit permission from them.
+      </p>
+    `;
+  }
+  this.frame.appendChild(this.exostState.panel);
+
+  this.exost = new ExolveExost({
+    exostURL: 'https://xlufz.ratnakar.org/exost.html',
+    apiServer: 'https://xlufz.ratnakar.org/exost.php',
+    emailEltId: 'xet-xst-email',
+    pwdEltId: 'xet-xst-pwd',
+    pwdStatusEltId: 'xet-xst-pwd-status',
+    uploadStatusEltId: 'xet-xst-upload-status',
+    uploadCallback: exet.exostUploadCallback
+  });
+  this.exostState.urlRow = document.getElementById('xet-xst-url-row');
+  this.exostState.urlElt = document.getElementById('xet-xst-url');
+  this.exostState.uploadStatus = document.getElementById('xet-xst-upload-status');
+  if (this.exostState.id != this.puz.id) {
+    this.exostState.id = this.puz.id;
+    this.exostState.url = '';
+    this.exostState.urlRow.style.display = 'none';
+    this.exostState.uploadStatus.innerHTML = '';
+  }
+  exetModals.showModal(this.exostState.panel);
 }
 
 Exet.prototype.trimUrl = function(url) {
@@ -3092,6 +2642,21 @@ Exet.prototype.pushCharadeCandidate = function(elements) {
   }
 }
 
+Exet.prototype.maybeTrimLongFodder = function(fodderArr, name) {
+  const paramElt = document.getElementById(name + '-param');
+  const warningElt = document.getElementById(name + '-warn-long');
+  if (fodderArr.length > this.MAX_FODDER_LENGTH &&
+      !paramElt.value.trim().endsWith('!')) {
+    fodderArr.length = this.MAX_FODDER_LENGTH;
+    paramElt.classList.add('xlv-red');
+    warningElt.style.display = '';
+    this.showTip(this.TIP_LONG_FODDER);
+  } else {
+    paramElt.classList.remove('xlv-red');
+    warningElt.style.display = 'none';
+  }
+}
+
 Exet.prototype.updateCharades = function(fodder) {
   if (this.throttledCharadeTimer) {
     clearTimeout(this.throttledCharadeTimer);
@@ -3103,6 +2668,7 @@ Exet.prototype.updateCharades = function(fodder) {
   this.charadeSplitIndex = 0;
   this.charadeDeletionsAdded = false;
   this.charadeFodder = exetLexicon.lettersOf(fodder);
+  this.maybeTrimLongFodder(this.charadeFodder, 'xet-charades');
   this.charadeMax = Math.min(this.charadeFodder.length, 4);
   this.updateCharadesPartial();
 }
@@ -3142,7 +2708,7 @@ Exet.prototype.addDeletionCharades = function() {
 }
 
 Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
-  let startTS = Date.now()
+  const startTS = Date.now()
   if (!this.charadeDeletionsAdded) {
     this.addDeletionCharades();
   }
@@ -3426,6 +2992,7 @@ Exet.prototype.updateSounds = function(fodder) {
 
 Exet.prototype.updateCA = function() {
   const fodderLetters = exetLexicon.lettersOf(this.caFodder.value);
+  this.maybeTrimLongFodder(fodderLetters, 'xet-companag');
   const fodderHist = exetLexicon.letterHist(fodderLetters);
   const anagramLetters = exetLexicon.lettersOf(this.caAnagram.value);
   const anagramHist = exetLexicon.letterHist(anagramLetters);
@@ -3465,6 +3032,7 @@ Exet.prototype.updateCA = function() {
 
 Exet.prototype.updateContainments = function(fodder) {
   const fodderLetters = exetLexicon.lettersOf(fodder);
+  this.maybeTrimLongFodder(fodderLetters, 'xet-containments');
   const splits = this.getAllSplits(fodderLetters, 3);
   /* Sort the splits to bring more even balance up top */
   splits.sort((a, b) =>
@@ -3607,6 +3175,8 @@ Exet.prototype.populateFrame = function() {
               title="Press <Esc> to reset from grid"
               placeholder="Press <Esc> to reset from grid">
             </input>
+            <span id="${section.id}-warn-long" class="xlv-red" style="display:none"
+              title="Fodder too long, trimmed: add an exclamation mark at the end to go ahead anyway (can be SLOW and may lock your browser for a while!)">!!</span>
             `;
           frameHTML = frameHTML + `
             <div ${titleHover}class="xet-bold">${section.title || ''}</div>
@@ -3676,34 +3246,35 @@ Exet.prototype.populateFrame = function() {
 }
 
 Exet.prototype.fileTitle = function() {
-  return this.puz.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const fname = this.puz.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  return fname || 'crossword';
 }
 
 Exet.prototype.updateSavePanel = function() {
-  const filetitle = this.fileTitle()
-  const tlist = document.getElementsByClassName('xet-filetitle')
+  const filetitle = this.fileTitle();
+  const tlist = document.getElementsByClassName('xet-filetitle');
   for (let i = 0; i < tlist.length; i++) {
-    tlist[i].innerText = filetitle
+    tlist[i].innerText = filetitle;
   }
-  const w = document.getElementById('xet-save-warnings')
-  let warnings = ''
-  const info = this.getLightInfos()['All']
-  const numUnfilled = info.lights - info.ischild - info.filled
+  const w = document.getElementById('xet-save-warnings');
+  let warnings = '';
+  const info = this.getLightInfos()['All'];
+  const numUnfilled = info.lights - info.ischild - info.filled;
   if (numUnfilled == 1) {
-    warnings += 'The crossword still has 1 unfilled entry!<br>'
+    warnings += 'There is 1 unfilled entry!<br>';
   } else if (numUnfilled > 1) {
-    warnings += 'The crossword still has ' + numUnfilled +
-                ' unfilled entries!<br>'
+    warnings += 'There are ' + numUnfilled +
+                ' unfilled entries!<br>';
   }
-  const numDraft = info.lights - info.ischild - info.set
+  const numDraft = info.lights - info.ischild - info.set;
   if (numDraft == 1) {
-    warnings += `The crossword still has 1 clue marked ${this.DRAFT}!<br>`
+    warnings += `There is 1 clue marked ${this.DRAFT}!<br>`;
   } else if (numDraft > 1) {
-    warnings += `The crossword still has ${numDraft} clues ` +
-                `marked ${this.DRAFT}!<br>`
+    warnings += `There are ${numDraft} clues ` +
+                `marked ${this.DRAFT}!<br>`;
   }
-  w.innerHTML = warnings
-  w.style.display = warnings ? '' : 'none'
+  w.innerHTML = warnings;
+  w.style.display = warnings ? '' : 'none';
 }
 
 /**
@@ -3739,28 +3310,24 @@ Exet.prototype.navTip = function(delta) {
 }            
 
 Exet.prototype.download = function(solved=true) {
-  let html = this.getHTML(solved, exetState.showEnums)
-  const a = document.createElement("a");
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.href = window.URL.createObjectURL(
-    new Blob([html], {type: "text/html"})
-  );
-  let fileprefix = "exet-exolve"
-  let filetitle = this.fileTitle()
-  if (filetitle) fileprefix += "-" + filetitle
-  a.setAttribute("download", fileprefix +
-    (solved ? "-with-solutions.html" : "-sans-solutions.html"));
-  a.click();
-  window.URL.revokeObjectURL(a.href);
-  document.body.removeChild(a);
+  const html = this.getHTML(solved);
+
+  const fileName = "exet-exolve-" + this.fileTitle() +
+                   (solved ? ".html" : "-sans-solutions.html");
+  Exolve.prototype.fileDownload(html, "text/html", fileName);
   exetModals.hide()
 }
 
-Exet.prototype.print = function(solved=true) {
-  const revealer = solved ?
-    `exolvePuzzles['${this.puz.id}'].revealAll(false);` :
-    `exolvePuzzles['${this.puz.id}'].clearAll(false);`;
+/**
+ * actionScript should be single-line JS terminated with semicolon.
+ * It should use single quotes for strings. It can use the variable
+ * "pxlv" to access the Exolve puzzle.
+ */
+Exet.prototype.printWindower = function(actionScript, solved) {
+  const tempId = `tmp-xlv-${Math.random().toString(36).substring(2, 8)}`;
+  const revealer = (solved ?
+      'pxlv.revealAll(false);' : 'pxlv.clearAll(false);') +
+      'pxlv.deactivator();';
   const html = '' +
         '<!DOCTYPE html>\n' +
         '<html lang="en">\n' +
@@ -3773,18 +3340,36 @@ Exet.prototype.print = function(solved=true) {
         '<body ' +
         'onload="' +
         revealer +
-        'window.print();window.close();">\n' +
+        actionScript +
+        'pxlv.destroy(true);window.close();">\n' +
         '<script>\n' +
-        'createExolve(`' +  '\n' +
-        this.getExolve('', false, solved, exetState.showEnums) +
+        'const pxlv = createExolve(`' +  '\n' +
+        this.getExolve(tempId, false, solved) +
         '`);\n' +
         '<\/script>\n' +
         '<\/body>\n' +
         '<\/html>\n'
-  const pwin = window.open('', '', 'left=0,top=0');
+  const pwin = window.open('', '', 'left=0,top=0,width=1000,height=1500');
   pwin.document.write(html);
   pwin.document.close();
   pwin.focus();
+}
+
+Exet.prototype.saveGridSvg = function(solved=true) {
+  const fileName = "exet-" + this.fileTitle() +
+                   (solved ? "-solution-grid.svg" : "-blank-grid.svg");
+  const actionScript = `pxlv.saveGridSvgFile('${fileName}');`;
+  this.printWindower(actionScript, solved);
+  exetModals.hide()
+}
+
+Exet.prototype.print = function(solved=true) {
+  /**
+   * Using 'window.print();' directly does not work because of some bug
+   * in Windows (Chrome/Edge).
+   */
+  const actionScript = 'document.execCommand(\'print\');';
+  this.printWindower(actionScript, solved);
   exetModals.hide()
 }
 
@@ -3803,7 +3388,7 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
   let suffix = '' +
       '  `, "' + id + '");\n' +
       '<\/script>\n'
-  inp.value = prefix + this.getExolve('', false, solved, exetState.showEnums) +
+  inp.value = prefix + this.getExolve('', false, solved) +
               suffix;
 
   inp.select();
@@ -3816,250 +3401,25 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
   }, 1000);
 }
 
-Exet.prototype.dotPuzCksum = function(uint8array, offset, len, cksum) {
-  for (let i = 0; i < len; i++) {
-    if (cksum & 0x0001) {
-      cksum = (cksum >> 1) | 0x8000;
-    } else {
-      cksum = cksum >> 1;
-    }
-    cksum += uint8array[offset + i]
-    cksum = cksum & 0xffff
-  }
-  return cksum;
-}
-
-Exet.prototype.dotPuzShort = function(buffer, offset, shortval) {
-  buffer[offset] = shortval & 0xFF
-  buffer[offset + 1] = shortval >> 8
-}
-
-Exet.prototype.enc8859 = function(s, buffer, offset) {
-  if (!this.chars8859) {
-    this.chars8859 = {};
-    let decoder = new TextDecoder('iso-8859-1');
-    const buff = new Uint8Array(1);
-    for (let i = 128; i < 256; i++) {
-      buff[0] = i;
-      const char = decoder.decode(buff);
-      this.chars8859[char] = i;
-    }
-  }
-  for (let i = 0; i < s.length; i++) {
-    let code = s.charCodeAt(i);
-    if (code >= 128) {
-      const char = s.charAt(i);
-      if (this.chars8859.hasOwnProperty(char)) {
-        code = this.chars8859[char];
-      } else {
-        throw 'Character not supported in ISO-8859-1: ' + char
-      }
-    }
-    buffer[offset++] = code;
-  }
-  return offset;
-}
-
-Exet.prototype.getDotPuz = function() {
-  try {
-    if (this.puz.layers3d > 1) {
-      throw 'This puzzle has lights other than across/down';
-    }
-    // Generously estimate length of the buffer needed.
-    let exolve = this.getExolve('', false, true, exetState.showEnums);
-    let estDotPuzLen = 2 * (1000 + exolve.length)
-    let buffer = new Uint8Array(estDotPuzLen);
-    let offset = 0;
-
-    offset = 0x02
-    offset = this.enc8859('ACROSS&DOWN', buffer, offset);
-    buffer[offset++] = 0;
-
-    offset = 0x18
-    offset = this.enc8859('1.3', buffer, offset);
-    buffer[offset++] = 0;
-
-    offset = 0x2c
-    buffer[offset++] = this.puz.gridWidth
-    buffer[offset++] = this.puz.gridHeight
-
-    this.dotPuzShort(buffer, 0x2E, this.puz.allClueIndices.length)
-    buffer[0x30] = 1  // Unknown bitmask
-
-    let numCells = this.puz.gridWidth * this.puz.gridHeight;
-
-    let solution = ''
-    let playerState = ''
-    let orderedClueIndices = []
-    let circleLocs = []
-    for (let i = 0; i < this.puz.gridHeight; i++) {
-      for (let j = 0; j < this.puz.gridWidth; j++) {
-        let gridCell = this.puz.grid[i][j]
-        if (gridCell.hasBarAfter || gridCell.hasBarUnder) {
-          throw 'This puzzle has barred cells';
-        }
-        if (!gridCell.isLight) {
-          solution = solution + '.'
-          playerState = playerState + '.'
-        } else {
-          solution = solution + (gridCell.currLetter != '0' ?
-            gridCell.currLetter : '?')
-          playerState = playerState + '-'
-          if (gridCell.startsAcrossClue) {
-            orderedClueIndices.push('A' + gridCell.startsClueLabel)
-          }
-          if (gridCell.startsDownClue) {
-            orderedClueIndices.push('D' + gridCell.startsClueLabel)
-          }
-          if (gridCell.hasCircle) {
-            circleLocs.push((i * this.puz.gridWidth) + j)
-          }
-        }
-      }
-    }
-    if (this.puz.allClueIndices.length != orderedClueIndices.length) {
-      throw 'Non-standard clue types';
-    }
-
-    offset = 0x34
-    offset = this.enc8859(solution, buffer, offset);
-    offset = this.enc8859(playerState, buffer, offset);
-
-    let titleOffset = offset
-    offset = this.enc8859(this.puz.title, buffer, offset);
-    let titleLen = offset - titleOffset;
-    buffer[offset++] = 0;
-
-    let setterOffset = offset
-    offset = this.enc8859(this.puz.setter, buffer, offset);
-    let setterLen = offset - setterOffset;
-    buffer[offset++] = 0
-
-    let copyrightOffset = offset
-    offset = this.enc8859(this.puz.copyright, buffer, offset);
-    let copyrightLen = offset - copyrightOffset;
-    buffer[offset++] = 0
-
-    let clueOffsets = []
-    let clueLens = []
-    for (let ci of orderedClueIndices) {
-      let theClue = this.puz.clues[ci]
-      const startOffset = offset;
-      clueOffsets.push(startOffset);
-      let puzClue = this.showClue(
-          theClue.clueSpan.innerText.replace(/\s+/g,' '),
-          false, exetState.showEnums, false);
-      if (theClue.children.length > 0) {
-        let chI = theClue.displayLabel.indexOf(',');
-        if (chI >= 0) {
-          const chLabel = theClue.displayLabel.substr(chI + 1).trim();
-          if (chLabel) {
-            puzClue = '(+'+ chLabel + ') ' + puzClue;
-          }
-        }
-      }
-      offset = this.enc8859(puzClue, buffer, offset);
-      clueLens.push(offset - startOffset);
-      buffer[offset++] = 0
-    }
-    // If the puzzle has a preamble, set it as "Notes"
-    let notesOffset = offset;
-    offset = this.enc8859(this.preambleText.value, buffer, offset);
-    let notesLen = offset - notesOffset;
-    buffer[offset++] = 0
-
-    let gextOffset = -1
-    if (circleLocs.length > 0) {
-      gextOffset = offset
-      offset = this.enc8859('GEXT', buffer, offset);
-      this.dotPuzShort(buffer, offset, numCells);
-      offset += 4
-      for (let loc of circleLocs) {
-        buffer[offset + loc] = 0x80
-      }
-      offset += numCells
-      buffer[offset++] = 0
-      let c_gext = this.dotPuzCksum(buffer, gextOffset + 8, numCells, 0);
-      this.dotPuzShort(buffer, gextOffset + 6, c_gext);
-    }
-
-    // Need to fill checksums
-    let c_cib = this.dotPuzCksum(buffer, 0x2C, 8, 0);
-    this.dotPuzShort(buffer, 0x0E, c_cib);
-
-    let cksum = c_cib;
-    cksum = this.dotPuzCksum(buffer, 0x34, numCells, cksum);
-    cksum = this.dotPuzCksum(buffer, 0x34 + numCells, numCells, cksum);
-
-    if (titleLen > 0) {
-      cksum = this.dotPuzCksum(buffer, titleOffset, titleLen + 1, cksum);
-    }
-    if (setterLen > 0) {
-      cksum = this.dotPuzCksum(buffer, setterOffset, setterLen + 1, cksum);
-    }
-    if (copyrightLen > 0) {
-      cksum = this.dotPuzCksum(
-          buffer, copyrightOffset, copyrightLen + 1, cksum);
-    }
-    for (let i = 0; i < orderedClueIndices.length; i++) {
-      cksum = this.dotPuzCksum(buffer, clueOffsets[i], clueLens[i], cksum);
-    }
-    if (notesLen > 0) {
-      cksum = this.dotPuzCksum(buffer, notesOffset, notesLen + 1, cksum);
-    }
-    this.dotPuzShort(buffer, 0x00, cksum);
-
-    let c_sol = this.dotPuzCksum(buffer, 0x34, numCells, 0);
-    let c_grid = this.dotPuzCksum(buffer, 0x34 + numCells, numCells, 0);
-    let c_part = 0;
-    if (titleLen > 0) {
-      c_part = this.dotPuzCksum(buffer, titleOffset, titleLen + 1, c_part);
-    }
-    if (setterLen > 0) {
-      c_part = this.dotPuzCksum(buffer, setterOffset, setterLen + 1, c_part);
-    }
-    if (copyrightLen > 0) {
-      c_part = this.dotPuzCksum(
-          buffer, copyrightOffset, copyrightLen + 1, c_part);
-    }
-    for (let i = 0; i < orderedClueIndices.length; i++) {
-      c_part = this.dotPuzCksum(buffer, clueOffsets[i], clueLens[i], c_part);
-    }
-
-    buffer[0x10] = 0x49 ^ (c_cib & 0xFF);
-    buffer[0x11] = 0x43 ^ (c_sol & 0xFF);
-    buffer[0x12] = 0x48 ^ (c_grid & 0xFF);
-    buffer[0x13] = 0x45 ^ (c_part & 0xFF);
-
-    buffer[0x14] = 0x41 ^ ((c_cib & 0xFF00) >> 8);
-    buffer[0x15] = 0x54 ^ ((c_sol & 0xFF00) >> 8);
-    buffer[0x16] = 0x45 ^ ((c_grid & 0xFF00) >> 8);
-    buffer[0x17] = 0x44 ^ ((c_part & 0xFF00) >> 8); 
-    return buffer.slice(0, offset)
-  } catch (err) {
-    alert('Cannot save this crossword as .puz: ' + err);
-    return null
-  }
-}
-
 Exet.prototype.downloadDotPuz = function() {
-  let dotPuz = this.getDotPuz()
+  const dotPuz = exolveToPuz(this.puz);
   if (!dotPuz) {
-    exetModals.hide()
-    return
+    exetModals.hide();
+    return;
   }
-  const a = document.createElement("a");
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.href = window.URL.createObjectURL(
-    new Blob([dotPuz], {type: "application/x-crossword"})
-  );
-  let filetitle = this.fileTitle()
-  a.setAttribute("download",
-    filetitle ? "exet-" + filetitle + ".puz" : "exet.puz");
-  a.click();
-  window.URL.revokeObjectURL(a.href);
-  document.body.removeChild(a);
+  const fileName = "exet-" + this.fileTitle() + ".puz";
+  this.puz.fileDownload(dotPuz, "application/x-crossword", fileName);
+  exetModals.hide()
+}
+
+Exet.prototype.downloadIPuz = function() {
+  const ipuz = exolveToIpuz(this.puz);
+  if (!ipuz) {
+    exetModals.hide();
+    return;
+  }
+  const fileName = "exet-" + this.fileTitle() + ".ipuz";
+  this.puz.fileDownload(ipuz, "application/x-crossword", fileName);
   exetModals.hide()
 }
 
@@ -4222,8 +3582,8 @@ Exet.prototype.draftClue = function(ci) {
   }
   let ret = this.DRAFT + ' ' + this.CLUE_NOT_SET;
   let cells = this.puz.getAllCells(ci);
-  if (cells.length > 0) {
-    ret = ret + ' (' + cells.length + ')'
+  if (cells.length > 0 && this.requireEnums) {
+    ret += ' (' + cells.length + ')';
   }
   return ret;
 }
@@ -4309,26 +3669,26 @@ Exet.prototype.restoreParam = function(id, section) {
 }
 
 Exet.prototype.navDarkness = function(row, col, ev=null) {
-  darkness = this.puz.grid[row][col].darkness
+  const darkness = this.puz.grid[row][col].darkness;
   if (!darkness) {
-    return
+    return;
   }
   if (ev) ev.stopPropagation();
-  this.puz.deactivateCurrCell()
-  this.puz.currRow = row
-  this.puz.currCol = col
+  this.puz.deactivateCurrCell();
+  this.puz.currRow = row;
+  this.puz.currCol = col;
 
-  darkness.style.fill = this.puz.colorScheme['caret']
+  darkness.style.fill = this.puz.colorScheme['caret'];
 
-  let cellLeft = this.puz.cellLeftPos(col, this.puz.GRIDLINE)
-  let cellTop = this.puz.cellTopPos(row, this.puz.GRIDLINE)
-  this.puz.gridInputWrapper.style.left = '' + cellLeft + 'px'
-  this.puz.gridInputWrapper.style.top = '' + cellTop + 'px'
-  this.puz.gridInput.value = ''
-  this.puz.gridInputRarr.style.display = 'none'
-  this.puz.gridInputDarr.style.display = 'none'
-  this.puz.gridInputLarr.style.display = 'none'
-  this.puz.gridInputUarr.style.display = 'none'
+  let cellLeft = this.puz.cellLeftPos(col, this.puz.GRIDLINE);
+  let cellTop = this.puz.cellTopPos(row, this.puz.GRIDLINE);
+  this.puz.gridInputWrapper.style.left = '' + cellLeft + 'px';
+  this.puz.gridInputWrapper.style.top = '' + cellTop + 'px';
+  this.puz.gridInput.value = '';
+  this.puz.gridInputRarr.style.display = 'none';
+  this.puz.gridInputDarr.style.display = 'none';
+  this.puz.gridInputLarr.style.display = 'none';
+  this.puz.gridInputUarr.style.display = 'none';
   if (this.puz.layers3d > 1) {
     const li = row % this.puz.h3dLayer;
     const offset = (this.puz.h3dLayer - li) * this.puz.offset3d;
@@ -4338,8 +3698,8 @@ Exet.prototype.navDarkness = function(row, col, ev=null) {
     this.puz.gridInputWrapper.style.transform = transform;
   }
 
-  this.puz.gridInputWrapper.style.display = ''
-  this.puz.gridInput.focus()
+  this.puz.gridInputWrapper.style.display = '';
+  this.puz.gridInput.focus();
 }
 
 Exet.prototype.arrowNav = function(key) {
@@ -4418,12 +3778,12 @@ Exet.prototype.replaceHandlers = function() {
       exet.markNinasAsPrefilled();
       exet.clearCurrSaved.apply(exet.puz, arguments);
       exet.unmarkNinasAsPrefilled();
-      const theClue = exet.currClue()
+      const theClue = exet.currClue();
       theClue.clue = exet.draftClue(exet.currClueIndex());
-      theClue.solution = ''
+      theClue.solution = '';
       exet.puz.setClueSolution(exet.currClueIndex());
-      theClue.anno = ''
-      exet.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+      theClue.anno = '';
+      exet.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE);
     };
   })();
   this.puz.clearAll = (function() {
@@ -4432,13 +3792,13 @@ Exet.prototype.replaceHandlers = function() {
       exet.markNinasAsPrefilled();
       if (exet.clearAllSaved.apply(exet.puz, arguments)) {
         for (let ci in exet.puz.clues) {
-          exet.puz.clues[ci].clue = exet.draftClue(ci)
-          exet.puz.clues[ci].solution = ''
+          exet.puz.clues[ci].clue = exet.draftClue(ci);
+          exet.puz.clues[ci].solution = '';
           exet.puz.setClueSolution(ci);
-          exet.puz.clues[ci].anno = ''
+          exet.puz.clues[ci].anno = '';
         }
         exet.unmarkNinasAsPrefilled();
-        exet.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+        exet.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE);
       } else {
         exet.unmarkNinasAsPrefilled();
       }
@@ -4449,14 +3809,14 @@ Exet.prototype.replaceHandlers = function() {
     return function() {
       exet.finishClueChanges();
       let ret = exet.cnavToInnerSaved.apply(exet.puz, arguments);
-      exet.scrollCluesIfNeeded()
-      exet.makeClueEditable()
-      exet.reposition()
-      exet.renderClue()
-      exet.updateFillChoices()
+      exet.scrollCluesIfNeeded();
+      exet.makeClueEditable();
+      exet.reposition();
+      exet.renderClue();
+      exet.updateFillChoices();
       exet.startDeadendSweep(exet.currClueIndex());
-      exet.handleTabClick(exet.currTab)
-      return ret
+      exet.handleTabClick(exet.currTab);
+      return ret;
     };
   })();
   this.puz.activateCell = (function() {
@@ -4465,17 +3825,17 @@ Exet.prototype.replaceHandlers = function() {
       let ret = exet.activateCellSaved.apply(exet.puz, arguments);
       let gridCell = exet.puz.currCell()
       if (gridCell && !gridCell.isLight && gridCell.darkness) {
-        exet.navDarkness(exet.puz.currRow, exet.puz.currCol)
+        exet.navDarkness(exet.puz.currRow, exet.puz.currCol);
       }
-      return ret
+      return ret;
     };
   })();
   this.puz.deactivateCurrCell = (function() {
     exet.dccSaved = exet.puz.deactivateCurrCell;
     return function() {
-      let gridCell = exet.puz.currCell()
+      let gridCell = exet.puz.currCell();
       if (gridCell && gridCell.darkness) {
-        gridCell.darkness.style.fill = 'transparent'
+        gridCell.darkness.style.fill = 'transparent';
       }
       exet.dccSaved.apply(exet.puz);
     };
@@ -4485,14 +3845,14 @@ Exet.prototype.replaceHandlers = function() {
     return function() {
       exet.finishClueChanges();
       exet.dcclueSaved.apply(exet.puz);
-      exet.reposition()
+      exet.reposition();
     };
   })();
   this.puz.handleKeyUpInner = (function() {
     exet.hkuiSaved = exet.puz.handleKeyUpInner;
     return function(key, shift=false) {
       if (key >= 37 && key <= 40) {
-        return exet.arrowNav(key)
+        return exet.arrowNav(key);
       }
       return exet.hkuiSaved.apply(exet.puz, arguments);
     };
@@ -4511,24 +3871,24 @@ Exet.prototype.isDraftClue = function(clueText) {
 }
 Exet.prototype.renderClue = function(theClue=null) {
   if (!theClue) {
-    theClue = exet.currClue()
+    theClue = exet.currClue();
   }
   if (!theClue || !theClue.clueSpan || theClue.parentClueIndex) {
-    return
+    return;
   }
-  const c = theClue.clue
-  let modC = c
+  const c = theClue.clue;
+  let modC = c;
   if (this.isDraftClue(c)) {
     modC = '<span class="xet-draft-marker">' +
-      this.DRAFT + '</span> ' + c.substr(this.DRAFT.length).trim()
-    theClue.clueTR.className = "xet-draft"
+      this.DRAFT + '</span> ' + c.substr(this.DRAFT.length).trim();
+    theClue.clueTR.className = "xet-draft";
   } else {
-    theClue.clueTR.className = "xlv-solved"
+    theClue.clueTR.className = "xlv-solved";
   }
-  theClue.clue = modC
-  this.puz.renderClueSpan(theClue, theClue.clueSpan)
-  this.puz.revealClueAnno(theClue.index)
-  theClue.clue = c
+  theClue.clue = modC;
+  this.puz.renderClueSpan(theClue, theClue.clueSpan);
+  this.puz.revealClueAnno(theClue.index);
+  theClue.clue = c;
 }
 
 Exet.prototype.setDraftToggler = function() {
@@ -4554,21 +3914,10 @@ Exet.prototype.isInTag = function(prefix, suffix, open, close) {
   return [px, sx]
 }
 
-// Removes def markers ~{...}~ from s
-Exet.prototype.deDefMarkers = function(s) {
-  const reDef = new RegExp('(~\\{(.*)\\}~)')
-  while ((match = s.match(reDef)) && match.length > 2) {
-    const idx = s.indexOf(match[0])
-    console.assert(idx >= 0, s, match)
-    const cStart = idx + 2
-    const end = s.indexOf('}~', cStart)
-    s = s.substr(0, idx) + s.substring(cStart, end) + s.substr(end + 2);
-  }
-  return s
-}
-
-// Remove HTML tags (only that have matching closes) from s. Also
-// remove any matching ~{...}~ if inClue.
+/**
+ * Remove HTML tags (only that have matching closes) from s. Also
+ * remove any matching ~{...}~ if inClue.
+ */
 Exet.prototype.deTag = function(s, inClue) {
   const reHTML = new RegExp('(<([^<> ]+)(>| [^>]*>))(.*)(</\\2>)')
   let match
@@ -4584,7 +3933,7 @@ Exet.prototype.deTag = function(s, inClue) {
   if (!inClue) {
     return s
   }
-  return this.deDefMarkers(s);
+  return this.puz.deDefMarkers(s);
 }
 
 Exet.prototype.renderDefTags = function(s) {
@@ -4628,8 +3977,16 @@ Exet.prototype.resizeRHS = function() {
     document.body.insertAdjacentElement('afterbegin', this.customStyles);
   }
   const windowH = this.puz.getViewportHeight();
-  const extraH = Math.max(0, windowH - 740);
-  const style = `
+  const extraH = Math.max(0, windowH - 720);
+  const windowW = this.puz.getViewportWidth();
+  const gridPanelBox = this.puz.gridPanel.getBoundingClientRect();
+  const frameW =
+    Math.max(580, windowW - 52 - Math.floor(gridPanelBox.width));
+  const sectionW = frameW - 16;
+  const halfSectionW = Math.floor(sectionW / 2) - 16;
+  const cluesW = frameW - 320;
+  this.fillSettings.style.width = '' + cluesW + 'px';
+  let style = `
     .xet-about,
     .xet-analysis {
       height: ${440 + extraH}px;
@@ -4638,43 +3995,79 @@ Exet.prototype.resizeRHS = function() {
       max-height: ${435 + extraH}px;
     }
     .xet-high-tall-box {
-      height: ${460 + extraH}px;
+      height: ${450 + extraH}px;
     }
     .xet-half-section,
     .xet-section {
-      height: ${450 + extraH}px;
+      height: ${410 + extraH}px;
     }
-    #xet-light-choices-box {
-      height: ${340 + extraH}px;
-    }
+    #xet-light-choices-box,
+    .xet-clues-panel,
     .xet-mid-tall-box {
-      height: ${325 + extraH}px;
+      height: ${330 + extraH}px;
+    }
+    .xet-section {
+      width: ${sectionW}px;
+    }
+    .xet-half-section {
+      width: ${halfSectionW}px;
+    }
+    .xet-frame {
+      width: ${frameW}px;
     }
     .xet-tab-content {
       height: ${500 + extraH}px;
+      width: ${frameW}px;
     }
   `;
+  if (frameW < 860) {
+    style += `
+      .xet-analysis {
+        right: 0;
+      }
+      .xet-tab button {
+        font-size: 11px;
+        width: 70px;
+      }
+      .xet-tab button:hover {
+        font-size: 12px;
+        width: 80px;
+      }
+    `;
+  }
   this.customStyles.innerHTML = style;
+  this.puz.equalizeClueWidths(cluesW);
 }
 
 Exet.prototype.reposition = function() {
-  this.title.className = 'xlv-title'
-  this.setter.className = 'xlv-setter'
-  this.preamble.className = 'xlv-preamble'
-  this.title.title = ''
-  this.setter.title = ''
-  this.preamble.title = ''
-  const clueBox = this.puz.currClue.getBoundingClientRect()
+  if (this.puz.squareDim < 31 &&
+      (this.puz.getViewportDim() - this.puz.viewportDim > 25)) {
+    /**
+     * The window is substantially bigger than when we created the grid. Let's
+     * just force a redraw (we don't use Exolve's resizing because that would
+     * create a new puz.grid and we would have to take care of re-adding
+     * viablots and forcedLetters * to the reborn gridCell.cellGroup fields.
+     */
+    this.updatePuzzle();  /** revType = default 0 won't actually save */
+    return;
+  }
+  this.title.className = 'xlv-title';
+  this.setter.className = 'xlv-setter';
+  this.preamble.className = 'xlv-preamble';
+  this.title.title = '';
+  this.setter.title = '';
+  this.preamble.title = '';
+  const clueBox = this.puz.currClue.getBoundingClientRect();
   if (this.puz.currClueIndex && clueBox.top > 0) {
     const top = clueBox.top - this.TOP_CLEARANCE;
     const right = clueBox.right;
     for (let elt of [this.title, this.setter, this.preamble]) {
       const box = elt.firstElementChild ?
         elt.firstElementChild.getBoundingClientRect() :
-        elt.getBoundingClientRect()
+        elt.getBoundingClientRect();
       if (box.bottom >= top && box.left <= right) {
-        elt.className += ' xet-blur'
-        elt.title = 'Click to make visible'
+        elt.className += ' xet-blur';
+        elt.title = 'Click to make visible';
       }
     }
   }
@@ -4682,20 +4075,19 @@ Exet.prototype.reposition = function() {
     this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
   }
 
-  const clearAreaBox = this.puz.clearArea.getBoundingClientRect()
+  const clearAreaBox = this.puz.clearArea.getBoundingClientRect();
 
   const colourNinaWidth = Math.min(300, (clearAreaBox.width - clueBox.width) / 2);
   this.tweakColourNina.style.width = colourNinaWidth + 'px';
 
-  const xetFormat = document.getElementById('xet-format')
+  const xetFormat = document.getElementById('xet-format');
   if (xetFormat) {
     const previewWidth = Math.min(480, (clearAreaBox.width - clueBox.width) / 2);
     for (let tag of Object.keys(this.formatTags)) {
-      const preview = document.getElementById('xet-format-' + tag + '-preview')
+      const preview = document.getElementById('xet-format-' + tag + '-preview');
       preview.style.width = previewWidth + 'px';
     }
   }
-
   this.resizeRHS();
 }
 
@@ -4855,69 +4247,157 @@ Exet.prototype.maybeShowFormat = function() {
   }
 }
 
-Exet.prototype.makeClueEditable = function() {
+Exet.prototype.getLightRegexp = function(ci) {
+  if (!this.lightRegexps.hasOwnProperty(ci)) {
+    return '';
+  }
+  return this.lightRegexps[ci];
+}
+
+Exet.prototype.getLightRegexpC = function(ci) {
+  if (!this.lightRegexpsC.hasOwnProperty(ci)) {
+    return null;
+  }
+  return this.lightRegexpsC[ci];
+}
+
+Exet.prototype.compileLightRegexps = function() {
+  this.lightRegexpsC = {};
+  const keys = Object.keys(this.lightRegexps);
+  for (const ci of keys) {
+    this.setLightRegexp(ci, this.lightRegexps[ci]);
+  }
+}
+
+/**
+ * Returns triple in array: [isValid, changed, reStrUsed]
+ */
+Exet.prototype.setLightRegexp = function(ci, reStr) {
+  const oldStr = this.lightRegexps.hasOwnProperty(ci) ?
+    this.lightRegexps[ci] : '';
+  let rePart = reStr;
+  let flagsPart = '';
+  let re = null;
+  try {
+    const reForSlashFormat = /^\/([^/]*)\/([^/]*)/;
+    const slashMatch = reForSlashFormat.exec(reStr);
+    if (slashMatch) {
+      rePart = slashMatch[1];
+      flagsPart = slashMatch[2];
+    }
+    re = rePart ? new RegExp(rePart, flagsPart) : null;
+  } catch (err) {
+    return [false, false, oldStr];
+  }
+  if (!re) {
+    if (this.lightRegexps.hasOwnProperty(ci)) {
+      delete this.lightRegexps[ci];
+      delete this.lightRegexpsC[ci];
+    }
+  } else {
+    this.lightRegexpsC[ci] = re;
+    this.lightRegexps[ci] = reStr;
+  }
+  const newStr = this.lightRegexps.hasOwnProperty(ci) ?
+    this.lightRegexps[ci] : '';
+  return [true, newStr != oldStr, newStr];
+}
+
+Exet.prototype.handleLightRegexpEntry = function() {
+  const ci = this.currClueIndex();
+  if (!this.lightRegexpEntry || !ci) {
+    return;
+  }
+  const res = this.setLightRegexp(ci, this.lightRegexpEntry.value.trim());
+  const valid = res[0];
+  const changed = res[1];
+  const reStr = res[2];
+  if (changed) {
+    this.lightRegexpIcon.style.display = reStr ? '' : 'none';
+    this.resetViability();
+    exetRevManager.throttledSaveRev(exetRevManager.REV_FILL_OPTIONS_CHANGE);
+  }
+  if (valid) {
+    this.lightRegexpInvalid.style.color = 'transparent';
+    this.lightRegexpRevert.innerHTML = '';
+  } else {
+    this.lightRegexpInvalid.style.color = 'gray';
+    this.lightRegexpRevert.innerHTML = reStr;
+  }
+}
+
+Exet.prototype.throttledLightRegexpEntry = function(evt) {
+  this.lightRegexpInvalid.style.color = 'transparent';
+  if (this.throttledLightRegexpTimer) {
+    clearTimeout(this.throttledLightRegexpTimer);
+  }
+  this.throttledLightRegexpTimer = setTimeout(() => {
+    this.handleLightRegexpEntry();
+    this.throttledLightRegexpTimer = null;
+  }, this.longInputLagMS);
+}
+
+Exet.prototype.makeLightRegexpPanel = function(theClue) {
+  const old = document.getElementById('xet-light-regexp-panel');
+  if (old) {
+    old.remove();
+  }
+  const label = this.puz.clueLabelDisp(theClue);
+  this.lightRegexpPanel = document.createElement('div');
+  this.lightRegexpPanel.id = 'xet-light-regexp-panel';
+  this.lightRegexpPanel.className = 'xet-above-clue-panel';
+  this.lightRegexpPanel.title = 'Specify a regexp constraining the entry in ' + label + '. Press Escape or click anywhere outside to dismiss.';
+  this.lightRegexpPanel.innerHTML = `
+    <div style="padding:6px">
+      &#128279; ${label}:
+      <input id="xet-light-regexp" name="xet-light-regexp"
+        class="xlv-answer" size="40" placeholder="Enter regular expression to match ${label}."
+        type="text"></input>
+      <div id="xet-light-regexp-invalid" style="margin-bottom:4px">
+        Invalid regexp, will revert to:
+        [<span id="xet-light-regexp-revert"></span>]
+      </div>
+      <div>
+        Regexp constraints are descibed in this <a target="_blank"
+        href="https://github.com/viresh-ratnakar/exet/blob/master/README.md#light-specific-menu">Exet README section</a>.
+      </div>
+    </div>
+  `;
+  this.lightRegexpPanel.style.display = 'none';
+  this.puz.currClue.appendChild(this.lightRegexpPanel);
+  this.lightRegexpEntry = document.getElementById('xet-light-regexp');
+  this.lightRegexpInvalid = document.getElementById('xet-light-regexp-invalid');
+  this.lightRegexpInvalid.style.color = 'transparent';
+  this.lightRegexpRevert = document.getElementById('xet-light-regexp-revert');
+  const re = this.getLightRegexp(theClue.index);
+  this.lightRegexpEntry.value = re;
+  this.lightRegexpIcon.style.display = re ? '' : 'none';
+  this.lightRegexpEntry.addEventListener('input', this.throttledLightRegexpEntry.bind(this));
+}
+
+Exet.prototype.showLightRegexpPanel = function(evt) {
   const theClue = this.currClue();
   if (!theClue) {
-    return
+    return;
   }
-  /**
-   * Wrap xlv-curr-clue's children in a new div of class xet-curr-clue.
-   * xet-curr-clue will copy max-height from Exolve's settings
-   * of xlv-curr-clue, and it will have overflow-y=auto. But xlv-curr-clue
-   * itself will have overflow=visible, so that the "linking" and "format"
-   * floating elements will get shown.
-   */
-  this.xetCurrClue = document.createElement('div');
-  this.xetCurrClue.className = 'xet-curr-clue';
-  this.xetCurrClue.id = 'xet-curr-clue';
-  this.xetCurrClue.style.width = this.puz.currClue.style.width;
-  this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
-  const currClueInner = this.puz.currClueInner ?? this.puz.currClue;
-  while (currClueInner.children.length > 0) {
-    this.xetCurrClue.appendChild(currClueInner.children[0]);
+  if (!this.lightRegexpPanel) {
+    console.log('showLightRegexpPanel() called prematurely!');
+    return;
   }
-  currClueInner.appendChild(this.xetCurrClue);
+  exetModals.showModal(this.lightRegexpPanel);
+  evt.stopPropagation();
+  this.lightRegexpEntry.focus();
+}
 
-  const currClueText = document.getElementById(
-      `${exet.puz.prefix}-curr-clue-text`)
-  currClueText.innerHTML = `<span
-    id="xet-clue-stat" class="xet-clue-stat"></span><span
-    contenteditable="true" class="xet-editable" id="xet-clue"></span>`
-  this.currClueIsDraft = this.isDraftClue(theClue.clue)
-  // We make the raw clue text editable here, including any tags or
-  // in-clue-anno markers (~{...}~).
-  const xetClue = document.getElementById("xet-clue")
-  xetClue.spellcheck = exetState.spellcheck
-  xetClue.innerText = this.currClueIsDraft ?
-    theClue.clue.substr(this.DRAFT.length).trim() : theClue.clue
-  const handler = this.throttledClueChange.bind(this)
-  xetClue.addEventListener('input', handler)
-  this.setDraftToggler()
-  const xetClueStat = document.getElementById("xet-clue-stat")
-  xetClueStat.addEventListener('click', e => {
-    e.stopPropagation()
-    exet.currClueIsDraft = !exet.currClueIsDraft;
-    exet.setDraftToggler()
-    exet.handleClueChange()
-  });
-
-  const spacer = document.createElement('span')
-  spacer.innerHTML = `<br><span class="xet-action">Annotation </span>`
-  this.xetCurrClue.appendChild(spacer)
-
-  let xetAnno = document.createElement('span')
-  xetAnno.className = 'xet-anno xet-editable'
-  xetAnno.id = 'xet-anno'
-  xetAnno.contentEditable = true
-  xetAnno.spellcheck = exetState.spellcheck
-  xetAnno.innerText = theClue.anno
-  this.xetCurrClue.appendChild(xetAnno)
-  xetAnno.addEventListener('input', handler)
-
+Exet.prototype.makeLinkingPanel = function() {
+  const oldLinking = document.getElementById('xet-linking');
+  if (oldLinking) {
+    oldLinking.remove();
+  }
   this.linking = document.createElement('div');
   this.linking.id = 'xet-linking';
-  this.linking.className = 'xet-linking';
-  this.linking.title = 'Press the "Add" button after entering the clue to link to';
+  this.linking.className = 'xet-above-clue-panel';
+  this.linking.title = 'Press the "Add" button after entering the clue to link to. Press Escape or click anywhere outside to dismiss.';
   this.linking.innerHTML = `
     <button id="xet-add-linked" class="xlv-small-button">Add</button>
     <input id="xet-add-linked-num" name="xet-add-linked-num"
@@ -4928,27 +4408,14 @@ Exet.prototype.makeClueEditable = function() {
     Break linked clues
     `;
   this.linking.style.display = 'none';
-  const oldLinking = document.getElementById('xet-linking')
-  if (oldLinking) {
-    oldLinking.remove()
-  }
-  this.puz.currClue.appendChild(this.linking)
+  this.puz.currClue.appendChild(this.linking);
   document.getElementById("xet-add-linked").addEventListener(
       'click', this.addLinkedClue.bind(this));
   this.unlink = document.getElementById("xet-unlink");
   this.unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
-  if (theClue.childrenClueIndices && theClue.childrenClueIndices.length > 0) {
-    this.unlink.style.display = '';
-  } else {
-    this.unlink.style.display = 'none';
-  }
-  const ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`)
-  ccLabel.title = 'Click to add or break up linked clues';
-  ccLabel.addEventListener('click', e => {
-    exetModals.showModal(this.linking)
-    e.stopPropagation()
-  });
+}
 
+Exet.prototype.makeFormatPanel = function() {
   const previewPanel = `
     <div class="xet-action xet-placeholder"></div>
     <div class="xet-format-preview">
@@ -4969,15 +4436,15 @@ Exet.prototype.makeClueEditable = function() {
       <hr>
       <div class="xet-action">Preview with "def"s revealed:</div>
       <div class="xet-format-preview xet-placeholder"></div>
-    </div>`
+    </div>`;
 
-  const oldFormat = document.getElementById('xet-format')
+  const oldFormat = document.getElementById('xet-format');
   if (oldFormat) {
-    oldFormat.remove()
+    oldFormat.remove();
   }
-  const format = document.createElement('div')
-  format.id = 'xet-format'
-  format.className = 'xet-format'
+  const format = document.createElement('div');
+  format.id = 'xet-format';
+  format.className = 'xet-format';
   // Divs of class xet-placeholder will get populated based
   // upon the current selection.
   format.innerHTML = `
@@ -5011,7 +4478,7 @@ Exet.prototype.makeClueEditable = function() {
           <div class="xet-format-panel" id="xet-format-b-preview">
             ${previewPanel}
             <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-B
+              Keyboard shortcut: Ctrl-b
             </div>
           </div>
         </button>
@@ -5021,7 +4488,7 @@ Exet.prototype.makeClueEditable = function() {
           <div class="xet-format-panel" id="xet-format-i-preview">
             ${previewPanel}
             <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-I
+              Keyboard shortcut: Ctrl-i
             </div>
           </div>
         </button>
@@ -5031,7 +4498,7 @@ Exet.prototype.makeClueEditable = function() {
           <div class="xet-format-panel" id="xet-format-u-preview">
             ${previewPanel}
             <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-U
+              Keyboard shortcut: Ctrl-u
             </div>
           </div>
         </button>
@@ -5041,7 +4508,7 @@ Exet.prototype.makeClueEditable = function() {
           <div class="xet-format-panel" id="xet-format-s-preview">
             ${previewPanel}
             <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-S
+              Keyboard shortcut: Ctrl-s
             </div>
           </div>
         </button>
@@ -5051,16 +4518,158 @@ Exet.prototype.makeClueEditable = function() {
           <div class="xet-format-panel" id="xet-format-def-preview">
             ${previewPanel}
             <div class="xet-small-action">
-              Keyboard shortcut: Ctrl-D
+              Keyboard shortcut: Ctrl-d
             </div>
           </div>
         </button>
       </span>
-    </div>`
-  this.puz.currClue.appendChild(format)
+    </div>`;
+  this.puz.currClue.appendChild(format);
+}
 
+Exet.prototype.makeClueEditable = function() {
+  const theClue = this.currClue();
+  if (!theClue) {
+    return;
+  }
+  /**
+   * Wrap xlv-curr-clue's children in a new div of class xet-curr-clue.
+   * xet-curr-clue will copy max-height from Exolve's settings
+   * of xlv-curr-clue, and it will have overflow-y=auto. But xlv-curr-clue
+   * itself will have overflow=visible, so that the "linking" and "format"
+   * floating elements will get shown.
+   */
+  this.xetCurrClue = document.createElement('div');
+  this.xetCurrClue.className = 'xet-curr-clue';
+  this.xetCurrClue.id = 'xet-curr-clue';
+  this.xetCurrClue.style.width = this.puz.currClue.style.width;
+  this.xetCurrClue.style.maxHeight = this.puz.currClue.style.maxHeight;
+  const currClueInner = this.puz.currClueInner ?? this.puz.currClue;
+  while (currClueInner.children.length > 0) {
+    this.xetCurrClue.appendChild(currClueInner.children[0]);
+  }
+  currClueInner.appendChild(this.xetCurrClue);
+
+  const nextprevSpanXlv = document.getElementById(this.puz.prefix + '-nextprev-span');
+  if (nextprevSpanXlv) {
+    /** Old version of Exolve */
+    nextprevSpanXlv.remove();
+  }
+  let nextprevSpan = document.getElementById('xet-nextprev-span');
+  if (!nextprevSpan) {
+    nextprevSpan = document.createElement('span');
+    nextprevSpan.id = 'xet-nextprev-span';
+  }
+  this.puz.currClue.appendChild(nextprevSpan);
+  nextprevSpan.innerHTML = `
+      <button id="xet-clue-menu-button"
+          style="padding: 1px 4px"
+          title="Click to see more options for ${this.puz.clueLabelDisp(theClue)}."
+          class="xlv-small-button xlv-nextprev">&#9776;<div
+            id="xet-clue-menu" class="xet-clue-menu">
+        <div class="xet-clue-menu-item" id="xet-clue-menu-linking"
+          title="Click to create or break a linked group of clues. Also accessible by clicking the clue number to the left of 'Edit clue: ...'.">
+        Link/Unlink
+        </div>
+        <div class="xet-clue-menu-item" id="xet-clue-menu-regexp"
+          title="Click to add or edit a regexp constraint on the grid-fill in this light.">
+        &#128279; Regexp constraint
+        </div>
+        <div class="xet-clue-menu-item" id="xet-clue-menu-clear"
+          onclick="exet.puz.clearCurr()"
+          title="Click to clear the current light (will not ask for confirmation).">
+        Clear (Ctrl-q)
+        </div>
+        <div class="xet-clue-menu-item" id="xet-clue-menu-reverse"
+          onclick="exet.reverseLight()"
+          title="Click to reverse the current light (will ask for confirmation). Will also break any linked groups this light is a part of.">
+        Reverse
+        </div>
+      </div></button>
+      <button id="xet-prev"
+        class="xlv-small-button xet-nextprev"
+        title="${this.puz.textLabels['curr-clue-prev.hover']}"
+          >${this.puz.textLabels['curr-clue-prev']}</button>
+      <button id="xet-next"
+        class="xlv-small-button xlv-nextprev"
+        title="${this.puz.textLabels['curr-clue-next.hover']}"
+          >${this.puz.textLabels['curr-clue-next']}</button>
+      `;
+  this.clueMenuButton = document.getElementById('xet-clue-menu-button');
+  this.clueMenu = document.getElementById('xet-clue-menu');
+  this.clueMenuButton.addEventListener('click', e => {
+    exetModals.showModal(this.clueMenu);
+    e.stopPropagation();
+  });
+  this.prevButton = document.getElementById('xet-prev');
+  this.prevButton.addEventListener('click', e => {
+    exet.puz.cnavPrev();
+  });
+  this.nextButton = document.getElementById('xet-next');
+  this.nextButton.addEventListener('click', e => {
+    exet.puz.cnavNext();
+  });
+  const clueMenuLinking = document.getElementById('xet-clue-menu-linking');
+  const clueMenuRegexp = document.getElementById('xet-clue-menu-regexp');
+  this.makeLightRegexpPanel(theClue);
+  clueMenuRegexp.addEventListener('click', this.showLightRegexpPanel.bind(this));
+
+  const currClueText = document.getElementById(
+      `${exet.puz.prefix}-curr-clue-text`);
+  currClueText.innerHTML = `<span class="xet-action">Edit clue: </span><span
+    id="xet-clue-stat" class="xet-clue-stat"></span><span
+    contenteditable="true" class="xet-editable" id="xet-clue"></span>`;
+  this.currClueIsDraft = this.isDraftClue(theClue.clue);
+  // We make the raw clue text editable here, including any tags or
+  // in-clue-anno markers (~{...}~).
+  const xetClue = document.getElementById("xet-clue");
+  xetClue.spellcheck = exetState.spellcheck;
+  xetClue.innerText = this.currClueIsDraft ?
+    theClue.clue.substr(this.DRAFT.length).trim() : theClue.clue;
+  const handler = this.throttledClueChange.bind(this);
+  xetClue.addEventListener('input', handler);
+  this.setDraftToggler();
+  const xetClueStat = document.getElementById("xet-clue-stat");
+  xetClueStat.addEventListener('click', e => {
+    e.stopPropagation();
+    exet.currClueIsDraft = !exet.currClueIsDraft;
+    exet.setDraftToggler();
+    exet.handleClueChange();
+  });
+
+  const spacer = document.createElement('span');
+  spacer.innerHTML = `<br><span class="xet-action">Edit
+      optional anno:&nbsp;</span>`;
+  this.xetCurrClue.appendChild(spacer);
+
+  const xetAnno = document.createElement('span');
+  xetAnno.className = 'xet-anno xet-editable';
+  xetAnno.id = 'xet-anno';
+  xetAnno.contentEditable = true;
+  xetAnno.spellcheck = exetState.spellcheck;
+  xetAnno.innerText = theClue.anno;
+  this.xetCurrClue.appendChild(xetAnno);
+  xetAnno.addEventListener('input', handler);
+
+  this.makeLinkingPanel();
+  if (theClue.childrenClueIndices && theClue.childrenClueIndices.length > 0) {
+    this.unlink.style.display = '';
+  } else {
+    this.unlink.style.display = 'none';
+  }
+
+  const ccLabel = document.getElementById(`${this.puz.prefix}-curr-clue-label`);
+  ccLabel.title = 'Click to add or break up linked clues';
+  const linkingShower = e => {
+    exetModals.showModal(this.linking);
+    e.stopPropagation();
+  };
+  ccLabel.addEventListener('click', linkingShower);
+  clueMenuLinking.addEventListener('click', linkingShower);
+
+  this.makeFormatPanel();
   const formatShortcut = (e) => {
-    if (!e.ctrlKey) return true;
+    if (!e.ctrlKey && !e.metaKey) return true;
     const tag = (e.key == 'd') ? 'def' : e.key.toLowerCase();
     if (tag != 'b' && tag != 'i' && tag != 'u' && tag != 's' && tag != 'def') {
       return true;
@@ -5077,8 +4686,8 @@ Exet.prototype.makeClueEditable = function() {
     }
     return false;
   };
-  xetClue.addEventListener('keydown', formatShortcut)
-  xetAnno.addEventListener('keydown', formatShortcut)
+  xetClue.addEventListener('keydown', formatShortcut);
+  xetAnno.addEventListener('keydown', formatShortcut);
 
   this.puz.resizeCurrClueAndControls();
   this.reposition();
@@ -5090,7 +4699,7 @@ Exet.prototype.throttledClueChange = function() {
   }
   this.maybeShowFormat();
   this.throttledClueTimer = setTimeout(() => {
-    this.handleClueChange()
+    this.handleClueChange();
     this.throttledClueTimer = null;
   }, this.longInputLagMS);
 }
@@ -5127,43 +4736,39 @@ Exet.prototype.handleClueChange = function() {
 
   this.saveCursor();
 
-  let expEnumLen = this.puz.getAllCells(ci).length;
+  const expEnumLen = this.puz.getAllCells(ci).length;
+  console.assert(expEnumLen > 0, ci);
   this.stripInputLF(currClueText);
   let clue = currClueText.innerText;
   const savedClue = clue;
   clue = clue.trim();
-  let clueSansEnum = clue;
-  let oldEnum = '';
-  let enumPos = theClue.clue.lastIndexOf('(');
-  if (enumPos >= 0) {
-    oldEnum = theClue.clue.substr(enumPos).trim();
-  }
-  let newEnum = '';
-  enumPos = clue.lastIndexOf('(');
-  if (enumPos >= 0) {
-    newEnum = clue.substr(enumPos).trim();
-    clueSansEnum = clue.substr(0, enumPos).trim();
-  }
-  const enumParse = this.puz.parseEnum(newEnum);
-  newEnum = enumParse.enumStr.trim();
+  const oldEnumParse = this.puz.parseEnum(theClue.clue);
+  let enumParse = this.puz.parseEnum(clue);
+
   /**
-   * Revert to the old enum if the new one isn't an
-   * enum or if the new one says a length that is different
-   * from what the light says.
+   * If !requireEnums, we allow any enum-like thing in the
+   * clue, even with mismatched length. Otherwise, we enforce
+   * the required length, unless ignoreEnumMismatch is set.
    */
-  if (newEnum.length <= 2 ||
-      (enumParse.enumLen > 0 && enumParse.enumLen != expEnumLen &&
-       !this.puz.ignoreEnumMismatch)) {
-    if (newEnum.length > 2) {
-      this.showTip(this.TIP_ENUM_MISMATCH);
-    }
-    if (expEnumLen > 0) {
-      newEnum = oldEnum || ('(' + expEnumLen + ')');
+  if (this.requireEnums) {
+    const clueSansEnum = clue.substr(0, enumParse.afterClue).trim();
+    /**
+     * Revert to the old enum if the new one isn't an
+     * enum or if the new one says a length that is different
+     * from what the light says.
+     */
+    if (enumParse.enumLen == 0 ||
+        (enumParse.enumLen != expEnumLen && !this.puz.ignoreEnumMismatch)) {
+      if (enumParse.enumLen > 0) {
+        this.showTip(this.TIP_ENUM_MISMATCH);
+      }
+      clue = clueSansEnum + ' ' +
+             (oldEnumParse.enumStr || ('(' + expEnumLen + ')'));
     } else {
-      newEnum = '';
+      clue = clueSansEnum + ' ' + enumParse.enumStr;
     }
+    enumParse = this.puz.parseEnum(clue);
   }
-  clue = (clueSansEnum + ' ' + newEnum).trim();
   if (clue != savedClue) {
     let delta = clue.length - savedClue.length;
     if (delta < 0) {
@@ -5199,7 +4804,7 @@ Exet.prototype.handleClueChange = function() {
       exetLexicon.depunct(clue).split(' ').length > 12) {
     this.showTip(this.TIP_ANALYSIS);
   }
-  if (oldEnum != newEnum) {
+  if (oldEnumParse.enumStr != enumParse.enumStr) {
     if (this.handleGridInput()) {
       // throttledSaveRev() got called already
       return;
@@ -5208,400 +4813,17 @@ Exet.prototype.handleClueChange = function() {
   exetRevManager.throttledSaveRev(exetRevManager.REV_CLUE_CHANGE);
 }
 
-// Return < 0 if randomness suggests picking nothing.
-Exet.prototype.randomIndex = function(candidates) {
-  if (candidates.length <= 0 || Math.random() > 0.85) return -1
-  if (candidates.length == 1) {
-    return 0
-  }
-  return Math.floor(Math.random() * candidates.length)
-}
-
-Exet.prototype.automagicBlocksInner = function(chequered, showAlerts=true) {
-  const minSpan = chequered ? 4 : 3;
-  let grid = this.puz.grid;
-  let w = this.puz.gridWidth;
-  let wby2 = Math.ceil(w / 2);
-  let h = this.puz.gridHeight;
-  let hby2 = Math.ceil(h / 2);
-  let layers3d = this.puz.layers3d;
-
-  const analysis = new ExetAnalysis(grid, w, h, layers3d);
-
-  let numCandidates = 0;
-  let numChanges = 0;
-  let rowcols = [];
-  let minwhby2 = Math.min(wby2, hby2);
-  for (let x = 0; x < minwhby2; x++) {
-    rowcols.push(["row", x]);
-    rowcols.push(["col", x]);
-  }
-  for (let i = minwhby2 + 1; i < hby2; i++) {
-    rowcols.push(["row", i]);
-  }
-  for (let j = minwhby2 + 1; j < wby2; j++) {
-    rowcols.push(["col", j]);
-  }
-  for (rc of rowcols) {
-    let k1 = rc[1];
-    let isRow = (rc[0] == "row");
-    let symk1 = w - 1 - k1;
-    if (isRow) {
-      symk1 = h - 1 - k1;
-    }
-    const spans = isRow ? analysis.acrossSpans(k1) : analysis.downSpans(k1);
-    let candidates = [];
-    for (let span of spans) {
-      for (let x = minSpan; x < span[1] - minSpan; x++) {
-        let k2 = span[0] + x;
-        let symk2 = h - 1 - k2;
-        if (isRow) {
-          symk2 = w - 1 - k2;
-        }
-        const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
-        const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
-        if (gridCell.solution != '?' || gridSymCell.solution != '?') {
-          continue;
-        }
-        gridCell.isLight = false;
-        gridSymCell.isLight = false;
-        if (analysis.isConnected() &&
-            ((chequered && analysis.chequeredOK()) ||
-             (!chequered && analysis.unchequeredOK())) &&
-            analysis.throughCutsBigEnough()) {
-          candidates.push(k2);
-        }
-        gridCell.isLight = true;
-        gridSymCell.isLight = true;
-      }
-    }
-    if (candidates.length == 0) {
-      continue;
-    }
-    numCandidates += candidates.length;
-    let randIndex = this.randomIndex(candidates);
-    if (randIndex < 0) {
-      // We randomly chose not to make a change
-      continue;
-    }
-    let k2 = candidates[randIndex];
-    let symk2 = h - 1 - k2;
-    if (isRow) {
-      symk2 = w - 1 - k2;
-    }
-    const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
-    const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
-    gridCell.isLight = false;
-    gridSymCell.isLight = false;
-    numChanges += 2;
-  }
-  if (numChanges > 0) {
-    this.killInvalidatedClues();
-  } else {
-    if (showAlerts) {
-      if (numCandidates == 0) {
-        alert('Add automagic blocks: found no further candidate cells ' +
-              'for turning into blocks');
-      } else {
-        alert('Add automagic blocks: found some candidate cells for ' +
-              'turning into blocks, but random numbers favoured no changes');
-      }
-    }
-  }
-  return numChanges > 0;
-}
-
-Exet.prototype.automagicBlocks = function(showAlerts=true) {
-  const grid = this.puz.grid;
-  const w = this.puz.gridWidth;
-  const h = this.puz.gridHeight;
-  const layers3d = this.puz.layers3d;
-  const analysis = new ExetAnalysis(grid, w, h, layers3d);
-  if (analysis.numBars() > 0) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the grid has barred cells');
-    }
-    return false;
-  }
-  if (this.puz.layers3d > 1) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the crossword has lights other than across/down');
-    }
-    return false;
-  }
-  if (!analysis.isConnected()) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the grid cells are not ' +
-            'fully connected');
-    }
-    return false;
-  }
-  if (!analysis.isSymmetric()) {
-    if (showAlerts) {
-      alert('Cannot add automagic blocks when the grid is not fully symmetric');
-    }
-    return false;
-  }
-  if (analysis.unchequeredOK()) {
-    return this.automagicBlocksInner(false, showAlerts);
-  } else  if (analysis.chequeredOK()) {
-    return this.automagicBlocksInner(true, showAlerts);
-  } else {
-    if (showAlerts) alert('Cannot add automagic blocks to the current grid');
-    return false;
-  }
-  return false;
-}
-
-// --------------- Autofill-related code --------------------------------------
-
 /**
- * Is [r,c] a cell to be counted for a constrained pangram?
+ * Return < 0 if !noSkipping and randomness suggests picking nothing.
  */
-Exet.prototype.pangramCell = function(r, c, fillState) {
-  const gridCell = exet.puz.grid[r][c];
-  if (!gridCell.isLight) {
-    return false;
+Exet.prototype.randomIndex = function(candidates, noSkipping) {
+  if (candidates.length <= 0 || (!noSkipping && (Math.random() > 0.98))) {
+    return -1;
   }
-
-  if (this.autofill.pangramAll) {
-    return true;
+  if (candidates.length == 1) {
+    return 0;
   }
-  if (this.autofill.pangramCircled && gridCell.hasCircle) {
-    return true;
-  }
-  let numLights = 0;
-  if (gridCell.acrossClueLabel) numLights++;
-  if (gridCell.downClueLabel) numLights++;
-  if (gridCell.z3dClueLabel) numLights++;
-  if (this.autofill.pangramChecked && numLights > 1) {
-    return true;
-  }
-  if (this.autofill.pangramUnchecked && numLights == 1) {
-    return true;
-  }
-  if (!this.autofill.pangramFirsts && !this.autofill.pangramLasts) {
-    return false;
-  }
-
-  let firsts = [];
-  if (gridCell.startsAcrossClue) firsts.push('A' + gridCell.startsClueLabel);
-  if (gridCell.startsDownClue) firsts.push('D' + gridCell.startsClueLabel);
-  if (gridCell.startsZ3dClue) firsts.push('Z' + gridCell.startsClueLabel);
-  let lasts = [];
-  if (this.autofill.pangramLasts || this.tryReversals) {
-    if (gridCell.endsAcrossClue) lasts.push('A' + gridCell.endsAcrossClue);
-    if (gridCell.endsDownClue) lasts.push('D' + gridCell.endsDownClue);
-    if (gridCell.endsZ3dClue) lasts.push('Z' + gridCell.endsZ3dClue);
-  }
-  if (this.tryReversals &&
-      (!this.autofill.pangramFirsts || !this.autofill.pangramLasts)) {
-    const realFirsts = [];
-    const revFirsts = [];
-    for (let ci of firsts) {
-      const clue = fillState.clues[ci];
-      if (clue && clue.lChoices.length == 1 && clue.lChoices[0] < 0) {
-        revFirsts.push(ci);
-      } else {
-        realFirsts.push(ci);
-      }
-    }
-    const realLasts = [];
-    const revLasts = [];
-    for (let ci of lasts) {
-      const clue = fillState.clues[ci];
-      if (clue && clue.lChoices.length == 1 && clue.lChoices[0] < 0) {
-        revLasts.push(ci);
-      } else {
-        realLasts.push(ci);
-      }
-    }
-    firsts = realFirsts.concat(revLasts);
-    lasts = realLasts.concat(revFirsts);
-  }
-  if (this.autofill.pangramFirsts && firsts.length > 0) {
-    return true;
-  }
-  if (this.autofill.pangramLasts && lasts.length > 0) {
-    return true;
-  }
-  return false;
-}
-
-Exet.prototype.setScore = function(fillState) {
-  fillState.scoreF = 0;  /* fullness */
-  fillState.scoreV = 0;  /* viability */
-  fillState.scoreP = 0;  /* popularity */
-  fillState.score = 0;
-
-  fillState.unfilled = [];
-  fillState.lettersUsed = {};
-  fillState.constrLetters = {};
-  fillState.reversals = 0;
-  let numEntries = 0;
-  for (let ci in fillState.clues) {
-    const theClue = fillState.clues[ci];
-    if (theClue.lChoices.length == 1 && theClue.lChoices[0] < 0) {
-      fillState.reversals++;
-    }
-    if (!theClue.parentClueIndex) {
-      let scoreP = 0;
-      /* we use popularity of the first choice */
-      if (theClue.lChoices.length > 0) {
-        let pindex = theClue.lChoices[0];
-        if (pindex < 0) pindex = 0 - pindex;
-        if (pindex >= exetLexicon.startLen) {
-          /* we really prefer preflex entries */
-          pindex = 0;
-        }
-        scoreP = (exetLexicon.startLen - pindex) / exetLexicon.startLen;
-      }
-      ++numEntries;
-      fillState.scoreP += scoreP;
-    }
-  }
-  if (numEntries > 0) {
-    fillState.scoreP /= numEntries;
-  }
-  fillState.score += fillState.scoreP;
-  let numLightCells = 0;
-  for (let i = 0; i < fillState.gridHeight; i++) {
-    for (let j = 0; j < fillState.gridWidth; j++) {
-      let fillCell = fillState.grid[i][j]
-      if (!fillCell.isLight) {
-        continue
-      }
-      numLightCells++;
-      if (fillCell.solution != '?' || fillCell.currLetter != '?') {
-        let c = fillCell.solution
-        if (c == '?') c = fillCell.currLetter
-        console.assert(c, i, j, fillCell)
-        fillState.lettersUsed[c] = true
-        if (this.pangramCell(i, j, fillState)) {
-          fillState.constrLetters[c] = true;
-        }
-        continue
-      }
-      if (fillCell.viability <= 0) {
-        fillState.unfilled.push([i, j, fillCell.viability]);
-        fillState.scoreV = - Number.MAX_VALUE;
-        fillState.score = fillState.scoreV;
-        fillState.viable = false;
-        return;
-      }
-      fillState.scoreV += Math.log(fillCell.viability);
-      fillState.unfilled.push([i, j, fillCell.viability]);
-    }
-  }
-  fillState.numLettersUsed = Object.keys(fillState.lettersUsed).length;
-  const constrUsed = Object.keys(fillState.constrLetters);
-  fillState.numConstrLetters = constrUsed.length;
-  if (numLightCells == 0) {
-    return;
-  }
-  let boost = 0
-  if (this.autofill.boostPangram) {
-    for (let c of constrUsed) {
-      boost += exetLexicon.letterRarity(c);
-    }
-  }
-  if (this.autofill.boostPangram &&
-      constrUsed.length < exetLexicon.letters.length) {
-    // Sort fillState.unfilled by ascending frequency of unused letter choices,
-    // then by ascending viability. But add a little random salt to the rarity,
-    // to avoid favouring low-numbered cells.
-    for (let x of fillState.unfilled) {
-      if (!this.pangramCell(x[0], x[1], fillState)){
-        x.push(0);
-        continue;
-      }
-      let cell = fillState.grid[x[0]][x[1]]
-      let choices = Object.keys(cell.cChoices)
-      let maxRarity = 0
-      for (let c of choices) {
-        if (fillState.constrLetters[c]) {
-          continue;
-        }
-        const rarity = exetLexicon.letterRarity(c)
-        if (rarity > maxRarity) maxRarity = rarity
-      }
-      x.push(maxRarity > 0 ? (maxRarity + 0.1 * Math.random()) : 0);
-    }
-    fillState.unfilled.sort((a, b) => a[3] == b[3] ? a[2] - b[2] : b[3] - a[3]);
-  } else {
-    fillState.unfilled.sort((a, b) => a[2] - b[2]);
-  }
-  fillState.scoreV /= 100;
-  fillState.score += fillState.scoreV;
-
-  const f = numLightCells - fillState.unfilled.length;
-  const progressWeight = 30;
-  fillState.scoreF = progressWeight * (f + boost) / 100;
-  fillState.score += fillState.scoreF;
-}
-
-Exet.prototype.getAutofillBase = function() {
-  let fillState = new ExetFillState(this.fillState)
-  fillState.delta = []
-  fillState.preflexUsed = {}
-  fillState.numPreflexUsed = 0
-  this.setScore(fillState)
-  return fillState
-}
-
-Exet.prototype.isFull = function(candidate) {
-  return candidate.unfilled.length == 0
-}
-
-Exet.prototype.beamSearchStep = function() {
-  if (this.autofill.throttledTimer) {
-    clearTimeout(this.autofill.throttledTimer)
-  }
-  if (this.autofill.beam.size() == 0) {
-    return
-  }
-  let startTS = Date.now()
-  this.autofill.throttledTimer = null;
-  this.autofill.step++
-  this.autofill.stepSpan.innerText = this.autofill.step
-  this.addAutofillChildren()
-  this.autofill.currBeamSpan.innerText = this.autofill.beam.size()
-
-  this.autofill.msUsed += (Date.now() - startTS)
-  this.autofill.timeSpan.innerText = this.autofill.msUsed
-  this.autofill.speedSpan.innerText = (this.autofill.msUsed /
-      this.autofill.step).toFixed(0)
-
-  const best = this.refreshAutofill();
-  if (best) {
-    this.updateAutofill(best)
-    if (this.isFull(best)) {
-      if (this.autofill.boostPangram &&
-          best.numConstrLetters != exetLexicon.letters.length &&
-          this.autofill.loopForPangram) {
-        this.autofill.accept.disabled = true
-        this.autofill.clear.disabled = true
-        this.resetAutofill('Looping for pangram')
-        this.resetViability()
-        this.startstopAutofill();
-      } else {
-        this.autofill.accept.disabled = false
-        this.autofill.clear.disabled = false
-        this.resetAutofill('Succeeded!')
-      }
-    } else {
-      this.autofill.throttledTimer = setTimeout(() => {
-        exet.beamSearchStep();
-      }, this.autofill.lag);
-    }
-  } else {
-    this.autofill.accept.disabled = false
-    this.autofill.clear.disabled = false
-    this.resetAutofill('<span class="xet-red">Failed.</span> ' +
-                       '<span class="xet-small-action">Do try again; if failure ' +
-                       'persists, try lowering min popularity score or ' +
-                       'increasing beam width</span>')
-  }
+  return Math.floor(Math.random() * candidates.length);
 }
 
 Exet.prototype.shuffle = function(arr) {
@@ -5612,685 +4834,233 @@ Exet.prototype.shuffle = function(arr) {
   }
 }
 
-Exet.prototype.hashCandidate = function(candidate) {
-  let fills = '';
-  for (let i = 0; i < candidate.gridHeight; i++) {
-    for (let j = 0; j < candidate.gridWidth; j++) {
-      const gridCell = candidate.grid[i][j];
-      if (!gridCell.isLight) continue;
-      fills += gridCell.currLetter || '?';
-    }
-  }
-  candidate.fills = fills;
-  return exetLexicon.javaHash(fills);
-}
+Exet.prototype.automagicBlocksInner = function(chequered, targetNumClues, showAlerts=true) {
+  const minSpan = chequered ? 4 : 3;
+  const grid = this.puz.grid;
+  const w = this.puz.gridWidth;
+  const wby2 = Math.ceil(w / 2);
+  const h = this.puz.gridHeight;
+  const hby2 = Math.ceil(h / 2);
+  const layers3d = this.puz.layers3d;
 
-Exet.prototype.getCurrEntry = function(candidate, ci) {
-  const cells = this.puz.getAllCells(ci);
-  let entry = '';
-  for (const cell of cells) {
-    const gridCell = candidate.grid[cell[0]][cell[1]];
-    entry += gridCell.currLetter;
-  }
-  return entry;
-}
+  const analysis = new ExetAnalysis(grid, w, h, layers3d);
+  const minwhby2 = Math.min(wby2, hby2);
 
-Exet.prototype.hasPatternOfDeath = function(candidate) {
-  for (let i = 0; i < candidate.gridHeight; i++) {
-    for (let j = 0; j < candidate.gridWidth; j++) {
-      const gridCell = candidate.grid[i][j];
-      if (!gridCell.isLight) continue;
-      if (gridCell.currLetter != '?') continue;
-      const puzCell = this.puz.grid[i][j];
-      if (!puzCell.acrossClueLabel || !puzCell.downClueLabel) continue;
-      const aci = this.puz.getDirClueIndex('A', puzCell.acrossClueLabel);
-      const dci = this.puz.getDirClueIndex('D', puzCell.downClueLabel);
-      console.assert(aci && dci, aci, dci);
-      const ac = candidate.clues[aci];
-      const dc = candidate.clues[dci];
-      if (ac.solution != dc.solution) {
+  const rowcols = [];
+  for (let x = 0; x < minwhby2; x++) {
+    rowcols.push(["row", x]);
+    rowcols.push(["col", x]);
+  }
+  for (let i = minwhby2; i < hby2; i++) {
+    rowcols.push(["row", i]);
+  }
+  for (let j = minwhby2; j < wby2; j++) {
+    rowcols.push(["col", j]);
+  }
+  /**
+   * Randomize the order of rowcols.
+   */
+  this.shuffle(rowcols);
+
+  let totalChanges = 0;
+  let numClues = Object.keys(this.puz.clues).length;
+  /**
+   * Add a maxLoops limit because technically, the randomness couuld
+   * lead to a no-op in every loop. Also, loop at least once even if
+   * targetNumClues <= numClues.
+   */
+  const maxLoops = Math.max(1, (targetNumClues - numClues));
+  let loop = 0;
+  while (numClues < targetNumClues && (loop++ < maxLoops)) {
+    let numChanges = 0;
+    let numCandidates = 0;
+    for (rc of rowcols) {
+      let k1 = rc[1];
+      let isRow = (rc[0] == "row");
+      let symk1 = w - 1 - k1;
+      if (isRow) {
+        symk1 = h - 1 - k1;
+      }
+      const spans = isRow ? analysis.acrossSpans(k1) : analysis.downSpans(k1);
+      const candidates = [];
+      for (let span of spans) {
+        for (let x = minSpan; x < span[1] - minSpan; x++) {
+          let k2 = span[0] + x;
+          let symk2 = h - 1 - k2;
+          if (isRow) {
+            symk2 = w - 1 - k2;
+          }
+          const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
+          const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
+          if (gridCell.solution != '?' || gridSymCell.solution != '?') {
+            continue;
+          }
+          gridCell.isLight = false;
+          gridSymCell.isLight = false;
+          if (analysis.isConnected() &&
+              ((chequered && analysis.chequeredOK()) ||
+               (!chequered && analysis.unchequeredOK())) &&
+              analysis.throughCutsBigEnough()) {
+            candidates.push(k2);
+          }
+          gridCell.isLight = true;
+          gridSymCell.isLight = true;
+        }
+      }
+      if (candidates.length == 0) {
         continue;
       }
-      const acEntry = this.getCurrEntry(candidate, aci);
-      const dcEntry = this.getCurrEntry(candidate, dci);
-      if (acEntry != dcEntry) {
-        continue;
-      }
-      const loc = acEntry.indexOf('?');
-      console.assert(loc >= 0, acEntry);
-      if (acEntry.substr(0, loc).indexOf('?') >= 0 ||
-          acEntry.substr(loc + 1).indexOf('?') >= 0) {
-        continue;
-      }
-      /* Across and down solutions are identical, and have the
-       * current cell as the only unfilled cell. This is not
-       * fillable!
+      numCandidates += candidates.length;
+      /**
+       * If there was only one span, and we're not doing a chequered grid, then
+       * do not skip breaking it up.
        */
-      return true;
+      const noSkipping = !chequered && (spans.length == 1);
+      let randIndex = this.randomIndex(candidates, noSkipping);
+      if (randIndex < 0) {
+        /** We randomly chose not to make a change */
+        continue;
+      }
+      let k2 = candidates[randIndex];
+      let symk2 = h - 1 - k2;
+      if (isRow) {
+        symk2 = w - 1 - k2;
+      }
+      const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
+      const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
+      gridCell.isLight = false;
+      gridSymCell.isLight = false;
+      numChanges += 2;
+      numClues = this.killInvalidatedClues();
+      if (numClues >= targetNumClues) {
+        break;
+      }
     }
+    totalChanges += numChanges;
+    if (numCandidates == 0) {
+      break;
+    }
+  }
+  if (totalChanges == 0) {
+    if (showAlerts) {
+      alert('Add automagic blocks: found no further candidate cells ' +
+            'for turning into blocks');
+    }
+  }
+  return totalChanges > 0;
+}
+
+Exet.prototype.automagicBlocks = function(noTarget=true) {
+  const grid = this.puz.grid;
+  const w = this.puz.gridWidth;
+  const h = this.puz.gridHeight;
+  const layers3d = this.puz.layers3d;
+  const analysis = new ExetAnalysis(grid, w, h, layers3d);
+  if (analysis.numBars() > 0) {
+    alert('Cannot add automagic blocks when the grid has barred cells');
+    return false;
+  }
+  if (this.puz.layers3d > 1) {
+    alert('Cannot add automagic blocks when the crossword has lights other than across/down');
+    return false;
+  }
+  if (!analysis.isConnected()) {
+    alert('Cannot add automagic blocks when the grid cells are not ' +
+          'fully connected');
+    return false;
+  }
+  if (!analysis.isSymmetric()) {
+    alert('Cannot add automagic blocks when the grid is not fully symmetric');
+    return false;
+  }
+  const showAlerts = noTarget;
+  if (analysis.unchequeredOK()) {
+    const target = noTarget ? w*h : Math.ceil(2*w*h/5.8);
+    return this.automagicBlocksInner(false, target, showAlerts);
+  } else  if (analysis.chequeredOK()) {
+    const lightRows = Math.floor(h/2) + (((h % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
+    const lightCols = Math.floor(w/2) + (((w % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
+    const target = noTarget ? w*h : Math.floor((lightRows * (w/7.5)) + (lightCols * (h/7.5)));
+    return this.automagicBlocksInner(true, target, showAlerts);
+  } else {
+    if (showAlerts) alert('Cannot add automagic blocks to the current grid');
+    return false;
   }
   return false;
 }
 
-Exet.prototype.maybeAddAutofillCandidate = function(candidate) {
-  if (!candidate.viable) return false;
-  const h = this.hashCandidate(candidate);
-  if (this.autofill.triedHashes[h]) {
-    return false;
-  }
-  this.autofill.triedHashes[h] = true;
-  if (this.hasPatternOfDeath(candidate)) {
-    return false;
-  }
-  this.autofill.beam.add(candidate);
-  return true;
-}
-
-Exet.prototype.addAutofillChildren = function() {
-  /** How many light choices do we consider for each light: */
-  const constrainerLimit = 2000;
-  /** How many iterations of refineLightChoices to vet: */
-  const refinementSweeps = 2;
-
-  const priorityLoops = 20;
-  if (this.autofill.priorityClues.length > 0 &&
-      this.autofill.priorityLoop < priorityLoops) {
-    /**
-     * We're still doing the first phase of trying to fit the
-     * preflex entries.
-     */
-    this.autofillPriorityClues(refinementSweeps, constrainerLimit);
-    ++this.autofill.priorityLoop;
-    return;
-  }
-  if (this.autofill.beam.size() == 0) {
-    return;
-  }
-  const candidate = this.autofill.beam.pop(true);
-  if (!candidate || !candidate.unfilled || candidate.unfilled.length == 0) {
-    return;
-  }
-
-  // Try filling up to "toAdd" cells from the top few
-  let toAdd = 1;
-  const cellChoices = [];
-  if (this.autofill.boostPangram &&
-      candidate.numConstrLetters < exetLexicon.letters.length) {
-    /** prioritize the pangram, pick the top-priority cell */
-    cellChoices.push(0);
-    toAdd = 0;
-  }
-  const cellIndexLimit = Math.min(candidate.unfilled.length, 4);
-  for (let i = 0; i < toAdd; i++) {
-    let cellIndex = Math.floor(Math.random() * cellIndexLimit);
-    if (!cellChoices.includes(cellIndex)) {
-      cellChoices.push(cellIndex);
-    }
-  }
-  let numChildren = 0;
-  const maxChildren = 50;
-  for (let cellIndex of cellChoices) {
-    const row = candidate.unfilled[cellIndex][0];
-    const col = candidate.unfilled[cellIndex][1];
-    const cell = candidate.grid[row][col];
-    const choices = Object.keys(cell.cChoices);
-    for (let c of choices) {
-      const child = new ExetFillState(candidate);
-      const childCell = child.grid[row][col];
-      childCell.cChoices = {};
-      childCell.cChoices[c] = true;
-      childCell.currLetter = c;
-      child.delta = candidate.delta.slice();
-      child.delta.push([row, col, c]);
-      for (let s = 0; s < refinementSweeps && child.viable; s++) {
-        if (!this.refineLightChoices(child, constrainerLimit)) break;
-      }
-      if (child.viable) {;
-        this.setScore(child);
-        if (this.maybeAddAutofillCandidate(child)) {
-          if (++numChildren >= maxChildren) {
-            break;
-          }
-        }
-      }
-    }
-    if (numChildren >= maxChildren) {
-      break;
-    }
-  }
-}
-
-Exet.prototype.getAutofillPriorityClues = function() {
-  let pclues = []
-  if (this.preflex.length == 0) {
-    return pclues
-  }
-  for (let ci in this.puz.clues) {
-    let theClue = this.puz.clues[ci]
-    if (theClue.solution.indexOf('?') < 0) continue
-    if (this.preflexByLen[theClue.enumLen]) {
-      let toTry = {}
-      for (let idx of this.preflexByLen[theClue.enumLen]) {
-        toTry[idx] = true
-      }
-      pclues.push([ci, toTry])
-    }
-  }
-  this.shuffle(pclues)
-  return pclues
-}
-
-/**
- * Add a candidate to the beam that starts with the base and
- * adds as many preflexes as possible, in random order.
- */
-Exet.prototype.autofillPriorityClues = function(refinementSweeps, constrainerLimit) {
-  if (this.autofill.priorityClues.length == 0) {
-    return;
-  }
-  const usedP = {};
-  const child = new ExetFillState(this.autofill.base);
-  child.delta = this.autofill.base.delta.slice();
-  const priClueIndices = {};
-  for (let i = 0; i < this.autofill.priorityClues.length; i++) {
-    priClueIndices[i] = true;
-  }
-  while (child.viable) {
-    const rem = Object.keys(priClueIndices);
-    if (rem.length == 0) {
-      break;
-    }
-    const ki = Math.floor(Math.random() * rem.length);
-    const idx = rem[ki];
-    delete priClueIndices[idx];
-    const ciToTry = this.autofill.priorityClues[idx];
-    const ci = ciToTry[0];
-    const theClue = child.clues[ci];
-    if (!theClue || !theClue.lChoices || !theClue.lChoices.length) {
-      continue;
-    }
-    const numChoices = theClue.lChoices.length;
-    const toTry = ciToTry[1];
-    const numToTry = Object.keys(toTry).length;
-    for (let i = 0; i < numChoices; i++) {
-      const p = theClue.lChoices[i];
-      if (toTry[p] && !usedP[p]) {
-        const cells = this.puz.getAllCells(ci);
-        const entry = exetLexicon.getLex(p);
-        let key = exetLexicon.lexkey(entry);
-        if (p < 0) key.reverse();
-        child.clues[ci].lChoices = [p];
-        child.clues[ci].lRejects = [];
-        for (let j = 0; j < cells.length; j++) {
-          let row = cells[j][0];
-          let col = cells[j][1];
-          let childCell = child.grid[row][col];
-          let c = key[j];
-          childCell.cChoices = {};
-          childCell.cChoices[c] = true;
-          childCell.currLetter = c;
-          child.delta.push([row, col, c]);
-        }
-        usedP[p] = true;
-        for (let s = 0; s < refinementSweeps && child.viable; s++) {
-          if (!this.refineLightChoices(child, constrainerLimit)) break;
-        }
-        break;
-      }
-    }
-  }
-  for (let s = 0; s < refinementSweeps && child.viable; s++) {
-    if (!this.refineLightChoices(child, constrainerLimit)) break;
-  }
-  if (child.viable) {
-    this.setScore(child);
-    this.maybeAddAutofillCandidate(child);
-  }
-}
-
-Exet.prototype.updateAutofillPreflex = function() {
-  this.autofill.preflexTotalSpan.innerText = this.preflex.length
-  this.autofill.unpreflexTotalSpan.innerText = Object.keys(
-      this.unpreflex).length
-  this.autofill.minpopSpan.innerText = this.minpop
-  this.autofill.indexMinPopSpan.innerText = Number(
-      this.indexMinPop - 1).toLocaleString()
-  this.autofill.properNounsSpan.innerText = this.noProperNouns ?
-      "disallowed" : "allowed"
-  this.autofill.stemDupesSpan.innerText = this.noStemDupes ?
-      "disallowed" : "allowed"
-  this.autofill.tryReversalsSpan.innerText = this.tryReversals ?
-      "allowed" : "disallowed"
-}
-
-Exet.prototype.markClueEnds = function() {
-  for (let r = 0; r < this.puz.gridHeight; r++) {
-    for (let c = 0; c < this.puz.gridWidth; c++) {
-      const gridCell = this.puz.grid[r][c];
-      if (!gridCell.isLight) {
-        continue;
-      }
-      if (gridCell.startsAcrossClue) {
-        const last =
-            gridCell.startsAcrossClue[gridCell.startsAcrossClue.length - 1];
-        const lastCell = this.puz.grid[last[0]][last[1]];
-        lastCell.endsAcrossClue = gridCell.startsClueLabel;
-      }
-      if (gridCell.startsDownClue) {
-        const last =
-            gridCell.startsDownClue[gridCell.startsDownClue.length - 1];
-        const lastCell = this.puz.grid[last[0]][last[1]];
-        lastCell.endsDownClue = gridCell.startsClueLabel;
-      }
-      if (gridCell.startsZ3dClue) {
-        const last =
-            gridCell.startsZ3dClue[gridCell.startsZ3dClue.length - 1];
-        const lastCell = this.puz.grid[last[0]][last[1]];
-        lastCell.endsZ3dClue = gridCell.startsClueLabel;
-      }
-    }
-  }
-}
-
-Exet.prototype.startstopAutofill = function() {
-  if (!this.autofill.running) {
-    if (this.puz.numCellsToFill == this.puz.numCellsFilled) {
-      alert('The grid is already full')
-      return
-    }
-    let beamWidth = parseInt(this.autofill.beamWidthInp.value)
-    if (isNaN(beamWidth) || beamWidth <= 0) {
-      this.autofill.beamWidthInp.value = this.autofill.beamWidth
-    } else {
-      this.autofill.beamWidth = beamWidth
-      this.autofill.beam.relimit(beamWidth)
-    }
-    if (this.autofill.beam.size() == 0) {
-      let candidate = this.getAutofillBase()
-      if (!candidate.viable) {
-        alert('Autofill will not work on the current grid. Perhaps retry ' +
-              'after clearing some constraining lights or modifying the grid?')
-        return
-      }
-      this.autofill.base = candidate;
-      this.autofill.priorityClues = this.getAutofillPriorityClues();
-      this.autofill.priorityLoop = 0;
-      this.autofill.beam.add(candidate);
-      this.autofill.currBeamSpan.innerText = this.autofill.beam.size()
-    }
-
-    if (this.viabilityUpdateTimer) {
-      clearTimeout(this.viabilityUpdateTimer);
-      this.viabilityUpdateTimer = null;
-    }
-
-    this.updateAutofillPreflex()
-    this.autofill.running = true
-    this.autofill.status = 'Running'
-    this.autofill.accept.disabled = true
-    this.autofill.clear.disabled = true
-    this.autofill.statusSpan.innerHTML = this.autofill.status
-    this.sweepIndicator.className = 'xet-sweeping-animated'
-    this.autofill.startstop.innerText = 'Pause'
-    this.autofill.startstop.className = 'xlv-button xet-pink-button'
-    this.autofill.boostPangram = this.autofill.pangramInp.checked
-    this.autofill.loopForPangram = this.autofill.pangramLoopInp.checked
-    this.autofill.pangramAll = this.autofill.pangramAllInp.checked
-    this.autofill.pangramCircled = this.autofill.pangramCircledInp.checked
-    this.autofill.pangramChecked = this.autofill.pangramCheckedInp.checked
-    this.autofill.pangramUnchecked = this.autofill.pangramUncheckedInp.checked
-    this.autofill.pangramFirsts = this.autofill.pangramFirstsInp.checked
-    this.autofill.pangramLasts = this.autofill.pangramLastsInp.checked
-
-    if ((this.autofill.pangramFirsts && this.tryReversals) ||
-        this.autofill.pangramLasts) {
-      this.markClueEnds();
-    }
-    if (this.autofill.throttledTimer) {
-      clearTimeout(this.autofill.throttledTimer)
-    }
-    this.autofill.throttledTimer = setTimeout(() => {
-      this.beamSearchStep();
-    }, this.autofill.lag);
-  } else {
-    this.autofill.running = false
-    this.updateSweepInd()
-    this.autofill.startstop.innerText = 'Start'
-    this.autofill.startstop.className = 'xlv-button'
-    this.autofill.status = 'Stopped'
-    this.autofill.accept.disabled = false
-    this.autofill.clear.disabled = false
-    this.autofill.statusSpan.innerHTML = this.autofill.status
-    clearTimeout(this.autofill.throttledTimer)
-    this.autofill.throttledTimer = null
-  }
-}
-
-Exet.prototype.resetAutofill = function(status) {
-  this.autofill.beam = new ExetDher(this.autofill.beamWidth);
-  this.autofill.step = 0;
-  this.autofill.msUsed = 0;
-  this.autofill.triedHashes = {};
-  this.updateAutofillPreflex();
-  if (!this.autofill.running) {
-    return
-  }
-  if (this.autofill.throttledTimer) {
-    clearTimeout(this.autofill.throttledTimer)
-    this.autofill.throttledTimer = null
-  }
-  this.autofill.status = status
-  this.autofill.statusSpan.innerHTML = status
-  this.autofill.running = false
-  this.updateSweepInd()
-  this.autofill.startstop.innerText = 'Start'
-  this.autofill.startstop.className = 'xlv-button'
-}
-
-Exet.prototype.updateAutofill = function(candidate) {
-  console.assert(this.autofill.base, this.autofill);
-  this.fillState = new ExetFillState(this.autofill.base);
-  // Show light-fill suggestions from full lights.
-  for (let ci in candidate.clues) {
-    const lChoices = candidate.clues[ci].lChoices;
-    if (lChoices.length != 1) {
-      continue;
-    }
-    const theClue = this.fillState.clues[ci];
-    console.assert(theClue, ci);
-    theClue.lChoices = lChoices;
-    theClue.lRejects = candidate.clues[ci].lRejects || [];
-  }
-  // Show grid-cell suggestions. 
-  for (let row = 0; row < this.puz.gridHeight; row++) {
-    for (let col = 0; col < this.puz.gridWidth; col++) {
-      const gridCell = this.puz.grid[row][col];
-      if (!gridCell.isLight) {
-        continue;
-      }
-      const choices = candidate.grid[row][col].cChoices;
-      if (Object.keys(choices).length == 1) {
-        this.fillState.grid[row][col].cChoices = choices;
-      }
-    }
-  }
-  this.updateViablots();
-}
-
-Exet.prototype.initAutofill = function() {
-  if (!this.autofill || this.autofill.id != this.puz.id) {
-    this.autofill = {
-      id: this.puz.id,
-      candidates: [],
-      beamWidth: 64,
-      beam: new ExetDher(64),
-      step: 0,
-      numCells: this.puz.gridWidth * this.puz.gridHeight * this.puz.layers3d,
-      running: false,
-      throttledTimer: null,
-      lag: 200,
-      status: 'None',
-      boostPangram: false,
-      loopForPangram: false,
-      pangramAll: true,
-      pangramCircled: false,
-      pangramChecked: false,
-      pangramUnchecked: false,
-      pangramFirsts: false,
-      pangramLasts: false,
-      triedHashes: {},
-    };
-  }
-  const analysis = new ExetAnalysis(
-      this.puz.grid, this.puz.gridWidth, this.puz.gridHeight, this.puz.layers3d);
-  this.autofill.barred = analysis.numBars() > 0;
-  this.autofill.doublyChecked = analysis.unchequeredOK(false);
-  this.autofill.clear = document.getElementById("xet-autofill-clear")
-  this.autofill.clear.disabled = true
-  this.autofill.clear.addEventListener('click', e => {
-    this.autofill.accept.disabled = true;
-    this.autofill.clear.disabled = true;
-    this.resetAutofill('Cleared');
-    this.resetViability();
-  })
-  this.autofill.accept = document.getElementById("xet-autofill-accept");
-  this.autofill.accept.disabled = true;
-  this.autofill.accept.addEventListener('click', e => {
-    this.autofill.accept.disabled = true;
-    this.autofill.clear.disabled = true;
-    this.acceptAll();
-  })
-  this.autofill.startstop = document.getElementById("xet-autofill-startstop");
-  if (this.autofill.running) {
-    this.autofill.startstop.innerText = 'Pause';
-    this.autofill.startstop.className = 'xlv-button xet-pink-button';
-  }
-  this.autofill.startstop.addEventListener(
-      'click', this.startstopAutofill.bind(this));
-
-  this.autofill.beamWidthInp = document.getElementById(
-      'xet-autofill-max-beam');
-  this.autofill.beamWidthInp.value = this.autofill.beamWidth;
-
-  this.autofill.pangramInp = document.getElementById(
-      'xet-autofill-boost-pangram');
-  this.autofill.pangramInp.checked = this.autofill.boostPangram;
-  this.autofill.pangramLoopInp = document.getElementById(
-      'xet-autofill-pangram-loop');
-  this.autofill.pangramLoopInp.checked = this.autofill.loopForPangram;
-
-  this.autofill.pangramDetails = document.getElementById(
-      'xet-autofill-pangram-details');
-  this.autofill.pangramAllInp = document.getElementById(
-      'xet-autofill-pangram-all');
-  this.autofill.pangramAllInp.checked = this.autofill.pangramAll;
-  this.autofill.pangramCircledInp = document.getElementById(
-      'xet-autofill-pangram-circled');
-  this.autofill.pangramCircledInp.checked = this.autofill.pangramCircled;
-  this.autofill.pangramCheckedInp = document.getElementById(
-      'xet-autofill-pangram-checked');
-  this.autofill.pangramCheckedInp.checked = this.autofill.pangramChecked;
-  this.autofill.pangramUncheckedInp = document.getElementById(
-      'xet-autofill-pangram-unchecked');
-  this.autofill.pangramUncheckedInp.checked = this.autofill.pangramUnchecked;
-  this.autofill.pangramFirstsInp = document.getElementById(
-      'xet-autofill-pangram-firsts');
-  this.autofill.pangramFirstsInp.checked = this.autofill.pangramFirsts;
-  this.autofill.pangramLastsInp = document.getElementById(
-      'xet-autofill-pangram-lasts');
-  this.autofill.pangramLastsInp.checked = this.autofill.pangramLasts;
-  const pangramOptionsSanitizer = (e) => {
-    this.autofill.pangramAllInp.checked = 
-        (!this.autofill.pangramCircledInp.checked &&
-         !this.autofill.pangramCheckedInp.checked &&
-         !this.autofill.pangramUncheckedInp.checked &&
-         !this.autofill.pangramFirstsInp.checked &&
-         !this.autofill.pangramLastsInp.checked) ||
-        (this.autofill.pangramCheckedInp.checked &&
-         this.autofill.pangramUncheckedInp.checked);
-  };
-  for (let elt of [this.autofill.pangramCircledInp,
-                   this.autofill.pangramCheckedInp,
-                   this.autofill.pangramUncheckedInp,
-                   this.autofill.pangramFirstsInp,
-                   this.autofill.pangramLastsInp]) {
-    elt.addEventListener('change', pangramOptionsSanitizer);
-  }
-  this.autofill.pangramAllInp.addEventListener('change', (e) => {
-    if (this.autofill.pangramAllInp.checked) {
-      this.autofill.pangramCircledInp.checked = false;
-      this.autofill.pangramCheckedInp.checked = false;
-      this.autofill.pangramUncheckedInp.checked = false;
-      this.autofill.pangramFirstsInp.checked = false;
-      this.autofill.pangramLastsInp.checked = false;
-    } else {
-      this.autofill.pangramAllInp.checked = 
-          (!this.autofill.pangramCircledInp.checked &&
-           !this.autofill.pangramCheckedInp.checked &&
-           !this.autofill.pangramUncheckedInp.checked &&
-           !this.autofill.pangramFirstsInp.checked &&
-           !this.autofill.pangramLastsInp.checked) ||
-          (this.autofill.pangramCheckedInp.checked &&
-           this.autofill.pangramUncheckedInp.checked);
-    }
-  });
-
-  this.autofill.stepSpan = document.getElementById('xet-autofill-step');
-  this.autofill.stepSpan.innerText = this.autofill.step;
-
-  this.autofill.statusSpan = document.getElementById('xet-autofill-status');
-  this.autofill.statusSpan.innerHTML = this.autofill.status;
-
-  this.autofill.timeSpan = document.getElementById('xet-autofill-time');
-  this.autofill.speedSpan = document.getElementById('xet-autofill-speed');
-
-  this.autofill.currBeamSpan = document.getElementById('xet-autofill-curr-beam');
-  this.autofill.currBeamSpan.innerText = this.autofill.beam.limit();
-
-  this.autofill.scoreSpan = document.getElementById('xet-autofill-score');
-  this.autofill.scoreVSpan = document.getElementById('xet-autofill-score-v');
-  this.autofill.scorePSpan = document.getElementById('xet-autofill-score-p');
-  this.autofill.scoreFSpan = document.getElementById('xet-autofill-score-f');
-
-  this.autofill.reversalsSpan = document.getElementById('xet-autofill-reversals');
-
-  this.autofill.preflexTotalSpan = document.getElementById(
-      'xet-autofill-preflex-total');
-  this.autofill.preflexUsedSpan = document.getElementById(
-      'xet-autofill-preflex-used');
-  this.autofill.unpreflexTotalSpan = document.getElementById(
-      'xet-autofill-unpreflex-total');
-  this.autofill.minpopSpan = document.getElementById('xet-autofill-minpop');
-  this.autofill.indexMinPopSpan = document.getElementById(
-      'xet-autofill-index-minpop');
-  this.autofill.properNounsSpan = document.getElementById(
-      'xet-autofill-proper-nouns');
-  this.autofill.stemDupesSpan = document.getElementById(
-      'xet-autofill-stem-dupes');
-  this.autofill.tryReversalsSpan = document.getElementById(
-      'xet-autofill-try-reversals');
-  this.autofill.pangramSpan = document.getElementById('xet-autofill-letters');
-  this.autofill.pangramConstrSpan = document.getElementById(
-      'xet-autofill-pangram-cletters');
-  this.autofill.pangramConstrSpan.style.display = 'none';
-  this.autofill.isPangram = document.getElementById('xet-is-pangram');
-
-  this.refreshAutofill();
-}
-
-Exet.prototype.refreshAutofill = function() {
-  this.autofill.pangramConstrSpan.style.display =
-      this.autofill.pangramAll ? 'none' : '';
-  this.autofill.isPangram.style.display = 'none';
-
-  if (this.autofill.step > (this.autofill.numCells * 3)) {
-    console.log('Autofill seems to be stuck in a loop, quitting it.');
-    return null;
-  }
-
-  const candidate = this.autofill.beam.peep(true);
-  if (!candidate) {
-    return null;
-  }
-
-  this.autofill.pangramDetails.open = this.autofill.boostPangram &&
-      !this.autofill.pangramAll;
-  this.autofill.preflexUsedSpan.innerText = candidate.numPreflexUsed
-  this.autofill.pangramSpan.innerText = candidate.numLettersUsed
-  this.autofill.pangramConstrSpan.innerText =
-      `(${candidate.numConstrLetters} in pangram cells)`
-  if (candidate.numLettersUsed == exetLexicon.letters.length) {
-    let isPangram = 'Pangram!'
-    if (!this.autofill.pangramAll &&
-        candidate.numConstrLetters == exetLexicon.letters.length) {
-      isPangram = 'Pangram <i>with</i> constraints!';
-    }
-    this.autofill.isPangram.innerHTML = isPangram;
-    this.autofill.isPangram.style.display = '';
-  }
-  this.autofill.scoreSpan.innerText = candidate.score.toFixed(2)
-  this.autofill.scoreVSpan.innerText = candidate.scoreV.toFixed(2)
-  this.autofill.scorePSpan.innerText = candidate.scoreP.toFixed(2)
-  this.autofill.scoreFSpan.innerText = candidate.scoreF.toFixed(2)
-  this.autofill.reversalsSpan.innerText = candidate.reversals
-
-  return candidate;
-}
-
-// ------- End of autofill-related code ---------------------------------------
-
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
-  let key = e.key || e
+  let key = e.key || e;
   if (key == '=') {
-    this.acceptAll()
-    return
+    this.acceptAll();
+    return;
   }
-  let gridCell = this.puz.currCell()
+  let gridCell = this.puz.currCell();
   if (!gridCell) {
-    return
+    return;
   }
 
   if (key == '$') {
     this.toggleNina(e);
-    return
+    return;
   } else if (key == '^') {
     this.toggleColour(e);
-    return
+    return;
   }
 
-  let row = this.puz.currRow
-  let col = this.puz.currCol
+  let row = this.puz.currRow;
+  let col = this.puz.currCol;
 
-  let revType = exetRevManager.REV_GRID_CHANGE
+  let revType = exetRevManager.REV_GRID_CHANGE;
 
   if (key == '!' && gridCell.solution != '?') {
-    revType = exetRevManager.REV_METADATA_CHANGE
-    gridCell.prefill = !gridCell.prefill
+    revType = exetRevManager.REV_METADATA_CHANGE;
+    gridCell.prefill = !gridCell.prefill;
   } else if (key == '@') {
-    revType = exetRevManager.REV_METADATA_CHANGE
-    gridCell.hasCircle = !gridCell.hasCircle
+    revType = exetRevManager.REV_METADATA_CHANGE;
+    gridCell.hasCircle = !gridCell.hasCircle;
   } else if (key == '.') {
-    gridCell.isLight = !gridCell.isLight
+    gridCell.isLight = !gridCell.isLight;
     if (!this.asymOK) {
-      let symRow = this.puz.gridHeight - 1 - row
-      let symCol = this.puz.gridWidth - 1 - col
-      let symCell = this.puz.grid[symRow][symCol]
-      symCell.isLight = gridCell.isLight
+      const symRow = this.puz.gridHeight - 1 - row;
+      const symCol = this.puz.gridWidth - 1 - col;
+      const symCell = this.puz.grid[symRow][symCol];
+      symCell.isLight = gridCell.isLight;
     }
-    this.killInvalidatedClues()
+    this.killInvalidatedClues();
   } else if (key == '|') {
     if (col >= this.gridWidth - 1) {
-      return
+      return;
     }
-    gridCell.hasBarAfter = !gridCell.hasBarAfter
+    gridCell.hasBarAfter = !gridCell.hasBarAfter;
     if (!this.asymOK) {
-      let symRow = this.puz.gridHeight - 1 - row
-      let symCol = this.puz.gridWidth - 2 - col
-      let symCell = this.puz.grid[symRow][symCol]
-      symCell.hasBarAfter = gridCell.hasBarAfter
+      const symRow = this.puz.gridHeight - 1 - row;
+      const symCol = this.puz.gridWidth - 2 - col;
+      const symCell = this.puz.grid[symRow][symCol];
+      symCell.hasBarAfter = gridCell.hasBarAfter;
     }
-    this.killInvalidatedClues()
+    this.killInvalidatedClues();
   } else if (key == '_') {
     if (row >= this.gridHeight - 1) {
-      return
+      return;
     }
-    gridCell.hasBarUnder = !gridCell.hasBarUnder
+    gridCell.hasBarUnder = !gridCell.hasBarUnder;
     if (!this.asymOK) {
-      let symRow = this.puz.gridHeight - 2 - row
-      let symCol = this.puz.gridWidth - 1 - col
-      let symCell = this.puz.grid[symRow][symCol]
-      symCell.hasBarUnder = gridCell.hasBarUnder
+      const symRow = this.puz.gridHeight - 2 - row;
+      const symCol = this.puz.gridWidth - 1 - col;
+      const symCell = this.puz.grid[symRow][symCol];
+      symCell.hasBarUnder = gridCell.hasBarUnder;
     }
-    this.killInvalidatedClues()
+    this.killInvalidatedClues();
   } else if (key == '#') {
     if (!this.automagicBlocks()) {
-      return
+      return;
     }
   } else {
-    return
+    return;
   }
-  this.updatePuzzle(revType)
+  this.updatePuzzle(revType);
 }
 
 Exet.prototype.throttledGridInput = function(e) {
@@ -6298,7 +5068,7 @@ Exet.prototype.throttledGridInput = function(e) {
     clearTimeout(this.throttledGridTimer);
   }
   this.throttledGridTimer = setTimeout(() => {
-    this.handleGridInput()
+    this.handleGridInput();
     this.throttledGridTimer = null;
   }, this.inputLagMS);
 }
@@ -6400,110 +5170,30 @@ Exet.prototype.updateColourNinaLights = function(nOrCList, fullNewLabels) {
   }
 }
 
+/**
+ * Returns the number of clues in the updated puzzle.
+ */
 Exet.prototype.killInvalidatedClues = function() {
-  const tempId = this.puz.id + '-temp';
-  // New puzzle, but no clues/ninas/colours (these may contain invalid entries).
-  const specs = this.getExolve(
-      tempId, true /*skipClues*/, false /* solved */,
-      true /* showEnums */, false /* showColoursNinas */);
-  const xetTemp = document.getElementById("xet-temp");
-  xetTemp.innerHTML = '';
-  const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
-  // First build a map of cell-lists to new-clue-index
-  const cellsToIndex = {};
-  for (let ci in newPuz.clues) {
-    const ckey = JSON.stringify(newPuz.clues[ci].cells);
-    cellsToIndex[ckey] = ci;
-  }
+  const fillState = new ExetFillState(this.puz);
+  const maps = fillState.killInvalidatedClues();
+  const cellsToIndex = maps[0];
+  const fullNewLabels = maps[1];
+  const getsRelocated = maps[2];
 
-  // Keys are clue indices from the old grid:
-  const getsRelocated = {};
-  const fullNewLabels = {};
-
-  // Keys are clue indices from the new grid:
-  const isRelocated = {};
-  const isReversed = {};
-
-  for (let ci in this.puz.clues) {
-    let ckey = JSON.stringify(this.puz.clues[ci].cells);
-    let reversed = false;
-    if (!cellsToIndex[ckey]) {
-      const rcells = this.puz.clues[ci].cells.slice().reverse();
-      ckey = JSON.stringify(rcells);
-      reversed = true;
-    }
-    if (!cellsToIndex[ckey]) {
-      continue;
-    }
-    const newCi = cellsToIndex[ckey];
-    getsRelocated[ci] = newCi;
-    fullNewLabels[ci] = newPuz.clueLabelDisp(newPuz.clues[newCi]);
-    isRelocated[newCi] = Object.assign({}, this.puz.clues[ci]);
-    isReversed[newCi] = reversed;
-  }
-  // Preserve linked clues, if possible
-  for (let ci in this.puz.clues) {
-    const oldClue = this.puz.clues[ci];
-    if (!oldClue.childrenClueIndices ||
-        !oldClue.childrenClueIndices.length) {
-      continue;
-    }
-    const oldList = this.puz.getLinkedClues(ci);
-    console.assert(oldList.length > 1 && oldList[0] == ci, oldList);
-    let allMatch = true;
-    for (let cci of oldList) {
-      if (!getsRelocated[cci]) {
-        allMatch = false;
-        break;
-      }
-    }
-    if (!allMatch) {
-      for (let cci of oldList) {
-        if (!getsRelocated[cci]) {
-          continue;
-        }
-        const newCi = getsRelocated[cci];
-        delete getsRelocated[cci];
-        delete fullNewLabels[cci];
-        delete isRelocated[newCi];
-        delete isReversed[newCi];
-      }
-    }
-  }
-  for (let ci in this.puz.clues) {
-    if (!getsRelocated[ci] && !this.isDraftClue(this.puz.clues[ci].clue)) {
-      console.log('Non-draft clue ' + ci + ' got deleted: ' +
-                  this.puz.clues[ci].clue);
-    }
-  }
   this.updateColourNinaLights(this.puz.colourfuls, fullNewLabels);;
   this.updateColourNinaLights(this.puz.ninas, fullNewLabels);;
 
-  this.puz.clues = {};
-  for (let newCi in isRelocated) {
-    this.puz.clues[newCi] = this.puz.newClue(newCi);
-    const theClue = this.puz.clues[newCi];
-    const oldClue = isRelocated[newCi];
-    theClue.displayLabel = this.remapDisplayLabel(
-        oldClue.displayLabel, oldClue.dir, fullNewLabels);
-    theClue.clue = oldClue.clue;
-    theClue.anno = oldClue.anno;
-    theClue.placeholder = oldClue.placeholder;
-    theClue.reversed = oldClue.reversed;
-    if (isReversed[newCi]) {
-      theClue.reversed = !theClue.reversed;
-      theClue.solution = '';  // will be recomputed by updatePuzzle().
+  this.puz.clues = fillState.clues;
+  const newLightRegexps = {};
+  for (const oldCi in getsRelocated) {
+    if (!this.lightRegexps.hasOwnProperty(oldCi)) {
+      continue;
     }
-    if (oldClue.parentClueIndex) {
-      console.assert(getsRelocated[oldClue.parentClueIndex], oldClue);
-      theClue.parentClueIndex = getsRelocated[oldClue.parentClueIndex];
-      // Update "See XX"
-      theClue.clue = this.remapDisplayLabel(
-          oldClue.clue, oldClue.dir, fullNewLabels);
-    }
+    newLightRegexps[getsRelocated[oldCi]] = this.lightRegexps[oldCi];
   }
-  xetTemp.innerHTML = ''
-  newPuz.destroy();
+  this.lightRegexps = newLightRegexps;
+  this.compileLightRegexps();
+  return Object.keys(cellsToIndex).length;
 }
 
 Exet.prototype.unlinkClue = function(ci) {
@@ -6523,15 +5213,15 @@ Exet.prototype.unlinkClue = function(ci) {
   theClue.childrenClueIndices = [];
   theClue.displayLabel = theClue.label;
   this.maybeAdjustEnum(ci);
-  theClue.solution = ''
-  theClue.anno = ''
+  theClue.solution = '';
+  theClue.anno = '';
 }
 
 Exet.prototype.unlinkCurrClue = function() {
   if (!this.puz) return
   let ci = this.currClueIndex()
   this.unlinkClue(ci);
-  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE);
 }
 
 Exet.prototype.maybeAdjustEnum = function(ci) {
@@ -6554,8 +5244,8 @@ Exet.prototype.maybeAdjustEnum = function(ci) {
 }
 
 Exet.prototype.addLinkedClue = function() {
-  if (!this.puz) return
-  let ci = this.currClueIndex()
+  if (!this.puz) return;
+  let ci = this.currClueIndex();
   let theClue = this.puz.clues[ci];
   if (!theClue) return;
   const num = document.getElementById("xet-add-linked-num");
@@ -6566,7 +5256,7 @@ Exet.prototype.addLinkedClue = function() {
       parsed.dirIsPrefix || parsed.skip != clueLabel.length) {
     alert('Please provide a clue number and direction suffix ' +
           '(a/d/b/u for 2-D, ac/aw/dn/ba/to/up for 3-D) and nothing else');
-    return
+    return;
   }
   const cci = this.puz.getDirClueIndex(parsed.dir, parsed.label);
   if (cci == ci) {
@@ -6576,21 +5266,21 @@ Exet.prototype.addLinkedClue = function() {
   const cClue = this.puz.clues[cci];
   if (!cClue) {
     alert(parsed.label + parsed.dirStr + ' is not a valid clue to link to');
-    return
+    return;
   }
   if (parsed.reversed != cClue.reversed) {
     alert(parsed.label + parsed.dirStr + ' does not have the current light ' +
           'orientation: reversed should be ' + cClue.reversed);
-    return
+    return;
   }
   if (cClue.parentClueIndex) {
     alert(parsed.label + parsed.dirStr +
           ' is already part of another linked clue');
-    return
+    return;
   }
   if (cClue.childrenClueIndices && cClue.childrenClueIndices.length > 0) {
     alert(parsed.label + parsed.dirStr + ' is itself a linked clue');
-    return
+    return;
   } 
   const oldParentCells = this.puz.getAllCells(ci);
   const childCells = this.puz.getAllCells(cci);
@@ -6611,9 +5301,9 @@ Exet.prototype.addLinkedClue = function() {
   theClue.displayLabel = theClue.displayLabel + ', ' + parsed.label + parsed.dirStr;
   // update enum of clue
   this.maybeAdjustEnum(ci);
-  theClue.solution = ''
-  theClue.anno = ''
-  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+  theClue.solution = '';
+  theClue.anno = '';
+  this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE);
 }
 
 Exet.prototype.reverseLightInner = function(clue) {
@@ -6657,13 +5347,17 @@ Exet.prototype.reverseLight = function() {
   }
   const parent = clue.parentClueIndex ? this.puz.clues[clue.parentClueIndex] :
       clue;
-  if (parent.solution && parent.solution.indexOf('?') < 0 &&
-      !confirm('Sure you want to reverse an already-filled light?')) {
+  let msg = 'Are you sure you want to reverse this light?';
+  if (parent.solution && parent.solution.indexOf('?') < 0) {
+    msg = 'Are you sure you want to reverse this already-filled light?';
+  }
+  if (!confirm(msg)) {
     return;
   }
   this.reverseLightInner(clue);
 }
 
+// TODO: deal with question hints
 Exet.prototype.killQuestion = function(idx, e) {
   this.puz.questionTexts = this.puz.questionTexts.slice(0, idx).concat(
       this.puz.questionTexts.slice(idx + 1));
@@ -6671,7 +5365,7 @@ Exet.prototype.killQuestion = function(idx, e) {
   this.puz.redisplayQuestions();
   this.puz.revealAll(false)
   e.stopPropagation();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
 }
 
 Exet.prototype.updateQuestion = function(idx, e) {
@@ -6684,7 +5378,7 @@ Exet.prototype.updateQuestion = function(idx, e) {
     }
   }
   e.stopPropagation();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
 }
 
 Exet.prototype.remakeQuestionsList = function() {
@@ -6751,7 +5445,7 @@ Exet.prototype.populateQuestions = function(questions) {
         a.input.value = a.ans
       }
     }
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
   });
   this.remakeQuestionsList();
 }
@@ -6941,7 +5635,7 @@ Exet.prototype.toggleNina = function(evt) {
     return;
   }
   if (this.removeNina()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
     return;
   }
   this.coloursInUse = [];
@@ -6968,7 +5662,7 @@ Exet.prototype.toggleNina = function(evt) {
   exetModals.showModal(this.tweakColourNina);
   evt.stopPropagation();
   this.addNina();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
 }
 
 Exet.prototype.removeColour = function() {
@@ -7024,7 +5718,7 @@ Exet.prototype.toggleColour = function(evt) {
     return;
   }
   if (this.removeColour()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
     return;
   }
   this.coloursInUse = [];
@@ -7055,7 +5749,7 @@ Exet.prototype.toggleColour = function(evt) {
   exetModals.showModal(this.tweakColourNina);
   evt.stopPropagation();
   this.addColour();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE)
+  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
 }
 
 Exet.prototype.markNinasAsPrefilled = function() {
@@ -7110,7 +5804,7 @@ Exet.prototype.clearAllMarkings = function() {
     changed = true;
   }
   if (changed) {
-    this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE)
+    this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
   }
 }
 
@@ -7215,46 +5909,59 @@ Exet.prototype.restoreCursor = function() {
 }
 
 Exet.prototype.makeExolve = function(specs) {
-  let xlvFrame = document.getElementById('xet-xlv-frame')
-  xlvFrame.innerHTML = ''
+  let xlvFrame = document.getElementById('xet-xlv-frame');
+  xlvFrame.innerHTML = '';
   if (this.puz) {
     this.puz.destroy();
   }
   this.puz = null;
   try {
-    let ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this), false, this.TOP_CLEARANCE, 0, false)
+    const ptemp = new Exolve(specs, 'xet-xlv-frame', this.setPuzzle.bind(this),
+                           false /** provideStateUrl */,
+                           this.TOP_CLEARANCE /** visTop */,
+                           0 /** maxDim */,
+                           false /** notTemp */);
+    if (!this.puz) {
+      /** There was an error in setPuzzle() */
+      if (ptemp) {
+        ptemp.destroy();
+      }
+    }
   } catch (err) {
-    this.puz = null
-    console.log('Could not parse Exolve specs:')
-    console.log(specs)
-    console.log('Error thrown was:')
-    console.log(err)
+    this.puz = null;
+    console.log('Could not parse Exolve specs:');
+    console.log(specs);
+    console.log('Error thrown was:');
+    console.log(err);
   }
 
   if (!this.puz) {
     return;
   }
+  this.checkLocalStorage();
 
   this.handleTabClick(this.currTab);
-  exetState.lastId = this.puz.id
-  exetRevManager.saveLocal(
-      exetRevManager.SPECIAL_KEY, JSON.stringify(exetState))
+  exetState.lastId = this.puz.id;
+  exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
 }
 
 Exet.prototype.updatePuzzle = function(revType=0) {
   if (revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
       revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
-    this.resetAutofill('Aborted')
+    /**
+     * Alert the user that their ongoing autofill run had to be aborted, even
+     * though they might not be expecting that. Hopefully a rare scenario.
+     */
+    this.autofill.reset('Aborted');
   }
-  const row = this.puz.currRow
-  const col = this.puz.currCol
-  const dir = this.puz.currDir
-  const scratch = this.puz.scratchPad.value
-  this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : ''
-  this.saveCursor()
+  const row = this.puz.currRow;
+  const col = this.puz.currCol;
+  const dir = this.puz.currDir;
+  const scratch = this.puz.scratchPad.value;
+  this.savedIndsSelect = this.indsSelect ? this.indsSelect.value : '';
+  this.saveCursor();
   const editingOtherSections = (exetModals.modal &&
                exetModals.modal.id == 'xet-other-sections');
-
   const oldPuz = this.puz;
   let exolve = this.getExolve();
   this.makeExolve(exolve);
@@ -7262,11 +5969,10 @@ Exet.prototype.updatePuzzle = function(revType=0) {
     alert('Update failed in makeExolve()! Best to reload.');
     return;
   }
-
-  this.puz.currDir = dir
-  this.puz.currRow = row
-  this.puz.currCol = col
-  this.puz.scratchPad.value = scratch
+  this.puz.currDir = dir;
+  this.puz.currRow = row;
+  this.puz.currCol = col;
+  this.puz.scratchPad.value = scratch;
   if (editingOtherSections) {
     if (this.postscript) {
       this.postscript.style.display = '';
@@ -7275,15 +5981,15 @@ Exet.prototype.updatePuzzle = function(revType=0) {
     exetModals.showModal(this.otherSecPanel);
     this.otherSecText.focus();
   } else if (this.puz.currCellIsValid()) {
-    this.restoreCursor()
+    this.restoreCursor();
     if (this.puz.grid[row][col].isLight) {
-      this.puz.activateCell(row, col)
+      this.puz.activateCell(row, col);
     } else {
-      this.navDarkness(row, col)
+      this.navDarkness(row, col);
     }
   }
   if (revType > 0) {
-    exetRevManager.throttledSaveRev(revType)
+    exetRevManager.throttledSaveRev(revType);
   }
 }
 
@@ -7300,7 +6006,8 @@ Exet.prototype.getGrid = function(solved=true) {
       let entry = '.';
       if (gridCell.isLight) {
         entry = (gridCell.currLetter != '0' ?
-               (solved ? gridCell.currLetter : '0') : '?');
+               ((solved || gridCell.prefill) ?
+                     gridCell.currLetter : '0') : '?');
         if (gridCell.hasCircle) entry += '@';
         if (gridCell.prefill) entry += '!';
         entry += (gridCell.hasBarAfter && gridCell.hasBarUnder ?
@@ -7315,23 +6022,7 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid;
 }
 
-Exet.prototype.showClue = function(clue, forExolve=true,
-                                   showEnums=true, solved=false) {
-  clue = clue.trim();
-  if (!solved) {
-    clue = this.deDefMarkers(clue);
-  }
-  if (showEnums) {
-    return clue;
-  }
-  const idx = clue.lastIndexOf('(');
-  if (idx < 0 || clue[clue.length - 1] != ')') {
-    return clue;
-  }
-  return forExolve ? (clue + '*') : clue.substr(0, idx)
-}
-
-Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
+Exet.prototype.getClues = function(dir, solved=true) {
   if (!this.puz) {
     return ''
   }
@@ -7345,25 +6036,26 @@ Exet.prototype.getClues = function(dir, solved=true, showEnums=true) {
   cluePtrs.sort((c1, c2) => parseInt(c1.label) - parseInt(c2.label));
   let clues = ''
   for (let clue of cluePtrs) {
-    const thisClue = this.showClue(clue.clue, true, showEnums, solved);
+    const thisClue = this.puz.formatClue(clue.clue, true, true, solved);
     const label = clue.displayLabel || clue.label;
     clues = clues + '\n  ' + label + ' ' + thisClue;
     if (!solved || clue.parentClueIndex) {
       continue
     }
     const parsedEnum = this.puz.parseEnum(thisClue);
-    if (!parsedEnum.enumStr && (clue.solution || clue.anno)) {
-      // Allow appending solution/anno.
-      clue += ' (?)*';
+    if (!parsedEnum.enumStr && !parsedEnum.hasEmptyBracs &&
+        (clue.solution || clue.anno)) {
+      /** Allow appending solution/anno. */
+      clues += ' []';
     }
     if (clue.solution) {
-      clues = clues + ' [' + clue.solution + ']'
+      clues = clues + ' [' + clue.solution + ']';
     }
     if (clue.anno) {
-      clues = clues + ' ' + clue.anno
+      clues = clues + ' ' + clue.anno;
     }
   }
-  return clues
+  return clues;
 }
 
 Exet.prototype.cellCode = function(r, c) {
@@ -7410,9 +6102,9 @@ Exet.prototype.getExolveQuestions = function(solved) {
   for (let q of this.puz.questionTexts) {
     let tq = q;
     if (!solved) {
-      let enumParse = this.puz.parseEnum(q)
-      tq = q.substr(0, enumParse.afterEnum)
-      if (q.substr(enumParse.afterClue).indexOf('[lowercase-ok]') >= 0) {
+      let enumParse = this.puz.parseEnum(q);
+      tq = q.substr(0, enumParse.afterEnum);
+      if (q.substr(enumParse.afterEnum).indexOf('[lowercase-ok]') >= 0) {
         tq = tq + ' [lowercase-ok]';
       }
     }
@@ -7423,7 +6115,7 @@ Exet.prototype.getExolveQuestions = function(solved) {
 }
 
 Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
-                                    showEnums=true, showColoursNinas=true) {
+                                    showColoursNinas=true) {
   const maker = `
     Software: <a target="_blank" href="https://exet.app">Exet</a><br>
     Version: ${this.version}<br>
@@ -7478,7 +6170,7 @@ Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
   }
 
   let reversals = '';
-  for (let k in this.puz.usedReversals) {
+  for (const k in this.puz.usedReversals) {
     if (reversals) reversals += ' ';
     reversals += this.puz.usedReversals[k];
   }
@@ -7491,44 +6183,44 @@ Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
   exolve-grid: ${this.getGrid(solved)}` +
   (!skipClues ? `
   ${this.puz.layers3d > 1 ? 'exolve-3d-across' :
-      'exolve-across'}: ${this.getClues('A', solved, showEnums)}
+      'exolve-across'}: ${this.getClues('A', solved)}
   ${this.puz.layers3d > 1 ? 'exolve-3d-away' :
-      'exolve-down'}: ${this.getClues('D', solved, showEnums)}` : '') +
+      'exolve-down'}: ${this.getClues('D', solved)}` : '') +
   (!skipClues && this.puz.layers3d > 1 ? `
-  exolve-3d-down: ${this.getClues('Z', solved, showEnums)}` : '') + `
+  exolve-3d-down: ${this.getClues('Z', solved)}` : '') + `
 exolve-end
 `
   return exolve;
 }
 
-Exet.prototype.getHTML = function(solved=true, showEnums=true) {
-  return this.prefix + '\n' + this.getExolve('', false, solved, showEnums) +
-         '\n' + this.suffix
+Exet.prototype.getHTML = function(solved=true) {
+  return this.prefix + '\n' + this.getExolve('', false, solved) +
+         '\n' + this.suffix;
 }
 
 Exet.prototype.IntersectChoices = function(set1, set2) {
-  let result = {}
-  for (let x in set2) {
-    if (set1[x]) result[x] = true
+  const result = {};
+  for (const x in set2) {
+    if (set1[x]) result[x] = true;
   }
-  return result
+  return result;
 }
 
 Exet.prototype.Set2Trims = function(set1, set2) {
-  for (let x in set1) {
-    if (!set2[x]) return true
+  for (const x in set1) {
+    if (!set2[x]) return true;
   }
-  return false
+  return false;
 }
 
 Exet.prototype.addToDontReuse = function(p, dontReuse) {
   if (this.noStemDupes) {
     const stemGroup = exetLexicon.stemGroup(p);
     for (const sp of stemGroup) {
-      dontReuse[sp] = true;
+      dontReuse.add(sp);
     }
   } else {
-    dontReuse[p] = true;
+    dontReuse.add(p);
   }
 }
 
@@ -7539,52 +6231,53 @@ Exet.prototype.addToDontReuse = function(p, dontReuse) {
  * loop going over all lights.
  */
 Exet.prototype.refineLightChoices = function(fillState, limit=0) {
-  fillState.preflexUsed = {};
-  const dontReuse = {};
-  for (let ci in fillState.clues) {
-    let theClue = fillState.clues[ci];
+  fillState.preflexUsed = new Set;
+  fillState.dontReuse = new Set;
+  for (const ci in fillState.clues) {
+    const theClue = fillState.clues[ci];
     if (theClue.parentClueIndex) {
       continue;
     }
     if (theClue.solution.indexOf('?') >= 0) {
       continue;
     }
-    let choices = exetLexicon.getLexChoices(theClue.solution, 1, dontReuse,
+    const choices = exetLexicon.getLexChoices(theClue.solution, 1, fillState.dontReuse,
         this.noProperNouns,
         this.indexMinPop,
-        false, this.preflexByLen, this.unpreflex);
+        false, this.preflexByLen, this.unpreflexSet,
+        this.getLightRegexpC(ci));
     if (choices.length > 0) {
       let p = choices[0];
       console.assert(p > 0, p);
-      this.addToDontReuse(p, dontReuse);
+      this.addToDontReuse(p, fillState.dontReuse);
       if (this.preflexSet[p]) {
-        fillState.preflexUsed[p] = true;
+        fillState.preflexUsed.add(p);
       }
     }
   }
   let changes = 0;
-  for (let ci in fillState.clues) {
-    let theClue = fillState.clues[ci];
+  for (const ci in fillState.clues) {
+    const theClue = fillState.clues[ci];
     if (theClue.parentClueIndex ||
         !theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue;
     }
-    let cells = this.puz.getAllCells(ci);
-    let toConsider = (limit <= 0) ? theClue.lChoices.length :
+    const cells = this.puz.getAllCells(ci);
+    const toConsider = (limit <= 0) ? theClue.lChoices.length :
         Math.min(limit, theClue.lChoices.length);
-    let choices = theClue.lChoices.slice(0, toConsider);
-    let remChoices = theClue.lChoices.slice(toConsider);
+    const choices = theClue.lChoices.slice(0, toConsider);
+    const remChoices = theClue.lChoices.slice(toConsider);
     theClue.lChoices = [];
-    let cellChoiceSets = [];
-    for (let cell of cells) {
+    const cellChoiceSets = [];
+    for (const cell of cells) {
       cellChoiceSets.push({});
     }
-    for (let lchoice of choices) {
-      if (dontReuse[Math.abs(lchoice)]) {
+    for (const lchoice of choices) {
+      if (fillState.dontReuse.has(Math.abs(lchoice))) {
         changes++;
         continue;
       }
-      let key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
+      const key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
       if (lchoice < 0) key.reverse();
       let viable = true;
       for (let i = 0; i < key.length; i++) {
@@ -7608,23 +6301,23 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
     }
     let isForced = true;
     for (let i = 0; i < cells.length; i++) {
-      let cell = cells[i];
-      let gridCell = fillState.grid[cell[0]][cell[1]];
+      const cell = cells[i];
+      const gridCell = fillState.grid[cell[0]][cell[1]];
       if (gridCell.solution != '?') {
         continue;
       }
       gridCell.cChoices = this.IntersectChoices(
           gridCell.cChoices, cellChoiceSets[i]);
-      let choices = Object.keys(gridCell.cChoices);
+      const choices = Object.keys(gridCell.cChoices);
       if (choices.length > 1) {
         isForced = false;
       }
     }
     if (isForced) {
-      for (let x of theClue.lChoices) {
+      for (const x of theClue.lChoices) {
         const p = Math.abs(x);
-        this.addToDontReuse(p, dontReuse);
-        if (this.preflexSet[p]) fillState.preflexUsed[p] = true;
+        this.addToDontReuse(p, fillState.dontReuse);
+        if (this.preflexSet[p]) fillState.preflexUsed.add(p);
       }
     }
     if (!isForced && remChoices.length > 0) {
@@ -7633,14 +6326,13 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
       this.noteNonViableChoices(theClue, remChoices);
     }
   }
-  fillState.numPreflexUsed = Object.keys(fillState.preflexUsed).length;
   for (let i = 0; i < fillState.gridHeight; i++) {
     for (let j = 0; j < fillState.gridWidth; j++) {
-      let gridCell = fillState.grid[i][j];
+      const gridCell = fillState.grid[i][j];
       if (!gridCell.isLight || gridCell.solution != '?') {
         continue;
       }
-      let choices = Object.keys(gridCell.cChoices);
+      const choices = Object.keys(gridCell.cChoices);
       if (choices.length == 0) {
         fillState.viable = false;
       }
@@ -7651,22 +6343,22 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
 }
 
 Exet.prototype.findDeadendsByCell = function(fillState) {
-  return this.refineLightChoices(fillState, this.sweepMaxChoices)
+  return this.refineLightChoices(fillState, this.sweepMaxChoices);
 }
 
 Exet.prototype.updateViablots = function() {
-  let fillState = this.fillState
-  let dead = 0
+  const fillState = this.fillState;
+  let dead = 0;
   for (let i = 0; i < fillState.gridHeight; i++) {
     for (let j = 0; j < fillState.gridWidth; j++) {
-      let gridCell = this.puz.grid[i][j]
+      const gridCell = this.puz.grid[i][j];
       if (!gridCell.isLight || gridCell.solution != '?') {
-        continue
+        continue;
       }
-      let fillStateCell = fillState.grid[i][j]
-      let choices = Object.keys(fillStateCell.cChoices)
-      let viablot = gridCell.viablot
-      let opacity = dead > 3 ? 0.1 : (dead == 0 ? 0.6 : 0.3)
+      const fillStateCell = fillState.grid[i][j];
+      const choices = Object.keys(fillStateCell.cChoices);
+      const viablot = gridCell.viablot;
+      const opacity = dead > 3 ? 0.1 : (dead == 0 ? 0.6 : 0.3);
       viablot.style.fill = (fillStateCell.viability >= 5) ?
         'transparent' :
         (fillStateCell.viability == 0 ? `var(--pink)` :
@@ -7676,7 +6368,7 @@ Exet.prototype.updateViablots = function() {
       viablot.setAttributeNS(
           null, 'r', this.puz.circleR * 0.1 * (5 - fillStateCell.viability));
       if (fillStateCell.viability == 0) {
-        dead++
+        dead++;
       }
       if (choices.length == 1) {
         if (!gridCell.forcedLetter) {
@@ -7697,14 +6389,14 @@ Exet.prototype.updateViablots = function() {
 
           const text = document.createTextNode(choices[0]);
           cellText.appendChild(text);
-          gridCell.cellGroup.appendChild(cellText)
-          gridCell.forcedLetter = text
+          gridCell.cellGroup.appendChild(cellText);
+          gridCell.forcedLetter = text;
         }
-        gridCell.forcedLetter.nodeValue = choices[0]
-        viablot.style.fill = 'transparent'
+        gridCell.forcedLetter.nodeValue = choices[0];
+        viablot.style.fill = 'transparent';
       } else {
         if (gridCell.forcedLetter) {
-          gridCell.forcedLetter.nodeValue = ''
+          gridCell.forcedLetter.nodeValue = '';
         }
       }
     }
@@ -7755,7 +6447,7 @@ Exet.prototype.acceptAll = function() {
     this.fillLight(choice, clue, exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE);
   }
   if (changed) {
-    this.handleGridInput(exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE)
+    this.handleGridInput(exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE);
   }
 }
 
@@ -7921,43 +6613,43 @@ Exet.prototype.startDeadendSweep = function(ci='') {
   }
   this.viabilityUpdateTimer = null;
   if (!this.puz || this.puz.numCellsFilled >= this.puz.numCellsToFill) {
-    return
+    return;
   }
-  if (this.autofill.running) {
-    return
+  if (this.autofill && this.autofill.running) {
+    return;
   }
-  this.deadendsGridSweep = true
-  this.sweepIndicator.className = 'xet-sweeping-animated'
+  this.deadendsGridSweep = true;
+  this.sweepIndicator.className = 'xet-sweeping-animated';
   this.viabilityUpdateTimer = setTimeout(() => {
-    this.findAllDeadendFills(ci)
+    this.findAllDeadendFills(ci);
   }, this.sweepMS);
 }
 
-Exet.prototype.getClueToCheckDeadends = function(ci) {
+Exet.prototype.getClueToCheckDeadends = function(ci=null) {
   if (ci) {
-    let theClue = this.puz.clues[ci]
+    let theClue = this.puz.clues[ci];
     if (theClue.parentClueIndex) {
-      ci = theClue.parentClueIndex
-      theClue = this.puz.clues[ci]
+      ci = theClue.parentClueIndex;
+      theClue = this.puz.clues[ci];
     }
     if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
-      return ''
+      return '';
     }
-    return ci
+    return ci;
   }
   // Find most constrained unsolved and still-viable clue
-  let res = ''
-  let resChoices = exetLexicon.lexicon.length
+  let res = '';
+  let resChoices = exetLexicon.lexicon.length;
   for (ci in this.fillState.clues) {
-    let theClue = this.fillState.clues[ci]
-    if (theClue.parentClueIndex) continue
-    if (!theClue.solution || theClue.solution.indexOf('?') < 0) continue
+    let theClue = this.fillState.clues[ci];
+    if (theClue.parentClueIndex) continue;
+    if (!theClue.solution || theClue.solution.indexOf('?') < 0) continue;
     if (theClue.lChoices.length > 0 && theClue.lChoices.length < resChoices) {
-      resChoices = theClue.lChoices.length
-      res = ci
+      resChoices = theClue.lChoices.length;
+      res = ci;
     }
   }
-  return res
+  return res;
 }
 
 Exet.prototype.updateSweepInd = function() {
@@ -7972,45 +6664,45 @@ Exet.prototype.findAllDeadendFills = function(ci) {
   }
   this.viabilityUpdateTimer = null;
   if (this.deadendsGridSweep) {
-    let changes = this.findDeadendsByCell(this.fillState)
-    this.updateViablots()
+    let changes = this.findDeadendsByCell(this.fillState);
+    this.updateViablots();
     if (changes > 0) {
-      this.updateFillChoices()
+      this.updateFillChoices();
       this.viabilityUpdateTimer = setTimeout(() => {
-        this.findAllDeadendFills(ci)
+        this.findAllDeadendFills(ci);
       }, this.sweepMS);
     } else {
       // Start the clue-sweep
-      this.deadendsGridSweep = false
+      this.deadendsGridSweep = false;
       this.deadendClueLightCheck = 0;
       this.deadendClueCheckChanges = 0;
       this.deadendClueCheck = this.getClueToCheckDeadends(ci);
       if (!this.deadendClueCheck) {
-        this.updateSweepInd()
-        return
+        this.updateSweepInd();
+        return;
       }
       this.viabilityUpdateTimer = setTimeout(() => {
-        this.findAllDeadendFills()
+        this.findAllDeadendFills();
       }, this.sweepMS);
     }
   } else {
-    let doMore = this.findDeadendsByClue()
+    const doMore = this.findDeadendsByClue();
     if (this.deadendClueCheckChanges > 0) {
-      this.updateFillChoices()
+      this.updateFillChoices();
     }
     if (!doMore) {
-      this.deadendsGridSweep = true
+      this.deadendsGridSweep = true;
       if (this.deadendClueCheckChanges > 0) {
         // Repeat the grid-sweep
         this.viabilityUpdateTimer = setTimeout(() => {
-          this.findAllDeadendFills()
+          this.findAllDeadendFills();
         }, this.sweepMS);
       } else {
-        this.updateSweepInd()
+        this.updateSweepInd();
       }
     } else {
       this.viabilityUpdateTimer = setTimeout(() => {
-        this.findAllDeadendFills()
+        this.findAllDeadendFills();
       }, this.sweepMS);
     }
   }
@@ -8021,67 +6713,19 @@ Exet.prototype.viability = function(len) {
   return len == 0 ? 0 : (len >= 16 ? 5 : (1 + (Math.log(len) / log2)));
 }
 
-Exet.prototype.initViability = function() {
-  for (let i = 0; i < this.fillState.gridHeight; i++) {
-    for (let j = 0; j < this.fillState.gridWidth; j++) {
-      let gridCell = this.fillState.grid[i][j]
-      if (!gridCell.isLight) {
-        continue
-      }
-      if (gridCell.solution != '?') {
-        gridCell.cChoices = {}
-        gridCell.cChoices[gridCell.solution] = true
-        gridCell.viability = 1.0;
-      } else {
-        gridCell.cChoices = exetLexicon.letterSet;
-        gridCell.viability = 5.0;
-      }
-    }
-  }
-  this.fillState.viable = true
-}
-
+/**
+ * Fills cChoices (only initializes) and lChoices in exet.fillState.
+ */
 Exet.prototype.resetViability = function() {
-  this.resetAutofill('Aborted');
-  this.initViability();
-  let numPreflexUsed = 0;
-  const dontReuse = {};
-  this.preflexInUse = {};
-  for (let ci in this.puz.clues) {
-    let theClue = this.puz.clues[ci];
-    if (!theClue.solution || theClue.solution.indexOf('?') >= 0) {
-      continue;
-    }
-    let choices = exetLexicon.getLexChoices(theClue.solution, 1, dontReuse,
-        this.noProperNouns,
-        this.indexMinPop,
-        false, this.preflexByLen, this.unpreflex);
-    this.fillState.clues[ci].lChoices = choices;
-    this.fillState.clues[ci].lRejects = [];
-    if (choices.length > 0) {
-      let p = choices[0];
-      console.assert(p > 0, p);
-      this.addToDontReuse(p, dontReuse);
-      if (this.preflexSet[p]) {
-        this.preflexInUse[p] = true;
-        numPreflexUsed++;
-      }
-    }
+  if (this.autofill) {
+    this.autofill.reset('Aborted');
   }
-  if (this.preflexUsed) {
-    this.preflexUsed.innerHTML = (numPreflexUsed > 0) ?
-      ('<b>' + numPreflexUsed + '</b>') : ('' + numPreflexUsed);
-  }
-  for (let ci in this.fillState.clues) {
-    let theClue = this.fillState.clues[ci];
-    if (!theClue.solution || theClue.solution.indexOf('?') < 0) {
-      continue;
-    }
-    theClue.lChoices = exetLexicon.getLexChoices(theClue.solution, 0, dontReuse,
-        this.noProperNouns,
-        this.indexMinPop,
-        this.tryReversals, this.preflexByLen, this.unpreflex);
-    theClue.lRejects = [];
+  this.fillState.resetViability();
+  this.preflexUsed = this.fillState.preflexUsed;
+  if (this.preflexUsedDisp) {
+    this.preflexUsedDisp.innerHTML = (this.fillState.preflexUsed.size > 0) ?
+      ('<b>' + this.fillState.preflexUsed.size + '</b>') :
+      ('' + this.fillState.preflexUsed.size);
   }
   this.updateFillChoices();
   this.updateViablots();
@@ -8186,8 +6830,8 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   for (let i = 0; i < solParts.length; i++) {
     let c = solParts[i];
     if (enumPart > 0 && (c == ' ' || c == '-' || c == '\'')) {
-      enumStr = enumStr + enumPart + (c == ' ' ? ',' : c)
-      enumPart = 0
+      enumStr += ('' + enumPart + (c == ' ' ? ',' : c));
+      enumPart = 0;
     }
     if (exetLexicon.letterSet[c]) {
       enumPart++;
@@ -8202,100 +6846,54 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   if (enumPart > 0) {
     enumStr = enumStr + enumPart;
   }
-  let clueEnumStart = theClue.clue.lastIndexOf('(');
-  let clueEnumEnd = theClue.clue.lastIndexOf(')');
-  if (clueEnumStart > 0 && clueEnumEnd > clueEnumStart + 1) {
-    let clueEnum = theClue.clue.substring(clueEnumStart + 1, clueEnumEnd);
-    if (clueEnum != enumStr) {
-      theClue.clue = theClue.clue.substr(0, clueEnumStart).trim() +
-        ' (' + enumStr + ')';
+  if (enumStr) {
+    enumStr = '(' + enumStr + ')';
+  }
+  if (this.requireEnums) {
+    const parsedEnum = this.puz.parseEnum(theClue.clue);
+    if (parsedEnum.enumStr != enumStr) {
+      theClue.clue = theClue.clue.substr(0, parsedEnum.afterClue).trim() +
+        ' ' + enumStr;
       changed = true;
     }
-  } else {
-    theClue.clue = theClue.clue.trim() + ' (' + enumStr + ')';
-    changed = true;
   }
   if (changed && updateIfChanged) {
     this.handleGridInput(revType);
   }
 }
 
-/**
- * Convert preflex texts to lexicon indices in this.preflexSet[].
- * Add unknown words to the lexicon.
- */
-Exet.prototype.setPreflex = function(preflex) {
-  this.preflex = preflex
-  this.preflexSet = {}
-  while (exetLexicon.lexicon.length > exetLexicon.startLen) {
-    exetLexicon.lexicon.pop()
-  }
-  this.preflexByLen = {}
-  for (let ptext of this.preflex) {
-    let len = exetLexicon.lexkey(ptext).length;
-    let inLexicon = exetLexicon.getLexChoices(ptext, 1, {},
-        false, // no proper nouns
-        0,  // no index limit
-        false, this.preflexByLen, this.unpreflex);
-    let p = 0;
-    if (inLexicon.length > 0) {
-      p = inLexicon[0]
-    } else  {
-      exetLexicon.lexicon.push(ptext)
-      p = exetLexicon.lexicon.length - 1
-    }
-    if (!this.preflexByLen[len]) this.preflexByLen[len] = []
-    this.preflexByLen[len].push(p)
-    this.preflexSet[p] = ptext;
+Exet.prototype.renderMinPop = function() {
+  this.minpopInclSpan.innerText = Number(this.indexMinPop - 1).toLocaleString();
+  if (this.autofill) {
+    this.autofill.reshowSettings();
   }
 }
 
-Exet.prototype.throttledUpdatePreflex = function() {
-  if (this.throttledPreflexTimer) {
-    clearTimeout(this.throttledPreflexTimer);
+Exet.prototype.renderPreflex = function() {
+  /* populate with existing preflex */
+  let preflexText = '';
+  for (let p of this.preflex) {
+    preflexText += '\n';
+    preflexText += p;
   }
-  this.throttledPreflexTimer = setTimeout(() => {
-    this.updatePreflex()
-    this.throttledPreflexTimer = null;
-  }, this.longInputLagMS);
-}
-
-/**
- * Clean preflex entries, delete any dupes, then call setPreflex()
- * and resetViability(), and update preflex display.
- */
-Exet.prototype.updatePreflex = function() {
-  const preflexes = this.preflexInput.innerText.trim().split('\n');
-  const preflex = [];
-  const seen = {};
-  for (let ptext of preflexes) {
-    ptext = exetLexicon.depunct(ptext);
-    if (!ptext) continue;
-    let hash = exetLexicon.javaHash(ptext.toLowerCase());
-    if (seen[hash]) continue;
-    seen[hash] = true;
-    preflex.push(ptext);
-    if (preflex.length >= 100) break;
-  }
-  this.setPreflex(preflex);
-  this.resetViability();
 
   /** update various displays */
   if (this.preflexSize) {
-    this.preflexSize.innerText = preflex.length;
+    this.preflexSize.innerText = this.preflex.length;
   }
   if (this.autofill && this.autofill.preflexTotalSpan) {
-    this.autofill.preflexTotalSpan.innerText = preflex.length;
+    this.autofill.preflexTotalSpan.innerText = this.preflex.length;
   }
-  /** Also apply bolding for preflexInUse */
+
+  /** Apply bolding for preflexUsed */
   const pidOf = {};
   for (let pid in this.preflexSet) {
-    pidOf[this.preflexSet[pid]] = pid;
+    pidOf[this.preflexSet[pid]] = parseInt(pid);
   }
   let preflexHtml = '';
   let preflexTextLen = 0;
-  for (let ptext of preflex) {
-    if (this.preflexInUse[pidOf[ptext]]) {
+  for (let ptext of this.preflex) {
+    if (this.preflexUsed.has(pidOf[ptext])) {
       preflexHtml += '<b>' + ptext + '</b>\n';
     } else {
       preflexHtml += ptext + '\n';
@@ -8311,6 +6909,116 @@ Exet.prototype.updatePreflex = function() {
     this.preflexInput.innerHTML = preflexHtml;
     this.restoreCursor();
   }
+}
+
+/**
+ * Convert preflex texts to lexicon indices in this.preflexSet[].
+ * Add unknown words to the lexicon.
+ */
+Exet.prototype.setPreflex = function(preflex) {
+  this.preflex = preflex;
+  this.preflexHash = exetRevManager.hashPrefUnpref(preflex);
+  this.preflexSet = {};
+
+  if (exetLexicon.lexicon.length > exetLexicon.startLen) {
+    /** trim back to original size */
+    exetLexicon.lexicon.length = exetLexicon.startLen;
+  }
+  this.preflexByLen = {};
+  for (let ptext of this.preflex) {
+    let len = exetLexicon.lexkey(ptext).length;
+    let inLexicon = exetLexicon.getLexChoices(ptext, 1, null,
+        false, // no proper nouns
+        0,  // no index limit
+        false, this.preflexByLen, this.unpreflexSet);
+    let p = 0;
+    if (inLexicon.length > 0) {
+      p = inLexicon[0];
+    } else  {
+      exetLexicon.lexicon.push(ptext);
+      p = exetLexicon.lexicon.length - 1;
+    }
+    if (!this.preflexByLen[len]) this.preflexByLen[len] = [];
+    this.preflexByLen[len].push(p);
+    this.preflexSet[p] = ptext;
+  }
+}
+
+Exet.prototype.throttledUpdatePreflex = function() {
+  if (this.throttledPreflexTimer) {
+    clearTimeout(this.throttledPreflexTimer);
+  }
+  this.throttledPreflexTimer = setTimeout(() => {
+    this.startUpdatePreflex();
+    this.throttledPreflexTimer = null;
+  }, this.longInputLagMS);
+}
+
+/**
+ * Clean preflex entries, delete any dupes, then call call
+ * updatePreflexStep()
+ */
+Exet.prototype.startUpdatePreflex = function() {
+  this.updatePreflexState = {
+    preflexes: this.preflexInput.innerText.trim().split('\n'),
+    preflex: [],
+    seen: {},
+    ctr: 0,
+    step: 200,
+    waitMS: 200,
+    timer: null,
+  };
+  this.preflexWait.style.display = '';
+  this.updatePreflexStep();
+}
+
+/**
+ * Clean a batch of preflex entries, removing any dupes, accumulating in
+ * this.updatePreflexState.state.preflex[], and schedule the next batch or
+ * call finishUpdatePreflex() when done.
+ */
+Exet.prototype.updatePreflexStep = function() {
+  if (!this.updatePreflexState) {
+    return;
+  }
+  const state = this.updatePreflexState;
+  const limit = Math.min(state.preflexes.length, state.ctr + state.step);
+
+  while (state.ctr < limit) {
+    const ptext = state.preflexes[state.ctr++].trim();
+    if (!ptext || ptext.startsWith('#')) continue;
+    const hash = exetLexicon.javaHash(ptext.toLowerCase());
+    if (state.seen[hash]) continue;
+    state.seen[hash] = true;
+    state.preflex.push(ptext);
+    if (state.preflex.length >= this.MAX_PREFLEX) {
+      state.ctr = state.preflexes.length;
+      break;
+    }
+  }
+  if (state.ctr >= state.preflexes.length) {
+    this.finishUpdatePreflex();
+  } else {
+    state.timer = setTimeout(() => {
+      this.updatePreflexStep();
+    }, state.waitMS);
+  }
+}
+
+Exet.prototype.dismissPreflexWait = function() {
+  this.preflexWait.style.display = 'none';
+}
+
+/**
+ * Call setPreflex() and resetViability(), update preflex display,
+ * save state.
+ */
+Exet.prototype.finishUpdatePreflex = function() {
+  this.setPreflex(this.updatePreflexState.preflex);
+  this.resetViability();
+  this.renderPreflex();
+  this.dismissPreflexWait();
+  this.updatePreflexState = null;
   exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE);
 }
 
@@ -8325,44 +7033,53 @@ Exet.prototype.throttledUpdateUnpreflex = function() {
 }
 
 Exet.prototype.renderUnpreflex = function() {
-  let unpreflexText = ''
-  for (let p in this.unpreflex) {
-    if (unpreflexText) unpreflexText += '\n'
-    unpreflexText += exetLexicon.lexicon[p]
+  let unpreflexText = '';
+  for (let w of this.unpreflex) {
+    if (unpreflexText) unpreflexText += '\n';
+    unpreflexText += w;
   }
   if (this.unpreflexInput.value != unpreflexText) {
     this.saveCursor();
     this.unpreflexInput.value = unpreflexText;
     this.restoreCursor();
   }
-  this.unpreflexSize.innerText = Object.keys(this.unpreflex).length
+  this.unpreflexSize.innerText = this.unpreflex.length;
 }
 
-Exet.prototype.updateUnpreflex = function() {
-  let unpreflexes = this.unpreflexInput.value.trim().split('\n');
-  let saved = this.unpreflex;
-  this.unpreflex = {};
-  for (let p of unpreflexes) {
-    p = exetLexicon.depunct(p);
-    if (!p) continue;
+/**
+ * The input is an array of strings.
+ */
+Exet.prototype.setUnpreflex = function(unpreflex) {
+  const cleanedUnpreflex = [];
+  const unpreflexSet = {};
+  for (const uw of unpreflex) {
+    const w = uw.trim();
+    if (!w || w.startsWith('#')) continue;
+    const wClean = exetLexicon.depunct(w);
+    if (!wClean) continue;
 
-    let inLexicon = exetLexicon.getLexChoices(p, 1, {},
+    cleanedUnpreflex.push(w);
+    const inLexicon = exetLexicon.getLexChoices(wClean, 1, null,
         false,  // no proper nouns
         0,  // no index limit
-        false, this.preflexByLen, this.unpreflex);
+        false, this.preflexByLen);
     if (inLexicon.length != 1) {
       continue;
     }
-    if (this.unpreflex[p]) {
-      continue;
-    }
-    p = inLexicon[0];
-    this.unpreflex[p] = true;
+    unpreflexSet[inLexicon[0]] = true;
   }
-  this.unpreflexSize.innerText = Object.keys(this.unpreflex).length;
-  if (JSON.stringify(this.unpreflex) == JSON.stringify(saved)) {
+  if (JSON.stringify(this.unpreflex) == JSON.stringify(cleanedUnpreflex)) {
     return;
   }
+  this.unpreflex = cleanedUnpreflex;
+  this.unpreflexSet = unpreflexSet;
+  this.unpreflexHash = exetRevManager.hashPrefUnpref(this.unpreflex);
+}
+
+Exet.prototype.updateUnpreflex = function() {
+  const unpreflex = this.unpreflexInput.value.trim().split('\n');
+  this.setUnpreflex(unpreflex);
+  this.unpreflexSize.innerText = this.unpreflex.length;
   this.resetViability();
   exetRevManager.throttledSaveRev(exetRevManager.REV_PREFLEX_CHANGE);
 }
@@ -8384,16 +7101,24 @@ Exet.prototype.enumMatchSorter = function(p, k1, k2) {
          this.numEnumPunctMatches(p, entry1);
 }
 
+Exet.prototype.choiceDisplayHTML = function(choice) {
+  const absC = Math.abs(choice);
+  const cls = this.preflexSet[absC] ? ' class="xet-preflex-entry"' : '';
+  const rev = (choice < 0) ? '&lArr; ' : '';
+  return `
+    <tr><td${cls}>${rev}${exetLexicon.getLex(choice)}</td></tr>`;
+}
+
 Exet.prototype.updateFillChoices = function() {
   let ci = this.currClueIndex();
   if (!ci) {
-    return
+    return;
   }
-  let gridClue = this.puz.clues[ci]
-  let theClue = this.fillState.clues[ci]
-  console.assert(theClue && theClue.lChoices, ci)
+  const gridClue = this.puz.clues[ci];
+  const theClue = this.fillState.clues[ci];
+  console.assert(theClue && theClue.lChoices, ci);
 
-  let html = ''
+  let html = '';
   if (theClue.lChoices.length == 0) {
     // Maybe the light was filled from outside the lexicon
     if (gridClue.solution.indexOf('?') < 0) {
@@ -8412,57 +7137,54 @@ Exet.prototype.updateFillChoices = function() {
     lRejects.sort(this.enumMatchSorter.bind(this, gridClue.placeholder));
   }
 
-  let numShown = 0
-  for (let choice of lChoices) {
-    html = html + `
-      <tr><td>${choice < 0 ? '&lArr; ' : ''}${exetLexicon.getLex(choice)}</td></tr>`;
-    numShown++
+  let numShown = 0;
+  for (const choice of lChoices) {
+    html += this.choiceDisplayHTML(choice);
+    numShown++;
     if (numShown >= this.shownLightChoices) break;
   }
 
-  let htmlRej = ''
-  let numRejects = 0
-  for (let choice of lRejects) {
-    htmlRej = htmlRej + `
-      <tr><td>${choice < 0 ? '&lArr; ' : ''}${exetLexicon.getLex(choice)}</td></tr>`;
-    numRejects++
+  let htmlRej = '';
+  let numRejects = 0;
+  for (const choice of lRejects) {
+    htmlRej += this.choiceDisplayHTML(choice);
+    numRejects++;
     if (numRejects >= this.shownLightChoices) break;
   }
 
-
-  let htmlHash = exetLexicon.javaHash(html + htmlRej + ci)
+  const htmlHash = exetLexicon.javaHash(html + htmlRej + ci);
   if (this.shownChoicesHash && this.shownChoicesHash == htmlHash) {
-    return
+    return;
   }
-  this.shownChoicesHash = htmlHash
+  this.shownChoicesHash = htmlHash;
   this.lChoices.innerHTML = html;
   this.lRejects.innerHTML = htmlRej;
-  let trs = this.lChoices.getElementsByTagName('tr')
-  let lim = Math.min(lChoices.length, trs.length)
+  let trs = this.lChoices.getElementsByTagName('tr');
+  let lim = Math.min(lChoices.length, trs.length);
   for (let i = 0; i < lim; i++) {
     trs[i].addEventListener(
     'click', this.fillLight.bind(this, lChoices[i], '',
-                                 exetRevManager.REV_GRIDFILL_CHANGE))
+                                 exetRevManager.REV_GRIDFILL_CHANGE));
   }
-  trs = this.lRejects.getElementsByTagName('tr')
-  lim = Math.min(lRejects.length, trs.length)
+  trs = this.lRejects.getElementsByTagName('tr');
+  lim = Math.min(lRejects.length, trs.length);
   for (let i = 0; i < lim; i++) {
     trs[i].addEventListener(
     'click', this.fillLight.bind(this, lRejects[i], '',
-                                 exetRevManager.REV_GRIDFILL_CHANGE))
+                                 exetRevManager.REV_GRIDFILL_CHANGE));
   }
 }
 
 Exet.prototype.warnVersion = function(ver) {
-  let about = document.getElementById("xet-about")
-  about.style.color = "red"
-  about.title = 'Please reload to update to ' + ver
-  let warnMsg = document.getElementById("xet-outdated-message")
+  const about = document.getElementById("xet-about");
+  about.style.color = "red";
+  about.title = 'Please reload to update to ' + ver;
+  const warnMsg = document.getElementById("xet-outdated-message");
   warnMsg.innerHTML = 'Please <a href=' +
-    '"javascript:window.location.reload(true)">reload</a> to update to ' + ver
-  warnMsg.style.display = ''
-  let warnIcon = document.getElementById("xet-outdated")
-  warnIcon.style.display = ''
+    '"javascript:window.location.reload(true)">reload</a> to update to ' + ver;
+  warnMsg.style.display = '';
+  const warnIcon = document.getElementById("xet-outdated");
+  warnIcon.style.display = '';
 }
 
 Exet.prototype.checkVersion = function() {
@@ -8491,36 +7213,141 @@ Exet.prototype.checkVersion = function() {
   xhttp.send();
 }
 
-Exet.prototype.finishSetup = function() {
-  this.versionText = ''
+Exet.prototype.getLocalStorageUsed = function() {
+  let s = 0;
+  for (let idx = 0; idx < window.localStorage.length; idx++) {
+    const id = window.localStorage.key(idx);
+    s += window.localStorage.getItem(id).length;
+  }
+  return s;
+}
+
+Exet.prototype.getLocalStorageLeft = function() {
+  let k500 = '1234567812345678';
+  while (k500.length < 500000) {
+    k500 = k500 + k500;
+  }
+  const tempKey = '42-exet-cap-42-';
+  const limit = 20;
+  let s = 0;
+  for (let i = 0; i < limit; i++) {
+    // Only count up to 10 MB
+    try {
+      window.localStorage.setItem(tempKey + i, k500);
+      s += k500.length;
+    } catch (err) {
+      break;
+    }
+  }
+  for (let i = 0; i < limit; i++) {
+    window.localStorage.removeItem(tempKey + i);
+  }
+  return s;
+}
+
+Exet.prototype.inMB = function(num) {
+  return (num / 1000000).toFixed(2)
+}
+
+Exet.prototype.checkLocalStorage = function() {
+  this.lsUsed = this.getLocalStorageUsed();
+  if (this.lsUsedAtStart < 0) {
+    this.lsUsedAtStart = this.lsUsed;
+    this.lsLeftAtStart = this.getLocalStorageLeft();
+  }
+  const lsFree = this.lsUsedAtStart + this.lsLeftAtStart - this.lsUsed;
+  this.lsUsedSpan.innerText = this.inMB(this.lsUsed);
+  this.lsFreeSpan.innerText = this.inMB(lsFree);
+  const oldWasAmple = this.lsLeftIsAmple;
+  this.lsLeftIsAmple = (lsFree > 50000);
+  this.lsFreeSpan.style.color = this.lsLeftIsAmple ? 'inherit' : 'red';
+  if (this.lsLeftIsAmple && !oldWasAmple) {
+    exetRevManager.saveRev(exetRevManager.REV_RESAVE);
+  }
+  return this.lsLeftIsAmple;
+}
+
+Exet.prototype.checkBackup = function() {
+  const backupTime = document.getElementById("xet-last-backup-time");
+  backupTime.innerHTML = (new Date(exetState.lastBackup)).toLocaleString();
+  /** 7 days check */
+  const isRecent = ((Date.now() - exetState.lastBackup) <= (7 * 86400000));
+  const backupElem = document.getElementById("xet-last-backup");
+  backupElem.style.color = isRecent ? 'inherit' : 'red';
+  return isRecent;
+}
+
+/**
+ * Returns the status from checkLocalStorage()
+ */
+Exet.prototype.checkStorage = function() {
+  const warnings = [];
+  const backupOK = this.checkBackup();
+  if (!backupOK) {
+    warnings.push('Last back-up is quite stale, please save a new one.');
+  }
+  const lsOK = this.checkLocalStorage();
+  if (!lsOK) {
+    warnings.push('Local Storage is running low, please delete some older puzzle revisions.');
+  }
+  if (warnings.length > 0) {
+    this.storageHeading.style.color = 'red';
+    this.storageHeading.title = warnings.join(' ');
+  } else {
+    this.storageHeading.style.color = 'inherit';
+    this.storageHeading.title = 'Manage local storage, back up crosswords to file.';
+  }
+  return lsOK;
+}
+
+Exet.prototype.periodicChecks = function() {
   if (window.location.protocol != "file:") {
     this.checkVersion();
-    // Check every 10 minutes
-    setInterval(this.checkVersion.bind(this), 10 * 60 * 1000)
   }
+  this.checkStorage();
+}
+
+Exet.prototype.finishSetup = function() {
+  this.versionText = '';
+  this.periodicChecks();
+  /** Check every 10 minutes */
+  setInterval(this.periodicChecks.bind(this), 10 * 60 * 1000);
+
   window.addEventListener('scroll', this.reposition.bind(this));
   window.addEventListener('resize', this.reposition.bind(this));
 
   const formatRevealer = this.maybeShowFormat.bind(this);
   document.addEventListener('selectionchange', formatRevealer);
+
+  /**
+   * Override the browser's Save function.
+   */
+  document.addEventListener("keydown", function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.code === "KeyS") {
+      e.preventDefault();
+      exet.download(true);
+    }
+  });
 }
 
 function exetFromHistory(exetRev) {
-  exet.prefix = exetRev.prefix
-  exet.suffix = exetRev.suffix
-  let preflex = exetRev.preflex || []
-  exet.setPreflex(preflex)
-  exet.unpreflex = exetRev.unpreflex || {}
-  exet.setMinPop(exetRev.minpop || 0)
-  exet.noProperNouns = exetRev.noProperNouns || false
-  exet.asymOK = exetRev.asymOK || false
-  exet.tryReversals = exetRev.tryReversals || false
+  exet.prefix = exetRev.prefix;
+  exet.suffix = exetRev.suffix;
+  exetRevManager.retrievePrefUnpref(exetRev);
+  exet.setMinPop(exetRev.minpop || 0);
+  exet.noProperNouns = exetRev.noProperNouns || false;
+  exet.asymOK = exetRev.asymOK || false;
+  exet.tryReversals = exetRev.tryReversals || false;
+  exet.lightRegexps = exetRev.lightRegexps || {};
+  exet.compileLightRegexps();
   exet.makeExolve(exetRev.exolve);
   if (!exet.puz) {
     alert('Could not load puzzle from history, reverting to a new blank puzzle');
-    exetBlank();
+    exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension);
     return;
   }
+  exet.requireEnums = !exetRev.hasOwnProperty('requireEnums') ?
+      exet.puz.allCluesHaveEnums : exetRev.requireEnums;
   if (exetRev.navState) {
     exet.startNav(exetRev.navState[0],
                   exetRev.navState[1], exetRev.navState[2])
@@ -8537,16 +7364,17 @@ function exetFromHistory(exetRev) {
 }
 
 function exetBlank(w, h, layers3d=1, id='', automagic=false,
-                   chequered=true, topUnches=false, leftUnches=false) {
+                   chequered=true, topUnches=false, leftUnches=false,
+                   requireEnums=true) {
   if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
-    alert('Width and height must be specified in the range, 1-100')
-    return
+    alert('Width and height must be specified in the range, 1-100');
+    return;
   }
   if (!id) {
-    id = `puz-${Math.random().toString(36).substring(2, 8)}`
+    id = `xet-${Math.random().toString(36).substring(2, 8)}`;
   }
 
-  let gridRow = ['', '']
+  let gridRow = ['', ''];
   for (let j = 0; j < w; j++) {
     if (chequered) {
       if (!topUnches && !leftUnches) {
@@ -8570,19 +7398,19 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
 
   let grid = '';
   let thirdDSpec = '';
-  let acrossLine = 'exolve-across:'
-  let downLine = 'exolve-down:'
+  let acrossLine = 'exolve-across:';
+  let downLine = 'exolve-down:';
   if (layers3d == 1) {
     for (let i = 0; i < h; i++) {
-      grid = grid + '\n  ' + gridRow[i % 2]
+      grid = grid + '\n  ' + gridRow[i % 2];
     }
   } else {
     if (layers3d <= 0 || h % layers3d != 0) {
       alert("#layers in 3-D crosswords must be a positive divisor of height");
       return;
     }
-    acrossLine = 'exolve-3d-across:'
-    downLine = 'exolve-3d-away:'
+    acrossLine = 'exolve-3d-across:';
+    downLine = 'exolve-3d-away:';
     thirdDSpec = `\n    exolve-3d-down:\n    exolve-3d: ${layers3d}`;
     let darkRow = '';
     for (let j = 0; j < w; j++) darkRow += '. ';
@@ -8618,11 +7446,14 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
   exet.prefix = '';
   exet.suffix = '';
   exet.setPreflex([]);
-  exet.unpreflex = {};
+  exet.setUnpreflex([]);
   exet.setMinPop(exet.DEFAULT_MINPOP);
   exet.noProperNouns = false;
   exet.asymOK = false;
+  exet.requireEnums = requireEnums;
   exet.tryReversals = layers3d > 1 ? true : false;
+  exet.lightRegexps = {};
+  exet.compileLightRegexps();
   exet.makeExolve(specs);
   if (!exet.puz) {
     alert('Failed to create a blank crossword, unfortunately! Perhaps the ' +
@@ -8652,16 +7483,26 @@ function exetLoadFile() {
   fr.onload = function(){ 
     const buffer = fr.result;
     const utf8decoder = new TextDecoder();
-    let exolve = utf8decoder.decode(buffer);
+    const decodedBuffer = utf8decoder.decode(buffer);
+    let exolve = decodedBuffer;
     let start = exolve.indexOf('exolve-begin');
     if (start < 0) {
       /* Try parsing as .puz */
       exolve = exolveFromPuz(buffer, exet.exolveFile);
       start = exolve.indexOf('exolve-begin');
     }
+    if (start < 0) {
+      /* Try parsing as .ipuz */
+      try {
+        const ipuz = JSON.parse(decodedBuffer);
+        exolve = exolveFromIpuz(ipuz, exet.exolveFile);
+      } catch (err) {
+      }
+      start = exolve.indexOf('exolve-begin');
+    }
     let end = exolve.indexOf('exolve-end');
     if (start < 0 || end < 0 || start >= end) {
-      alert('Invalid Exolve/.puz specifications');
+      alert('Invalid Exolve/.puz/.ipuz specifications');
       return;
     }
     end += 'exolve-end'.length;
@@ -8670,34 +7511,35 @@ function exetLoadFile() {
     exet.exolveOtherSec = '';
     let specs = exolve.substring(start, end);
     exet.setPreflex([]);
-    exet.unpreflex = {};
+    exet.setUnpreflex([]);
     exet.setMinPop(0);  // Do not presume: there may be filled entries!
     exet.noProperNouns = false;
     exet.asymOK = false;
     exet.tryReversals = false;
+    exet.lightRegexps = {};
+    exet.compileLightRegexps();
     exet.makeExolve(specs);
     if (!exet.puz) {
       alert('Could not load Exolve puzzle from file, reverting to a new blank puzzle');
         exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension);
       return;
     }
+    exet.requireEnums = exet.puz.allCluesHaveEnums;
     exet.startNav();
-    // See if this has a preflex/unpreflex, recover if so.
     let stored = window.localStorage.getItem(exet.puz.id);
     if (stored) {
-      stored = JSON.parse(stored)
+      stored = JSON.parse(stored);
       if (stored.revs.length > 0) {
-        let lastRev = stored.revs[stored.revs.length - 1]
-        if (lastRev.preflex) {
-          exet.setPreflex(lastRev.preflex)
-        }
-        if (lastRev.unpreflex) {
-          exet.unreflex = lastRev.unpreflex
-        }
-        exet.setMinPop(lastRev.minpop || 0)
-        exet.noProperNouns = lastRev.noProperNouns || false
-        exet.asymOK = lastRev.asymOK || false
-        exet.tryReversals = lastRev.tryReversals || false
+        const lastRev = stored.revs[stored.revs.length - 1];
+        exetRevManager.retrievePrefUnpref(lastRev);
+        exet.setMinPop(lastRev.minpop || 0);
+        exet.noProperNouns = lastRev.noProperNouns || false;
+        exet.asymOK = lastRev.asymOK || false;
+        exet.tryReversals = lastRev.tryReversals || false;
+        exet.lightRegexps = lastRev.lightRegexps || {};
+        exet.compileLightRegexps();
+        exet.resetViability();
+        exet.renderPreflex();
       }
     } else {
       if (exet.puz.layers3d > 1) {
@@ -8705,8 +7547,7 @@ function exetLoadFile() {
       }
     }
     exetRevManager.throttledSaveRev(
-        exetRevManager.REV_LOADED_FROM_FILE,
-        exet.exolveFile);
+        exetRevManager.REV_LOADED_FROM_FILE, exet.exolveFile);
   } 
   let f = document.getElementById('xet-file').files[0];
   exet.exolveFile = f.name;
@@ -8736,14 +7577,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   exet = new Exet();
 
-  exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY)
+  exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY);
   if (exetState) {
     exetState = JSON.parse(exetState)
   } else {
     exetState = {};
-  }
-  if (!exetState.hasOwnProperty('showEnums')) {
-    exetState.showEnums = true;
   }
   if (!exetState.hasOwnProperty('exolveUrl')) {
     exetState.exolveUrl = 'https://viresh-ratnakar.github.io/'
@@ -8751,12 +7589,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!exetState.hasOwnProperty('spellcheck')) {
     exetState.spellcheck = false;
   }
+  if (!exetState.hasOwnProperty('lastBackup')) {
+    exetState.lastBackup = Date.now();
+  }
   if (exetState.lastId) {
-    let saved = window.localStorage.getItem(exetState.lastId)
+    let saved = window.localStorage.getItem(exetState.lastId);
     if (saved) {
-      saved = JSON.parse(saved)
+      saved = JSON.parse(saved);
       if (saved.revs.length > 0) {
-        exetFromHistory(saved.revs[saved.revs.length - 1])
+        exetFromHistory(saved.revs[saved.revs.length - 1]);
       }
     }
   }

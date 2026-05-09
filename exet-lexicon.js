@@ -5,19 +5,38 @@ Copyright (c) 2022 Viresh Ratnakar
 
 See the full Exet license notice in exet.js.
 
-Current version: v0.94, October 6, 2024
+Current version: v1.04.2, April 11, 2026
 */
 
 /**
  * This function should be called only after lufz-en-lexicon.js has been
  * loaded. If that script is loaded using "defer" then exetLexiconInit()
  * should be called once the DOMContentLoaded event fires.
+ *
+ * It expects an exetLexicon object that contains:
+ *   id: a version identifier.
+ *   letters: array of letters in the language
+ *   script: name of script (Latin/etc.)
+ *   language: code of language (en/hi/pt-br/...)
+ *
+ *   lexicon: array of word/phrases, with the 0th entry being the empty string
+ *   index: object with phrase-matching keys
+ *   anagrams: hashed index array
+ *   phones: array parallel to lexicon, each entry is an array of phone arrays
+ *   phindex: hashed index array
+ *
+ *   stems: optional array, parallel to lexicon. stems[x] points to the next
+ *     index in the same group, and following this cycle should eventually
+ *     lead back to x.
+ *   stemsId: Should match id.
+ * It supplements this objects with various utility functions and a few data
+ * structures.
  */
 function exetLexiconInit() {
   if (!exetLexicon) {
     throw 'The exetLexicon object must be initialized before this script ' +
           'can be used. This can be done by loading the script file ' +
-          'lufz-en-lexicon.js.';
+          'lufz-en-lexicon.js (or other language specific files).';
   }
 
   if (exetLexicon.language == 'en') {
@@ -176,12 +195,13 @@ function exetLexiconInit() {
 
   /**
    * Remove all punctuation, normalize spaces, only retain
-   * letters and dashes and quotes and spaces. Return in
-   * lower case. Applied to clue texts, preferred/disallowed entries.
+   * letters and dashes and quotes and spaces. Applied to clue texts,
+   * preferred/disallowed entries, custom wordlist lines.
    * @param {=boolean} forDeduping: true if dashes and quotes should be turned
    *     into spaces.
+   * @param {=boolean} toLower: true if result should be lower-cased.
    */
-  exetLexicon.depunct = function(s, forDeduping=false) {
+  exetLexicon.depunct = function(s, forDeduping=false, toLower=true) {
     let out = '';
     const parts = this.partsOf(s.replace(/\s+/g, ' '));
     for (let c of parts) {
@@ -194,10 +214,15 @@ function exetLexiconInit() {
         out += ' ';
       }
     }
-    return out.replace(/\s+/g, ' ').toLowerCase().trim();
+    out = out.replace(/\s+/g, ' ').trim();
+    return toLower ? out.toLowerCase() : out;
   }
 
+  /**
+   * Returns a sorted array.
+   */
   exetLexicon.stemGroup = function(idx) {
+    idx = Number(idx);
     console.assert(idx >= 0 && idx < this.lexicon.length);
     let group = [idx];
     if (!this.hasOwnProperty('stems') || (idx >= this.startLen)) {
@@ -250,7 +275,7 @@ function exetLexiconInit() {
     }
     return key;
   }
-  
+
   /**
    * Generalizes lexkey string, turning the last non-? into ?.
    */
@@ -263,7 +288,7 @@ function exetLexiconInit() {
     }
     return key;
   }
-  
+
   exetLexicon.keyMatchesPhrase = function(key, phrase) {
     const phraseKey = this.lexkey(phrase)
     if (phraseKey.length != key.length) {
@@ -277,7 +302,46 @@ function exetLexiconInit() {
     }
     return true
   }
-  
+
+  /**
+   * Match score:
+   * 1 + 2*(#same-case-letter + #space-quote-matches)/(p1.len + p2.len)
+   * 0: letters are different.
+   */
+  exetLexicon.matchScore = function(p1, p2) {
+    if (p1 == p2) return 2;
+    const l1 = this.letterString(p1);
+    const l2 = this.letterString(p2);
+    if (l1 != l2) return 0;
+    const parts1 = this.partsOf(p1);
+    const parts2 = this.partsOf(p2);
+    let i = 0;
+    let j = 0;
+    let matches = 0;
+    while (i < parts1.length && j < parts2.length) {
+      const c1 = parts1[i];
+      const c2 = parts2[j];
+      if (c1 == c2) {
+        matches++;
+        i++;
+        j++;
+        continue;
+      }
+      const isLetter1 = this.letterSet[c1.toUpperCase()];
+      const isLetter2 = this.letterSet[c2.toUpperCase()];
+      if (isLetter1 == isLetter2) {
+        i++;
+        j++;
+      } else if (isLetter1) {
+        j++;
+      } else {
+        console.assert(isLetter2, c2);
+        i++;
+      }
+    }
+    return 1 + (2 * matches / (p1.length + p2.length));
+  }
+
   exetLexicon.isProperNoun = function(s) {
     if (this.script != 'Latin') {
       return false;
@@ -297,27 +361,28 @@ function exetLexiconInit() {
   /**
    * partialSol can contain letters, question-marks, spaces, hyphens.
    * limit=0 for all matches, else return at most limit matches.
-   * dontReuse should be an object with dontReuse[idx] set to true for (+ve)
-   *     lexicon indices that have already been used.
+   * dontReuse should be a set of (+ve) lexicon indices that have already been used.
    * noProperNouns: disallow proper nouns
    * indexLimit: only consider lexicon indices less than this. 0 for no constraints.
    * tryRev: try reversals.
    * preflexByLen[len] should be an array of preferred lexicon indices of length len.
-   * unpreflex should be an object where unpreflex[idx] is true if lexicon index idx should be avoided.
+   * unpreflexSet should be an object where unpreflexSet[idx] is true if lexicon index idx should be avoided.
+   * regexp: if not null, then this is a RegExp object to filter out choices that do not pass regexp.test().
    */
   exetLexicon.getLexChoices = function(
       partialSol,
       limit=0,
-      dontReuse={},
+      dontReuse=null,
       noProperNouns=false,
       indexLimit=0,
       tryRev=false,
       preflexByLen=[],
-      unpreflex={}) {
+      unpreflexSet={},
+      regexp=null) {
     if (indexLimit <= 0) {
       indexLimit = this.startLen;
     }
-    let choices = [];
+    const choices = [];
     const key = this.lexkey(partialSol);
     const keylen = key.length;
     if (!keylen) return choices;
@@ -326,8 +391,11 @@ function exetLexiconInit() {
     const seen = {};
     if (preflexByLen[keylen]) {
       for (idx of preflexByLen[keylen]) {
-        if (dontReuse[idx]) continue;
+        if (dontReuse && dontReuse.has(idx)) continue;
         const phrase = this.lexicon[idx];
+        if (regexp && !regexp.test(phrase)) {
+          continue;
+        }
         if (this.keyMatchesPhrase(key, phrase)) {
           choices.push(idx);
           seen[idx] = true;
@@ -340,7 +408,7 @@ function exetLexiconInit() {
       }
     }
     const loops = tryRev ? 2 : 1;
-    for (let i = 0; (i < loops) && (limit <= 0 || choices.length < limit); i++) {
+    for (let i = 0; (i < loops) && (limit == 0 || choices.length < limit); i++) {
       const loopKey = (i == 0) ? key : rkey;
       let gkey = loopKey.join('');
       while (!this.index[gkey]) {
@@ -351,10 +419,13 @@ function exetLexiconInit() {
       const indices = this.index[gkey];
       for (let idx of indices) {
         if (idx >= indexLimit) break;
-        if (dontReuse[idx]) continue;
-        if (unpreflex[idx]) continue;
+        if (dontReuse && dontReuse.has(idx)) continue;
+        if (unpreflexSet[idx]) continue;
         const phrase = this.lexicon[idx];
         if (noProperNouns && this.isProperNoun(phrase)) {
+          continue;
+        }
+        if (regexp && !regexp.test(phrase)) {
           continue;
         }
         const loopIdx = (i == 0) ? idx : 0 - idx;
@@ -366,7 +437,7 @@ function exetLexiconInit() {
     }
     return choices;
   }
-  
+
   exetLexicon.utf8Encoder = new TextEncoder();
 
   exetLexicon.javaHash = function(key) {
@@ -380,7 +451,7 @@ function exetLexiconInit() {
     }
     return hash;
   }
-  
+
   exetLexicon.anagramKey = function(letters) {
     return letters.slice().sort().join('');
   }
@@ -407,7 +478,7 @@ function exetLexiconInit() {
     }
     return anagrams;
   }
-  
+
   /**
    * limit: 0 if no limit.
    * seqOK: if false, avoid picking a string of consecutive letters for
@@ -428,7 +499,7 @@ function exetLexiconInit() {
     const anagramsK = this.getAnagramsK(letters, limit, multiK, seqOK);
     return anagrams1.concat(anagramsK);
   }
-  
+
   /**
    * Dedupes the given list of anagrams, and returns it along with
    * "decorations":
@@ -593,7 +664,7 @@ function exetLexiconInit() {
     const subkey = [0,0,0,0,0,0,0,0];
     const anagrams = [];
     const phraseSeq = seqOK ? '' : letters.join('');
-  
+
     // Vary the more common letters in the inner loops.
     for (let i7 = 0; i7 <= slkLimits[7]; i7++) {
       subkey[7] = i7;
@@ -647,7 +718,7 @@ function exetLexiconInit() {
     }
     return result;
   }
-  
+
   /**
    * Returns h1-h2.
    * If h2 is not a strict subset of h1, then:
@@ -669,7 +740,7 @@ function exetLexiconInit() {
     if (allZeros && strict) return null;
     return ret;
   }
-  
+
   exetLexicon.slKey = function(letters) {
     const hist = [0,0,0,0,0,0,0,0];
     for (let l of letters) {
@@ -679,7 +750,7 @@ function exetLexiconInit() {
     }
     return hist;
   }
-  
+
   /**
    * Initialize anagram-related indices.
    */
@@ -711,7 +782,7 @@ function exetLexiconInit() {
       this.slkIndex[k].push(idx);
     }
   }
-  
+
   exetLexicon.lettersFromHist = function(h) {
     const ret = [];
     for (let i = 0; i < this.letters.length; i++) {
@@ -722,7 +793,7 @@ function exetLexiconInit() {
     }
     return ret;
   }
-  
+
   exetLexicon.lexToSortedWords = function(list) {
     list.sort((a, b) => {
       const spaceDiff = a.length - b.length;
@@ -738,7 +809,7 @@ function exetLexiconInit() {
     }
     return wordsList;
   }
-  
+
   /**
    * Returns k-word anagrams, sorted by increasing #words and then worsening
    * worst popularity
@@ -747,7 +818,7 @@ function exetLexiconInit() {
     return this.lexToSortedWords(
         this.getAnagramsKIndices(letters, limit, k, seqOK));
   }
-  
+
   exetLexicon.getAnagramsKIndices = function(letters, limit, k, seqOK) {
     console.assert(k > 1, k);
     console.assert(limit >= 0, limit);
@@ -846,7 +917,7 @@ function exetLexiconInit() {
     const fullHist = this.letterHist(letters);
     const supkey = [0,0,0,0,0,0,0,0];
     const anagrams = [];
-  
+
     let num = 0;
     // Vary the more common letters in the inner loops.
     for (let i7 = slkMins[7]; i7 <= slkMaxes[7]; i7++) {
@@ -908,7 +979,7 @@ function exetLexiconInit() {
         phones.push(phone);
       }
     }
-  
+
     // Try breaking into parts.
     let space = phrase.indexOf(' ');
     if (space < 0) {
@@ -929,12 +1000,12 @@ function exetLexiconInit() {
     }
     return this.dedupe(phones);
   }
-  
+
   exetLexicon.getSpoonerismsInner = function(phrase, phones) {
     const spoons = [];
     const nphrase = this.letterString(phrase);
     const NUM_SHARDS = this.phindex.length;
-  
+
     for (let phone of phones) {
       const nonVowelSpans = [];
       let currSpan = [-1, -1];
@@ -975,7 +1046,7 @@ function exetLexiconInit() {
               const phone2 = phone.slice(0, last1 + 1).concat(
                   phone.slice(last2 + 1));
               if (phone2.length == 0) continue;
-  
+
               const phone1_str = phone1.join('');
               let shard = this.javaHash(phone1_str) % NUM_SHARDS;
               if (shard < 0) shard += NUM_SHARDS;
@@ -984,9 +1055,9 @@ function exetLexiconInit() {
                 if (!this.containsPhone(q1, phone1_str)) continue;
                 q1list.push(this.lexicon[q1]);
               }
-  
+
               if (q1list.length == 0) continue;
-  
+
               const phone2_str = phone2.join('');
               shard = this.javaHash(phone2_str) % NUM_SHARDS;
               if (shard < 0) shard += NUM_SHARDS;
@@ -995,9 +1066,9 @@ function exetLexiconInit() {
                 if (!this.containsPhone(q2, phone2_str)) continue;
                 q2list.push(this.lexicon[q2]);
               }
-  
+
               if (q2list.length == 0) continue;
-  
+
               for (let q1 of q1list) {
                 for (let q2 of q2list) {
                   spoons.push([q1, q2]);
@@ -1010,16 +1081,16 @@ function exetLexiconInit() {
     }
     return this.dedupe(spoons);
   }
-  
+
   exetLexicon.getSpoonerisms = function(phrase) {
     return this.getSpoonerismsInner(phrase, this.getPhones(phrase));
   }
-  
+
   exetLexicon.getHomophonesInner = function(phrase, phones) {
     const hp = [];
     const nphrase = this.letterString(phrase);
     const NUM_SHARDS = this.phindex.length;
-  
+
     for (let phone of phones) {
       const phone_str = phone.join('');
       let shard = this.javaHash(phone_str) % NUM_SHARDS;
@@ -1032,7 +1103,7 @@ function exetLexiconInit() {
         }
         hp.push(qphrase);
       }
-  
+
       // Now try splitting phone into two parts.
       for (let i = 1; i <= phone.length - 1; i++) {
         const phone1 = phone.slice(0, i);
@@ -1044,9 +1115,9 @@ function exetLexiconInit() {
           if (!this.containsPhone(q1, phone1_str)) continue;
           q1list.push(this.lexicon[q1]);
         }
-  
+
         if (q1list.length == 0) continue;
-  
+
         const phone2 = phone.slice(i);
         const phone2_str = phone2.join('');
         shard = this.javaHash(phone2_str) % NUM_SHARDS;
@@ -1056,9 +1127,9 @@ function exetLexiconInit() {
           if (!this.containsPhone(q2, phone2_str)) continue;
           q2list.push(this.lexicon[q2]);
         }
-  
+
         if (q2list.length == 0) continue;
-  
+
         for (let q1 of q1list) {
           for (let q2 of q2list) {
             const candidate = q1 + ' ' + q2;
@@ -1070,7 +1141,7 @@ function exetLexiconInit() {
     }
     return this.dedupe(hp);
   }
-  
+
   exetLexicon.getHomophones = function(phrase) {
     return this.getHomophonesInner(phrase, this.getPhones(phrase));
   }
