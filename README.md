@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.07.1, July 28, 2026
+#### Version: Exet v1.07.3, July 31, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -660,7 +660,9 @@ the box if the Escape key does not work).
 The clue for the entry in the current light is shown above the grid and can be
 edited in place right there. You can navigate through the clues using standard
 controls such as clicking on a cell or a clue, using the arrow keys, or
-using the tab and shift-tab keys.
+using the tab and shift-tab keys. Within the current light's row (Across) or
+column (Down), the Home and End keys jump to the start or end of that run of
+cells — bounded by the grid edge or the first black cell in that direction.
 
 When you create a new crossword, all clues are set to be in "draft" mode and
 are shown with a distinctive `[DRAFT]` marker. You should clear this marker

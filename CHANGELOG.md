@@ -1,5 +1,10 @@
 # Changelog
 
+### Exet v1.07.3, July 31, 2026
+
+- Home and End keys jump to the start/end of the current row (Across) or
+  column (Down), stopping at the grid edge or the first black cell.
+
 ### Exet v1.07.2, July 31, 2026
 
 - Merriam-Webster also does not allow embedding in iframes any more.

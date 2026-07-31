@@ -3878,6 +3878,48 @@ Exet.prototype.arrowNav = function(key) {
   return true
 }
 
+/**
+ * Home (36) / End (35): jump to the start/end of the current row (Across)
+ * or column (Down). The boundary is the grid edge or the first black cell
+ * that would be reached in that direction.
+ */
+Exet.prototype.homeEndNav = function(key) {
+  const puz = this.puz;
+  if (!puz.currCellIsValid()) {
+    return false;
+  }
+  puz.usingGnav = true;
+  let row = puz.currRow;
+  let col = puz.currCol;
+  const toStart = (key == 36);
+  let dr = 0;
+  let dc = 0;
+  if (puz.currDir == 'D') {
+    dr = toStart ? -1 : 1;
+  } else if (puz.currDir == 'Z' && puz.layers3d > 1) {
+    dr = (toStart ? -1 : 1) * puz.h3dLayer;
+  } else {
+    // Across and other directions: move within the row.
+    dc = toStart ? -1 : 1;
+  }
+  const canPass = (r, c) => {
+    const cell = puz.grid[r][c];
+    return cell.isLight || cell.isDgmless;
+  };
+  let nextRow = row + dr;
+  let nextCol = col + dc;
+  while (puz.rcValid(nextRow, nextCol) && canPass(nextRow, nextCol)) {
+    row = nextRow;
+    col = nextCol;
+    nextRow += dr;
+    nextCol += dc;
+  }
+  if (row != puz.currRow || col != puz.currCol) {
+    puz.activateCell(row, col);
+  }
+  return true;
+}
+
 Exet.prototype.scrollCluesIfNeeded = function() {
   let clue = this.puz.clues[this.currClueIndex()];
   if (!clue) return;
@@ -3993,6 +4035,9 @@ Exet.prototype.replaceHandlers = function() {
     return function(key, shift=false) {
       if (key >= 37 && key <= 40) {
         return exet.arrowNav(key);
+      }
+      if (key == 35 || key == 36) {
+        return exet.homeEndNav(key);
       }
       return exet.hkuiSaved.apply(exet.puz, arguments);
     };
@@ -5132,6 +5177,14 @@ Exet.prototype.automagicBlocks = function(noTarget=true) {
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
   let key = e.key || e;
+  // Prevent the browser from scrolling on Home/End; navigation is handled
+  // on keyup via homeEndNav().
+  if (key == 'Home' || key == 'End') {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    return;
+  }
   if (key == '=') {
     this.acceptAll();
     return;
