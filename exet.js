@@ -3124,6 +3124,131 @@ Exet.prototype.updateSounds = function(fodder) {
   this.sounds.innerHTML = html;
 }
 
+/**
+ * Lazily load the client-side WordNet synonym data (exet-wordnet.js).
+ * No server is involved; the file is fetched as a static script.
+ */
+Exet.prototype.ensureWordNet = function(callback) {
+  if (typeof exetWordNet == 'object' && exetWordNet && exetWordNet.lookUp) {
+    callback();
+    return;
+  }
+  if (!this.wordNetCallbacks_) {
+    this.wordNetCallbacks_ = [];
+  }
+  this.wordNetCallbacks_.push(callback);
+  if (this.wordNetLoading_) {
+    return;
+  }
+  this.wordNetLoading_ = true;
+  const script = document.createElement('script');
+  script.src = 'exet-wordnet.js?v1.07';
+  script.onload = () => {
+    this.wordNetLoading_ = false;
+    const cbs = this.wordNetCallbacks_ || [];
+    this.wordNetCallbacks_ = [];
+    for (let i = 0; i < cbs.length; i++) {
+      cbs[i]();
+    }
+  };
+  script.onerror = () => {
+    this.wordNetLoading_ = false;
+    this.wordNetCallbacks_ = [];
+    // Allow a later tab click to retry loading.
+    if (this.tabs && this.tabs.synonyms && this.tabs.synonyms.sections) {
+      for (let i = 0; i < this.tabs.synonyms.sections.length; i++) {
+        this.tabs.synonyms.sections[i].param = null;
+      }
+    }
+    const box = document.getElementById('xet-synonyms-box');
+    if (box) {
+      box.innerHTML = '<div class="xet-red">Failed to load WordNet data ' +
+                      '(exet-wordnet.js).</div>';
+    }
+  };
+  document.head.appendChild(script);
+}
+
+Exet.prototype.escapeHtml = function(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * Render WordNet synonym sets for the current (or edited) answer.
+ */
+Exet.prototype.updateSynonyms = function(fodder) {
+  const box = document.getElementById('xet-synonyms-box');
+  if (!box) {
+    return;
+  }
+  const word = (fodder || '').trim();
+  if (!word) {
+    box.innerHTML = '<div class="xet-small">Fill or select a light to look ' +
+                    'up WordNet synonyms.</div>';
+    return;
+  }
+  if (/[?]/.test(word)) {
+    box.innerHTML = '<div class="xet-small">Complete the answer (no ? ' +
+                    'wildcards) to look up synonyms.</div>';
+    return;
+  }
+  const ready = (typeof exetWordNet == 'object' && exetWordNet &&
+                 exetWordNet.lookUp);
+  if (!ready) {
+    box.innerHTML = '<div class="xet-small">Loading WordNet…</div>';
+  }
+  const requested = word;
+  this.ensureWordNet(() => {
+    // Avoid clobbering a newer lookup if the user typed while loading.
+    const section = this.tabs.synonyms && this.tabs.synonyms.sections &&
+                    this.tabs.synonyms.sections[0];
+    if (section && section.paramInput &&
+        section.paramInput.value.trim() != requested) {
+      return;
+    }
+    this.renderWordNetSynonyms(box, requested);
+  });
+}
+
+Exet.prototype.renderWordNetSynonyms = function(box, word) {
+  if (typeof exetWordNet != 'object' || !exetWordNet || !exetWordNet.lookUp) {
+    box.innerHTML = '<div class="xet-red">WordNet data is unavailable.</div>';
+    return;
+  }
+  const results = exetWordNet.lookUp(word);
+  const matched = results.length ? results[0].lemma : exetWordNet.normalize(word);
+  let html = `<div class="xet-small" style="margin-bottom:8px">
+      WordNet ${this.escapeHtml(exetWordNet.version || '')} · matched
+      <span class="xet-blue">${this.escapeHtml(matched)}</span>
+    </div>`;
+  if (!results.length) {
+    html += '<div class="xet-small">No WordNet entry found.</div>';
+    box.innerHTML = html;
+    return;
+  }
+  html += '<table class="xet-wordnet-synonyms xet-gray-bordered-rows">';
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    const syns = r.synonyms.length ?
+        r.synonyms.map(s => this.escapeHtml(s)).join(', ') :
+        '<i class="xet-small">(no other lemmas in this synset)</i>';
+    html += `
+      <tr>
+        <td class="xet-wordnet-pos">${this.escapeHtml(r.posLabel)}</td>
+        <td>
+          <div class="xet-bold">${syns}</div>
+          <div class="xet-small xet-wordnet-gloss">${this.escapeHtml(r.gloss)}</div>
+        </td>
+      </tr>`;
+  }
+  html += '</table>';
+  html += `<div class="xet-small" style="margin-top:10px">
+      Data: Princeton WordNet (see About for license).
+    </div>`;
+  box.innerHTML = html;
+}
+
 Exet.prototype.updateCA = function() {
   const fodderLetters = exetLexicon.lettersOf(this.caFodder.value);
   this.maybeTrimLongFodder(fodderLetters, 'xet-companag');
@@ -3793,6 +3918,8 @@ Exet.prototype.handleTabClick = function(id) {
       this.updateSounds(wordParam);
     } else if (section.id == 'xet-containments') {
       this.updateContainments(wordParam);
+    } else if (section.id == 'xet-synonyms') {
+      this.updateSynonyms(wordParam);
     } else if (section.id == 'xet-companag') {
       if (newLight) {
         this.caAnagram.value = '';
