@@ -838,6 +838,10 @@ We also provide a link to **crosswordtracker.com** (a good database of mostly
 non-cryptic-crossword clues) for looking up published definitions. This too opens
 in a new tab.
 
+The **Synonyms** tab looks up Princeton WordNet synonym sets for the current
+answer. Incomplete lights that still contain `?` are skipped
+until filled.
+
 For cryptic crosswords, there are some additional tabs that setters may find
 useful. In all of these (other than "Lists"), the wordplay candidates are shown
 for the entry in the currently selected light. However, you can generate wordplay
