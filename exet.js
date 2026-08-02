@@ -2445,6 +2445,13 @@ Exet.prototype.loadIframe = function(iframe, url, urlElt) {
       'beforeend',
       ' <span class="xet-iframe-loading">Loading...</span>');
   urlElt.href = url;
+  /* Nutrimatic uses huge score-based fonts; shrink those iframes via CSS.
+   * Cross-origin pages can't be rewritten into a bullet list without a proxy. */
+  if (/^https?:\/\/(?:www\.)?nutrimatic\.org\//i.test(url)) {
+    iframe.classList.add('xet-nutrimatic-iframe');
+  } else {
+    iframe.classList.remove('xet-nutrimatic-iframe');
+  }
   iframe.src = url;
   iframe.onload = () => {
     urlElt.innerText = trimmedUrl;
@@ -4124,6 +4131,12 @@ Exet.prototype.resizeRHS = function() {
     Math.max(580, windowW - 52 - Math.floor(gridPanelBox.width));
   const sectionW = frameW - 16;
   const halfSectionW = Math.floor(sectionW / 2) - 16;
+  const sectionH = 410 + extraH;
+  /* Compensate zoom so Nutrimatic iframes keep the same on-page footprint. */
+  const nutriZoom = 0.55;
+  const nutriSectionW = Math.floor(sectionW / nutriZoom);
+  const nutriHalfSectionW = Math.floor(halfSectionW / nutriZoom);
+  const nutriSectionH = Math.floor(sectionH / nutriZoom);
   const cluesW = frameW - 320;
   this.fillSettings.style.width = '' + cluesW + 'px';
   let style = `
@@ -4139,7 +4152,7 @@ Exet.prototype.resizeRHS = function() {
     }
     .xet-half-section,
     .xet-section {
-      height: ${410 + extraH}px;
+      height: ${sectionH}px;
     }
     #xet-light-choices-box,
     .xet-clues-panel,
@@ -4151,6 +4164,16 @@ Exet.prototype.resizeRHS = function() {
     }
     .xet-half-section {
       width: ${halfSectionW}px;
+    }
+    .xet-nutrimatic-iframe.xet-section {
+      width: ${nutriSectionW}px;
+      height: ${nutriSectionH}px;
+      zoom: ${nutriZoom};
+    }
+    .xet-nutrimatic-iframe.xet-half-section {
+      width: ${nutriHalfSectionW}px;
+      height: ${nutriSectionH}px;
+      zoom: ${nutriZoom};
     }
     .xet-frame {
       width: ${frameW}px;

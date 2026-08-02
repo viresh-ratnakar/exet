@@ -851,3 +851,14 @@ body {
   cursor: pointer;
   font-weight: bold;
 }
+/*
+ * Nutrimatic sizes each result with a large score-based font-size. We mark
+ * those iframes and enlarge their CSS box, then zoom them down so the panel
+ * footprint stays the same while the content is denser. (Cross-origin iframe
+ * HTML can't be rewritten into a bullet list without a proxy.)
+ */
+.xet-web-fills-iframe.xet-nutrimatic-iframe {
+  width: calc(840px / 0.55);
+  height: calc(440px / 0.55);
+  zoom: 0.55;
+}

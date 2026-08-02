@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.07.1, July 28, 2026
+#### Version: Exet v1.07.3, August 1, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -904,10 +904,12 @@ top in each tab. These tabs are:
     </summary>
 
     - Hidden answer and Alternation searches in Exet are simply links
-      to nutrimatic searches. If these searches do not produce results,
-      or if you want to impose additional/different constraints, then
-      you may want to learn how to tweak the search queries (you can
-      edit them directly in the search box shown in Exet). Here's the
+      to nutrimatic searches (shown scaled down so Nutrimatic's large
+      score-based fonts are easier to skim). If these searches do not
+      produce results, or if you want to impose additional/different
+      constraints, then you may want to learn how to tweak the search
+      queries (you can edit them directly in the search box shown in
+      Exet). Here's the
       [relevant documentation on nutrimatic.org](https://nutrimatic.org/2024/usage.html).
     - The first thing to try is to click (repeatedly) on the "Try harder"
       link that is shown. In my experience, complex Alternations sometimes
