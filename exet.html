@@ -11,7 +11,7 @@ Copyright (c) 2020 Viresh Ratnakar
 See the full license notice in exet.js.
 -->
 <link rel="stylesheet" type="text/css" href="exolve-m.css?v1.63"/>
-<link rel="stylesheet" type="text/css" href="exet.css?v1.07"/>
+<link rel="stylesheet" type="text/css" href="exet.css?v1.07.3"/>
 
 <script>
 /**
@@ -69,6 +69,15 @@ exetConfig = {
      name: "Definitions from crosswordtracker.com"},
   ],
   extraTabs: [
+    {
+      id: "synonyms",
+      display: "Synonyms",
+      hover: "WordNet synonyms for the current answer",
+      sections: [
+        {id: "xet-synonyms", title: "WordNet synonyms",
+         hover: "Princeton WordNet synonym sets for the current answer"},
+      ]
+    },
     {
       id: "hiddens",
       display: "Hiddens",

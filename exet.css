@@ -340,6 +340,25 @@ body {
 .xet-gray-bordered-rows td {  
   border-bottom: 1px solid gray;
 }
+.xet-wordnet-synonyms {
+  border-collapse: collapse;
+  width: 100%;
+}
+.xet-wordnet-synonyms td {
+  vertical-align: top;
+  padding: 6px 8px 6px 0;
+}
+.xet-wordnet-pos {
+  color: blue;
+  font-weight: bold;
+  white-space: nowrap;
+  padding-right: 12px !important;
+  width: 3.5em;
+}
+.xet-wordnet-gloss {
+  margin-top: 2px;
+  color: #444;
+}
 .xet-choices-box {  
   border: 1px solid gray;
   border-collapse: collapse;
@@ -850,4 +869,15 @@ body {
   color: red;
   cursor: pointer;
   font-weight: bold;
+}
+/*
+ * Nutrimatic sizes each result with a large score-based font-size. We mark
+ * those iframes and enlarge their CSS box, then zoom them down so the panel
+ * footprint stays the same while the content is denser. (Cross-origin iframe
+ * HTML can't be rewritten into a bullet list without a proxy.)
+ */
+.xet-web-fills-iframe.xet-nutrimatic-iframe {
+  width: calc(840px / 0.55);
+  height: calc(440px / 0.55);
+  zoom: 0.55;
 }

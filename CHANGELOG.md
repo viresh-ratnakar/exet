@@ -1,9 +1,10 @@
 # Changelog
 
-### Exet v1.07.3, July 31, 2026
+### Exet v1.07.3, August 1, 2026
 
-- Home and End keys jump to the start/end of the current row (Across) or
-  column (Down), stopping at the grid edge or the first black cell.
+- Improve appearance of Nutrimatic results used by Hidden, Alternations, and
+  the Nutrimatic web-fill source by scaling those iframes down (Nutrimatic's
+  score-based fonts are otherwise huge). Purely client-side; no proxy/server.
 
 ### Exet v1.07.2, July 31, 2026
 
