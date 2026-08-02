@@ -839,9 +839,7 @@ non-cryptic-crossword clues) for looking up published definitions. This too open
 in a new tab.
 
 The **Synonyms** tab looks up Princeton WordNet synonym sets for the current
-answer entirely in the browser (the WordNet data is loaded on first use from
-`exet-wordnet.js`; no server is involved). Edit the input field to query any
-other word or phrase. Incomplete lights that still contain `?` are skipped
+answer. Incomplete lights that still contain `?` are skipped
 until filled.
 
 For cryptic crosswords, there are some additional tabs that setters may find
