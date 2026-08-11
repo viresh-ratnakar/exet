@@ -2445,7 +2445,7 @@ Exet.prototype.loadIframe = function(iframe, url, urlElt) {
   urlElt.innerText = trimmedUrl;
   urlElt.insertAdjacentHTML(
       'beforeend',
-      ' <span class="xet-iframe-loading">Loading...</span>');
+      ' <span class="xet-iframe-loading">Loading</span>');
   urlElt.href = url;
   /* Nutrimatic uses huge score-based fonts; shrink those iframes via CSS.
    * Cross-origin pages can't be rewritten into a bullet list without a proxy. */
