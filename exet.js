@@ -5156,6 +5156,14 @@ Exet.prototype.automagicBlocks = function(noTarget=true) {
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
   let key = e.key || e;
+  // Prevent the browser from scrolling on Home/End; navigation is handled
+  // by Exolve on keyup via homeEndNav().
+  if (key == 'Home' || key == 'End') {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    return;
+  }
   if (key == '=') {
     this.acceptAll();
     return;
