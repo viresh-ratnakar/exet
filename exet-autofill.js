@@ -1095,6 +1095,10 @@ class ExetAutofill {
 
   startstop() {
     if (!this.running) {
+      if (exet.puz.hasRebusCells) {
+        alert('Autofill is not supported for rebus puzzles.');
+        return;
+      }
       if (exet.puz.numCellsToFill == exet.puz.numCellsFilled) {
         alert('The grid is already full');
         return;

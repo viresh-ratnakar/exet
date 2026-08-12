@@ -380,10 +380,6 @@ Exet.prototype.setPuzzle = function(puz) {
     alert('Nodir clues not yet supported');
     return;
   }
-  if (puz.hasRebusCells) {
-    alert('Rebus cells are not supported');
-    return;
-  }
   if (puz.offNumClueIndices.length > 0) {
     alert('Non-numeric clues not yet supported');
     return;
@@ -421,9 +417,9 @@ Exet.prototype.setPuzzle = function(puz) {
         gridFillChanges = true;
       }
       if (gridCell.solution != '?' &&
-          !exetLexicon.letterSet[gridCell.solution]) {
+          !this.isValidGridCellSolution(puz, gridCell.solution)) {
         alert('Entry ' + gridCell.solution + ' in grid[' + i + '][' + j +
-              '] is not present in the lexicon. Marking the cell as unfilled.');
+              '] is not valid. Marking the cell as unfilled.');
         gridCell.solution = '?';
         gridFillChanges = true;
       }
@@ -762,6 +758,113 @@ Exet.prototype.setPuzzle = function(puz) {
 
   this.updateSweepInd();
   this.reposition();
+  this.syncRebusCheckbox();
+}
+
+Exet.prototype.isValidGridCellSolution = function(puz, solution) {
+  if (solution == '?' || solution == '0') {
+    return true;
+  }
+  if (puz.hasRebusCells) {
+    return puz.isValidStateChar(solution);
+  }
+  return exetLexicon.letterSet[solution];
+}
+
+/** True if any cell in this light contains a multi-letter rebus entry. */
+Exet.prototype.lightHasRebusContent = function(ci) {
+  if (!this.puz || !this.puz.hasRebusCells || !ci) {
+    return false;
+  }
+  const cells = this.puz.getAllCells(ci);
+  for (const cell of cells) {
+    const gridCell = this.puz.grid[cell[0]][cell[1]];
+    const letter = gridCell.currLetter;
+    if (letter != '?' && letter != '0' && letter.length > 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Exet.prototype.syncRebusCheckbox = function() {
+  const cb = document.getElementById('xet-rebus-cells');
+  if (!cb) {
+    return;
+  }
+  cb.checked = this.puz && this.puz.hasRebusCells;
+  cb.disabled = this.puz && this.puz.langMaxCharCodes > 1;
+}
+
+Exet.prototype.syncRebusOptionInOtherSec = function(enabled) {
+  const lines = [];
+  let rebusHandled = false;
+  for (const line of this.exolveOtherSec.split('\n')) {
+    const t = line.trim();
+    if (!t.startsWith('exolve-option:')) {
+      if (t) {
+        lines.push(line);
+      }
+      continue;
+    }
+    let opts = t.substring('exolve-option:'.length).trim().split(/\s+/);
+    opts = opts.filter(o => o != 'rebus-cells');
+    if (enabled && !rebusHandled) {
+      opts.unshift('rebus-cells');
+      rebusHandled = true;
+    }
+    if (opts.length > 0) {
+      lines.push('  exolve-option: ' + opts.join(' '));
+    }
+  }
+  if (enabled && !rebusHandled) {
+    lines.unshift('  exolve-option: rebus-cells');
+  }
+  this.exolveOtherSec = lines.join('\n').trim();
+}
+
+Exet.prototype.setRebusCells = function(enabled) {
+  if (!this.puz) {
+    return;
+  }
+  if (enabled) {
+    if (this.puz.langMaxCharCodes > 1) {
+      alert('Rebus cells cannot be used when the language has max-char-codes > 1.');
+      this.syncRebusCheckbox();
+      return;
+    }
+    if (this.puz.hasDgmlessCells) {
+      alert('Rebus cells cannot be used with diagramless cells.');
+      this.syncRebusCheckbox();
+      return;
+    }
+    this.puz.hasRebusCells = true;
+    this.puz.multiLetter = true;
+  } else {
+    for (let i = 0; i < this.puz.gridHeight; i++) {
+      for (let j = 0; j < this.puz.gridWidth; j++) {
+        const gridCell = this.puz.grid[i][j];
+        if (!gridCell.isLight) {
+          continue;
+        }
+        const letter = gridCell.currLetter;
+        if (letter != '?' && letter != '0' && letter.length > 1) {
+          alert('Cannot turn off rebus cells while some cells contain ' +
+                'multiple letters.');
+          this.syncRebusCheckbox();
+          return;
+        }
+      }
+    }
+    this.puz.hasRebusCells = false;
+    this.puz.multiLetter = (this.puz.langMaxCharCodes > 1);
+  }
+  if (this.puz.adjustRebusFonts) {
+    this.puz.adjustRebusFonts();
+  }
+  this.syncRebusOptionInOtherSec(enabled);
+  this.autofill.reset('Aborted');
+  this.updatePuzzle(exetRevManager.REV_OPTIONS_CHANGE);
 }
 
 Exet.prototype.populateSpellingsRegionMenu = function() {
@@ -1129,6 +1232,15 @@ Exet.prototype.makeExetTab = function() {
                   value="asymmetric" type="checkbox">
                 </input>
                 <i>Allow asymmetry</i>
+              </div>
+              <div style="padding:10px"
+                  title="Allow multiple letters in a cell (Shift or double-click ` +
+                  `to enter). Autofill is disabled; grid-fill is disabled only ` +
+                  `for entries that contain a rebus cell.">
+                <input id="xet-rebus-cells" name="xet-rebus-cells"
+                  value="rebus-cells" type="checkbox">
+                </input>
+                <i>Use rebus cells</i>
               </div>
             </div>
           </div>
@@ -1652,6 +1764,11 @@ Exet.prototype.makeExetTab = function() {
   asymOKButton.addEventListener('change', e => {
     exet.asymOK = asymOKButton.checked ? true : false;
     exetRevManager.throttledSaveRev(exetRevManager.REV_OPTIONS_CHANGE);
+  });
+
+  const rebusCellsButton = document.getElementById("xet-rebus-cells")
+  rebusCellsButton.addEventListener('change', e => {
+    exet.setRebusCells(rebusCellsButton.checked);
   });
 
   const preamble = document.getElementById("xet-preamble")
@@ -6161,6 +6278,7 @@ Exet.prototype.getGrid = function(solved=true) {
   if (!this.puz) {
     return '';
   }
+  const useRebus = this.puz.hasRebusCells;
   const ENTRY_WIDTH = 3 + this.puz.langMaxCharCodes;
   let grid = '';
   for (let i = 0; i < this.puz.gridHeight; i++) {
@@ -6169,17 +6287,29 @@ Exet.prototype.getGrid = function(solved=true) {
       let gridCell = this.puz.grid[i][j]
       let entry = '.';
       if (gridCell.isLight) {
-        entry = (gridCell.currLetter != '0' ?
+        let letter = (gridCell.currLetter != '0' ?
                ((solved || gridCell.prefill) ?
                      gridCell.currLetter : '0') : '?');
+        if (letter != '?' && letter != '0') {
+          entry = this.puz.stateToDisplayChar(letter);
+        } else {
+          entry = letter;
+        }
         if (gridCell.hasCircle) entry += '@';
         if (gridCell.prefill) entry += '!';
         entry += (gridCell.hasBarAfter && gridCell.hasBarUnder ?
                               '+' : (gridCell.hasBarAfter ?
                               '|' : (gridCell.hasBarUnder ? '_' : '')));
       }
-      while (entry.length < ENTRY_WIDTH) entry += ' ';
-      gridRow += entry;
+      if (useRebus) {
+        gridRow += entry;
+        if (j < this.puz.gridWidth - 1) {
+          gridRow += ' ';
+        }
+      } else {
+        while (entry.length < ENTRY_WIDTH) entry += ' ';
+        gridRow += entry;
+      }
     }
     grid = grid + '\n' + gridRow;
   }
@@ -6424,6 +6554,9 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
     const theClue = fillState.clues[ci];
     if (theClue.parentClueIndex ||
         !theClue.solution || theClue.solution.indexOf('?') < 0) {
+      continue;
+    }
+    if (this.lightHasRebusContent(ci)) {
       continue;
     }
     const cells = this.puz.getAllCells(ci);
@@ -6958,6 +7091,9 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   if (!ci) {
     return;
   }
+  if (this.lightHasRebusContent(ci)) {
+    return;
+  }
   let solution = exetLexicon.getLex(idx);
   let theClue = this.puz.clues[ci];
   let cells = this.puz.getAllCells(ci);
@@ -7280,6 +7416,12 @@ Exet.prototype.choiceDisplayHTML = function(choice) {
 Exet.prototype.updateFillChoices = function() {
   let ci = this.currClueIndex();
   if (!ci) {
+    return;
+  }
+  if (this.lightHasRebusContent(ci)) {
+    this.lChoices.innerHTML =
+        '<tr><td><i>Grid-fill disabled for this entry (contains a rebus cell)</i></td></tr>';
+    this.lRejects.innerHTML = '';
     return;
   }
   const gridClue = this.puz.clues[ci];
