@@ -778,13 +778,82 @@ Exet.prototype.lightHasRebusContent = function(ci) {
   }
   const cells = this.puz.getAllCells(ci);
   for (const cell of cells) {
-    const gridCell = this.puz.grid[cell[0]][cell[1]];
-    const letter = gridCell.currLetter;
-    if (letter != '?' && letter != '0' && letter.length > 1) {
+    if (this.cellHasRebusContent(this.puz.grid[cell[0]][cell[1]])) {
       return true;
     }
   }
   return false;
+}
+
+Exet.prototype.cellHasRebusContent = function(gridCell) {
+  if (!gridCell || !this.puz || !this.puz.hasRebusCells) {
+    return false;
+  }
+  const fixed = this.cellFixedContent(gridCell);
+  return fixed.length > 1;
+}
+
+Exet.prototype.cellFixedContent = function(gridCell) {
+  if (gridCell.solution != '?' && gridCell.solution != '0') {
+    return gridCell.solution;
+  }
+  if (gridCell.currLetter != '?' && gridCell.currLetter != '0') {
+    return gridCell.currLetter;
+  }
+  return '';
+}
+
+/**
+ * Count dictionary letter-slots in a light: one per normal cell, but
+ * rebus cells consume as many letters as their fixed content.
+ */
+Exet.prototype.lightLetterSlotCount = function(cells, grid) {
+  let count = 0;
+  for (const cell of cells) {
+    const fixed = this.cellFixedContent(grid[cell[0]][cell[1]]);
+    count += (fixed.length > 1) ? fixed.length : 1;
+  }
+  return count;
+}
+
+/**
+ * Walk a lexkey alongside light cells. Fixed rebus cells consume multiple
+ * key letters; other cells consume one each. The visitor receives
+ * (cellIndex, gridCell, letter) for each single-letter cell.
+ */
+Exet.prototype.walkLightKey = function(cells, grid, key, visitor) {
+  let ki = 0;
+  for (let i = 0; i < cells.length; i++) {
+    const gridCell = grid[cells[i][0]][cells[i][1]];
+    const fixed = this.cellFixedContent(gridCell);
+    if (fixed.length > 1) {
+      if (key.substr(ki, fixed.length) != fixed) {
+        return false;
+      }
+      ki += fixed.length;
+      continue;
+    }
+    if (ki >= key.length) {
+      return false;
+    }
+    if (!visitor(i, gridCell, key[ki])) {
+      return false;
+    }
+    ki++;
+  }
+  return ki == key.length;
+}
+
+Exet.prototype.applySolutionToLight = function(cells, key) {
+  let changed = false;
+  const ok = this.walkLightKey(cells, this.puz.grid, key, (i, gridCell, letter) => {
+    if (gridCell.currLetter != letter || gridCell.solution != letter) {
+      this.puz.setCellLetter(gridCell, letter);
+      changed = true;
+    }
+    return true;
+  });
+  return ok && changed;
 }
 
 Exet.prototype.syncRebusCheckbox = function() {
@@ -1235,8 +1304,8 @@ Exet.prototype.makeExetTab = function() {
               </div>
               <div style="padding:10px"
                   title="Allow multiple letters in a cell (Shift or double-click ` +
-                  `to enter). Autofill is disabled; grid-fill is disabled only ` +
-                  `for entries that contain a rebus cell.">
+                  `to enter). Autofill and grid-fill only use single letters and ` +
+                  `leave existing rebus cells unchanged.">
                 <input id="xet-rebus-cells" name="xet-rebus-cells"
                   value="rebus-cells" type="checkbox">
                 </input>
@@ -6556,9 +6625,6 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
         !theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue;
     }
-    if (this.lightHasRebusContent(ci)) {
-      continue;
-    }
     const cells = this.puz.getAllCells(ci);
     const toConsider = (limit <= 0) ? theClue.lChoices.length :
         Math.min(limit, theClue.lChoices.length);
@@ -6576,21 +6642,25 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
       }
       const key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
       if (lchoice < 0) key.reverse();
-      let viable = true;
-      for (let i = 0; i < key.length; i++) {
-        const cell = cells[i];
-        console.assert(cell && cell.length == 2, ci, i);
-        const gridCell = fillState.grid[cell[0]][cell[1]];
-        if (gridCell.solution == '?' && !gridCell.cChoices[key[i]]) {
-          viable = false;
-          break;
+      let viable = this.walkLightKey(cells, fillState.grid, key,
+          (i, gridCell, letter) => {
+        if (gridCell.solution != '?' && gridCell.solution != letter) {
+          return false;
         }
-      }
+        if (gridCell.solution == '?' && !gridCell.cChoices[letter]) {
+          return false;
+        }
+        return true;
+      });
       if (viable) {
         theClue.lChoices.push(lchoice);
-        for (let i = 0; i < key.length; i++) {
-          cellChoiceSets[i][key[i]] = true;
-        }
+        this.walkLightKey(cells, fillState.grid, key,
+            (i, gridCell, letter) => {
+          if (gridCell.solution == '?') {
+            cellChoiceSets[i][letter] = true;
+          }
+          return true;
+        });
       } else {
         this.noteNonViableChoice(theClue, lchoice);
         changes++;
@@ -6779,10 +6849,11 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
         let lchoice = tempClue.lChoices[i];
         let key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
         if (lchoice < 0) key.reverse();
-        console.assert(key.length = cells.length, key.length, cells.length);
-        for (let k = 0; k < key.length; k++) {
-          cellChoiceSets[k][key[k]] = true;
-        }
+        this.walkLightKey(cells, tempFillState.grid, key,
+            (k, gridCell, letter) => {
+          cellChoiceSets[k][letter] = true;
+          return true;
+        });
       }
       for (let i = 0; i < cells.length; i++) {
         let cell = cells[i];
@@ -6811,18 +6882,13 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
         let lchoice = choices[i];
         let key = exetLexicon.lexkey(exetLexicon.getLex(lchoice))
         if (lchoice < 0) key.reverse();
-        let viable = true;
-        for (let j = 0; j < key.length; j++) {
-          let cell = cells[j];
-          let gridCell = tempFillState.grid[cell[0]][cell[1]];
+        let viable = this.walkLightKey(cells, tempFillState.grid, key,
+            (k, gridCell, letter) => {
           if (gridCell.solution != '?') {
-            continue;
+            return gridCell.solution == letter;
           }
-          if (!gridCell.cChoices[key[j]]) {
-            viable = false;
-            break;
-          }
-        }
+          return !!gridCell.cChoices[letter];
+        });
         if (viable) {
           tempClue.lChoices.push(lchoice);
         } else {
@@ -6882,13 +6948,16 @@ Exet.prototype.findDeadendsByClue = function() {
   for (let lchoice of choices) {
     let key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
     if (lchoice < 0) key.reverse();
-    console.assert(key.length = cells.length, key.length, cells.length);
     let tempFillState = new ExetFillState(this.fillState);
-    for (let i = 0; i < cells.length; i++) {
-      let cell = cells[i];
-      let tempGridCell = tempFillState.grid[cell[0]][cell[1]];
+    if (!this.walkLightKey(cells, tempFillState.grid, key,
+        (i, gridCell, letter) => {
+      const tempGridCell = tempFillState.grid[cells[i][0]][cells[i][1]];
       tempGridCell.cChoices = {};
-      tempGridCell.cChoices[key[i]] = true;
+      tempGridCell.cChoices[letter] = true;
+      return true;
+    })) {
+      this.noteNonViableChoice(theClue, lchoice);
+      continue;
     }
     if (!this.someClueTurnsNonViable(tempFillState)) {
       viableChoices.push(lchoice);
@@ -7091,15 +7160,13 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   if (!ci) {
     return;
   }
-  if (this.lightHasRebusContent(ci)) {
-    return;
-  }
   let solution = exetLexicon.getLex(idx);
   let theClue = this.puz.clues[ci];
   let cells = this.puz.getAllCells(ci);
+  const key = exetLexicon.lexkey(solution);
   if (!theClue || !solution ||
       theClue.parentClueIndex ||
-      exetLexicon.lexkey(solution).length != cells.length) {
+      key.length != this.lightLetterSlotCount(cells, this.puz.grid)) {
     return;
   }
   // All checks passed!
@@ -7121,38 +7188,47 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
     theClue.solution = solution;
     changed = true;
   }
-  let enumStr = '';
-  let enumPart = 0;
-  let solIndex = 0;
-  const solParts = exetLexicon.partsOf(solution);
-  for (let i = 0; i < solParts.length; i++) {
-    let c = solParts[i];
-    if (enumPart > 0 && (c == ' ' || c == '-' || c == '\'')) {
-      enumStr += ('' + enumPart + (c == ' ' ? ',' : c));
-      enumPart = 0;
-    }
-    if (exetLexicon.letterSet[c]) {
-      enumPart++;
-      let cell = cells[solIndex++];
-      let gridCell = this.puz.grid[cell[0]][cell[1]];
-      if (gridCell.currLetter != c || gridCell.solution != c) {
-        this.puz.setCellLetter(gridCell, c);
-        changed = true;
+  const fillKey = exetLexicon.lexkey(solution);
+  if (fillKey.length != this.lightLetterSlotCount(cells, this.puz.grid)) {
+    return;
+  }
+  if (this.applySolutionToLight(cells, fillKey)) {
+    changed = true;
+  } else if (!this.walkLightKey(cells, this.puz.grid, fillKey,
+      (i, gridCell, letter) => {
+    return gridCell.currLetter == letter && gridCell.solution == letter;
+  })) {
+    return;
+  }
+  if (!this.lightHasRebusContent(ci)) {
+    let enumStr = '';
+    let enumPart = 0;
+    let solIndex = 0;
+    const solParts = exetLexicon.partsOf(solution);
+    for (let i = 0; i < solParts.length; i++) {
+      let c = solParts[i];
+      if (enumPart > 0 && (c == ' ' || c == '-' || c == '\'')) {
+        enumStr += ('' + enumPart + (c == ' ' ? ',' : c));
+        enumPart = 0;
+      }
+      if (exetLexicon.letterSet[c]) {
+        enumPart++;
+        solIndex++;
       }
     }
-  }
-  if (enumPart > 0) {
-    enumStr = enumStr + enumPart;
-  }
-  if (enumStr) {
-    enumStr = '(' + enumStr + ')';
-  }
-  if (this.requireEnums) {
-    const parsedEnum = this.puz.parseEnum(theClue.clue);
-    if (parsedEnum.enumStr != enumStr) {
-      theClue.clue = theClue.clue.substr(0, parsedEnum.afterClue).trim() +
-        ' ' + enumStr;
-      changed = true;
+    if (enumPart > 0) {
+      enumStr = enumStr + enumPart;
+    }
+    if (enumStr) {
+      enumStr = '(' + enumStr + ')';
+    }
+    if (this.requireEnums) {
+      const parsedEnum = this.puz.parseEnum(theClue.clue);
+      if (parsedEnum.enumStr != enumStr) {
+        theClue.clue = theClue.clue.substr(0, parsedEnum.afterClue).trim() +
+          ' ' + enumStr;
+        changed = true;
+      }
     }
   }
   if (changed && updateIfChanged) {
@@ -7416,12 +7492,6 @@ Exet.prototype.choiceDisplayHTML = function(choice) {
 Exet.prototype.updateFillChoices = function() {
   let ci = this.currClueIndex();
   if (!ci) {
-    return;
-  }
-  if (this.lightHasRebusContent(ci)) {
-    this.lChoices.innerHTML =
-        '<tr><td><i>Grid-fill disabled for this entry (contains a rebus cell)</i></td></tr>';
-    this.lRejects.innerHTML = '';
     return;
   }
   const gridClue = this.puz.clues[ci];
