@@ -827,7 +827,8 @@ Exet.prototype.walkLightKey = function(cells, grid, key, visitor) {
     const gridCell = grid[cells[i][0]][cells[i][1]];
     const fixed = this.cellFixedContent(gridCell);
     if (fixed.length > 1) {
-      if (key.substr(ki, fixed.length) != fixed) {
+      const slice = key.slice(ki, ki + fixed.length).join('');
+      if (slice != fixed) {
         return false;
       }
       ki += fixed.length;
