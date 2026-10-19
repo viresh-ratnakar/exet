@@ -404,7 +404,7 @@ ExetFillState.prototype.resetViability = function() {
         exet.noProperNouns,
         exet.indexMinPop,
         false, exet.preflexByLen, exet.unpreflexSet,
-        exet.getLightRegexpC(ci));
+        exet.lightRegexpsC[ci] ?? null);
     theClue.lChoices = choices;
     theClue.lRejects = [];
     if (choices.length > 0) {
@@ -426,7 +426,7 @@ ExetFillState.prototype.resetViability = function() {
         exet.noProperNouns,
         exet.indexMinPop,
         exet.tryReversals, exet.preflexByLen, exet.unpreflexSet,
-        exet.getLightRegexpC(ci));
+        exet.lightRegexpsC[ci] ?? null);
     theClue.lRejects = [];
   }
 }

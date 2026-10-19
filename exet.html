@@ -40,7 +40,6 @@ exetConfig = {
     {url: "https://onelook.com/thesaurus/?s=", name: "Onelook"},
     {url: "https://api.dictionaryapi.dev/api/v2/entries/en/",
      name: "DictionaryAPI"},
-    {url: "https://www.etymonline.com/search?q=", name: "Etymonline"},
     {name: "separator"},
     // The next link only shows definitions in published cryptic crosswords,
     // not the clues themselves, by choice.
@@ -51,6 +50,9 @@ exetConfig = {
     {url: "https://fodder.ing/?w=",
      noPunct: true,
      name: "Definition and wordplay ideas from fodder.ing"},
+    {url: "https://data.puzzmo.com/xwd/words?q=",
+     noPunct: true,
+     name: "Definitions in published crosswords from Puzzmo"},
     {name: "separator"},
     {url: "https://thefreedictionary.com/", newTab: true, name: "The Free Dictionary"},
     {url: "https://chambers.co.uk/search/?title=21st&query=",
@@ -67,7 +69,10 @@ exetConfig = {
      name: "Merriam-Webster Thesaurus"},
     {url: "https://crosswordtracker.com/answer/",
      newTab: true, noPunct: true,
-     name: "Definitions from crosswordtracker.com"},
+     name: "Definitions in published crosswords from crosswordtracker.com"},
+    {url: "https://www.etymonline.com/search?q=",
+     newTab: true,
+     name: "Etymonline"},
   ],
   extraTabs: [
     {
@@ -203,17 +208,17 @@ exetConfig = {
 };
 </script>
 
-<script src="exolve-m.js?v1.73.2"></script>
-<script src="exolve-from-puz.js?v1.73.2"></script>
-<script src="exolve-from-ipuz.js?v1.73.2"></script>
-<script src="exolve-to-puz.js?v1.73.2"></script>
-<script src="exolve-to-ipuz.js?v1.73.2"></script>
-<script src="exolve-exost.js?v1.73.2"></script>
-<script src="exet-analysis.js?v1.08"></script>
-<script src="exet-storage.js?v1.08"></script>
-<script src="exet.js?v1.08"></script>
-<script src="exet-autofill.js?v1.08"></script>
-<script src="exet-lexicon.js?v1.08"></script>
+<script src="exolve-m.js?v1.74.2"></script>
+<script src="exolve-from-puz.js?v1.74.2"></script>
+<script src="exolve-from-ipuz.js?v1.74.2"></script>
+<script src="exolve-to-puz.js?v1.74.2"></script>
+<script src="exolve-to-ipuz.js?v1.74.2"></script>
+<script src="exolve-exost.js?v1.74.2"></script>
+<script src="exet-analysis.js?v1.09"></script>
+<script src="exet-storage.js?v1.09"></script>
+<script src="exet.js?v1.09"></script>
+<script src="exet-autofill.js?v1.09"></script>
+<script src="exet-lexicon.js?v1.09"></script>
 
 <title>Exet: Create a crossword</title>
 

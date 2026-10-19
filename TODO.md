@@ -1,3 +1,22 @@
+- [ ] Bolding in preflex has disappeared??
+- [ ] Copy preflex to the next revision if it doesn't have it. Encode preflex incremetally to save space.
+- [ ] Option to limit "s"-ending entries.
+- [ ] Better support for US-style enum-free puzzles. Remove the "show enums" save option (use xlv.hasEnums)
+- [ ] Use tentative (gray) entries in all wordplay and research (can be useful to judge whether to accept or not).
+- [ ] Detect through-cuts for each quadrant too
+- [ ] Custom lexicons
+    - Store each one in indexedDB, also store the default lufz lexicon. What gets stored
+      is basically all the info in lufz\*.js.
+    - To compute this stuff, we use a background Worker thread
+    - So, before we can read a new custom lexicon from a file, we need the Worker to
+      be ready. It is told to load the default and then it signals when it has it
+      loaded. Meanwhile, the main thread stores the unindexed lexicon and scores in
+      the indexedDB. Then it tells the worker thread. Finally, the worker thread
+      communicates back to the main thread that it has stored the full data.
+    - Then (and in general, to load a lexicon that is fully baked in indexedDB),
+      the main thread simply reads it and calls exetLexiconInit().
+    - Before starting the worker thread, the main thread stores the default lexicon
+      into the db if the version there is stale.
 - [ ] Code docs/cleanups
   - [ ] Move all styling to CSS
   - [ ] Make README.md more complete

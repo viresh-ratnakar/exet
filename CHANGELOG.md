@@ -1,5 +1,19 @@
 # Changelog
 
+### Exet v1.09, October 18, 2026
+
+- Allow preflexes to have bar-separated lines like "beatles|floyd", letting you
+  create groups of preferred entries our of which at most one can be used in
+  the grid.
+- Remember and reuse the last research tab selection as we navigate from light
+  to light.
+- Add an "Edit regexp constraints" entry to the Edit menu. It brings up a panel
+  for editing any of the light regexps in a single view. Remoce the per-light
+  regexp constraint editing option.
+- In the above panel, allow using "macros" -- convenient shorthands for regexp
+  bits that can be reused across multiple lights. See README.md for details.
+- Add Puzzmo to the Research tab
+
 ### Exet v1.08.1, August 19, 2026
 
 - Changes from ianfhunter: add support for jumping through most constrained
