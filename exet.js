@@ -6722,7 +6722,7 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
         this.noProperNouns,
         this.indexMinPop,
         false, this.preflexByLen, this.unpreflexSet,
-        this.lightRegexpC[ci] ?? null);
+        this.lightRegexpsC[ci] ?? null);
     if (choices.length > 0) {
       let p = choices[0];
       console.assert(p > 0, p);

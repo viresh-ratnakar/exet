@@ -1,5 +1,9 @@
 # Changelog
 
+### Unnumbered bug fix
+
+- Typo: lightRegexpC should be ligjtRegexpsC
+
 ### Exet v1.09, October 18, 2026
 
 - Allow preflexes to have bar-separated lines like "beatles|floyd", letting you
