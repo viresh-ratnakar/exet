@@ -1,5 +1,10 @@
 # Changelog
 
+### Exet v1.09.1, October 21, 2026
+
+- Set showNinasOnRevealAll in Exolve, as it no longer does that by default,
+  but from Exet we do want to show ninas.
+
 ### Unnumbered bug fix
 
 - Typo: lightRegexpC should be ligjtRegexpsC

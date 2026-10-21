@@ -257,6 +257,7 @@ Exet.prototype.renderPreview = function(spec, eltId) {
         `${newPuz.prefix}-controls-etc`).style.display = 'none';
     document.getElementById(
         `${newPuz.prefix}-clear-area`).style.display = 'none'
+    newPuz.showNinasOnRevealAll = true;
     newPuz.revealAll(false)
   } catch (err) {
     console.log(err);
@@ -451,6 +452,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.puz = puz;
   puz.useWebifi = false;
   puz.hltOverwrittenMillis = 0;
+  puz.showNinasOnRevealAll = true;
   puz.revealAll(false);
 
   if (!this.prefix && !this.suffix) {
@@ -3559,8 +3561,9 @@ Exet.prototype.download = function(solved=true) {
 Exet.prototype.printWindower = function(actionScript, solved) {
   const tempId = `tmp-xlv-${Math.random().toString(36).substring(2, 8)}`;
   const revealer = (solved ?
-      'pxlv.revealAll(false);' : 'pxlv.clearAll(false);') +
-      'pxlv.deactivator();';
+      'pxlv.showNinasOnRevealAll = true; pxlv.revealAll(false);' :
+      'pxlv.clearAll(false);') +
+    'pxlv.deactivator();';
   const html = '' +
         '<!DOCTYPE html>\n' +
         '<html lang="en">\n' +
@@ -5830,6 +5833,7 @@ Exet.prototype.killQuestion = function(idx, e) {
       this.puz.questionTexts.slice(idx + 1));
   this.remakeQuestionsList();
   this.puz.redisplayQuestions();
+  this.puz.showNinasOnRevealAll = true;
   this.puz.revealAll(false)
   e.stopPropagation();
   exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
