@@ -7,10 +7,86 @@ See the full Exet license notice in exet.js.
 */
 
 /**
- * Code related to managing localStorage and IndexedDB for Exet.
- * localStorage is stored for puzzle revisions state and IndexedDB
- * is used for custom lexicons (word lists).
+ * Code related to managing localStorage for Exet, used for puzzle revisions
+ * states.
  */
+
+Exet.prototype.getLocalStorageUsed = function() {
+  let s = 0;
+  for (let idx = 0; idx < window.localStorage.length; idx++) {
+    const id = window.localStorage.key(idx);
+    s += window.localStorage.getItem(id).length;
+  }
+  return s;
+}
+
+Exet.prototype.getLocalStorageLeft = function() {
+  let k500 = '1234567812345678';
+  while (k500.length < 500000) {
+    k500 = k500 + k500;
+  }
+  const tempKey = '42-exet-cap-42-';
+  const limit = 20;
+  let s = 0;
+  for (let i = 0; i < limit; i++) {
+    // Only count up to 10 MB
+    try {
+      window.localStorage.setItem(tempKey + i, k500);
+      s += k500.length;
+    } catch (err) {
+      break;
+    }
+  }
+  for (let i = 0; i < limit; i++) {
+    window.localStorage.removeItem(tempKey + i);
+  }
+  return s;
+}
+
+Exet.prototype.inMB = function(num) {
+  return (num / 1000000).toFixed(2)
+}
+
+Exet.prototype.checkLocalStorage = function() {
+  this.lsUsed = this.getLocalStorageUsed();
+  if (this.lsUsedAtStart < 0) {
+    this.lsUsedAtStart = this.lsUsed;
+    this.lsLeftAtStart = this.getLocalStorageLeft();
+  }
+  const lsFree = this.lsUsedAtStart + this.lsLeftAtStart - this.lsUsed;
+  this.lsUsedSpan.innerText = this.inMB(this.lsUsed);
+  this.lsFreeSpan.innerText = this.inMB(lsFree);
+  const oldWasAmple = this.lsLeftIsAmple;
+  this.lsLeftIsAmple = (lsFree > 50000);
+  this.lsFreeSpan.style.color = this.lsLeftIsAmple ? 'inherit' : 'red';
+  if (this.lsLeftIsAmple && !oldWasAmple) {
+    exetRevManager.saveRev(exetRevManager.REV_RESAVE);
+  }
+  return this.lsLeftIsAmple;
+}
+
+/**
+ * Returns the status from checkLocalStorage()
+ */
+Exet.prototype.checkStorage = function() {
+  const warnings = [];
+  const backupOK = this.checkBackup();
+  if (!backupOK) {
+    warnings.push('Last back-up is quite stale, please save a new one.');
+  }
+  const lsOK = this.checkLocalStorage();
+  if (!lsOK) {
+    warnings.push('Local Storage is running low, please delete some older puzzle revisions.');
+  }
+  if (warnings.length > 0) {
+    this.storageHeading.style.color = 'red';
+    this.storageHeading.title = warnings.join(' ');
+  } else {
+    this.storageHeading.style.color = 'inherit';
+    this.storageHeading.title = 'Manage local storage, back up crosswords to file.';
+  }
+  return lsOK;
+}
 
 function ExetRev(id, title, revNum, revType, timestamp, details="") {
   this.id = id;
@@ -26,6 +102,7 @@ function ExetRevManager() {
   this.REV_LOADED_FROM_FILE = 1;
   this.REV_CREATED_BLANK = 2;
   this.REV_CREATED_AUTOBLOCK = 3;
+  this.REV_CREATED_AUTOBAR = 4;
   this.REV_JUMPED_TO_REV = 10;
   this.REV_GRID_CHANGE = 20;
   this.REV_LIGHT_REVERSAL = 24;
@@ -44,6 +121,8 @@ function ExetRevManager() {
   this.revMsgs[this.REV_CREATED_BLANK] = "Created a blank grid";
   this.revMsgs[this.REV_CREATED_AUTOBLOCK] = "Created a blank grid " +
       "with automagic blocks";
+  this.revMsgs[this.REV_CREATED_AUTOBAR] = "Created a blank grid " +
+      "with automagic bars";
   this.revMsgs[this.REV_JUMPED_TO_REV] = "Jumped to a previous revision";
   this.revMsgs[this.REV_GRID_CHANGE] = "Grid change";
   this.revMsgs[this.REV_LIGHT_REVERSAL] = "Light reversal";

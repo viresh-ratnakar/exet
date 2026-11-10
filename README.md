@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.09.1, October 21, 2026
+#### Version: Exet v1.10, November 10, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -36,6 +36,7 @@ These are all the files needed from this repository:
     - [`exet-brazilian.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-brazilian.html),
     - [`lufz-pt-br-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-pt-br-lexicon.js),
 - [`exet.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.js),
+- [`exet-grid-edits.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-grid-edits.js),
 - [`exet-autofill.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-autofill.js),
 - [`exet-analysis.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-analysis.js),
 - [`exet.css`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.css),
@@ -258,35 +259,103 @@ made by Debsamita Basu.
 
 ### Constructing the grid
 
-The "New" menu allows you to start with several "new grid" options:
+The "New" menu allows you to start with several "new grid" options (many of
+them use "automagic" block/bar addition, which is explained in detail later):
 
+- New US-style doubly checked grid (with blocks added)
+  - This creates a U.S.-style crossword (each square is doubly checked), with
+    blocks added automagically to create a reasonable grid. You can always
+    edit it further by adding or removing blocks or using the
+    add-automagic-blocks Edit menu option.
 - New blocked lattice grid (with blocks added)
   - This allows you to create one of four variants of a chequered grid, wih
-    blocks added to create a reasonable grid. You can always edit it further
-    by adding or removing blocks. This is the standard blocked grid used
-    in "commonwealth" puzzles (i.e., non-U.S.-style).
+    blocks added automagically to create a reasonable grid. You can always
+    edit it further by adding or removing blocks or using the
+    add-automagic-blocks Edit menu option. This is the standard blocked grid
+    type used in "commonwealth" puzzles (i.e., non-U.S.-style).
 - New blocked lattice grid (no added blocks)
   - This allows you to create one of four variants of a chequered grid, wih
     no further blocks added. You can add blocks to such a grid manually or
-    "automagically" at any later point in time.
-- New US-style doubly checked grid (with blocks added)
-  - This creates a U.S.-style crossword (each square is doubly checked), with
-    blocks added to create a reasonable grid. You can always edit it further
-    by adding or removing blocks.
+    manually or automagically at any later point in time.
 - New blank grid (add blocks/bars later)
   - This is a completely blank grid to which you would manually add blocks
-    or bars (or both). For barred grids, or for blocked grids that you want
-    to craft yourselves, this is where you should start. A sub-menu lets You
-    choose whether you want the grid to be a U.S.-style puzzle without enums.
+    or bars (or both). A sub-menu lets you choose whether you want the grid to
+    be a U.S.-style puzzle without enums.
+- New barred grid
+  - A new barred grid is created, with automagically added bars. You can always
+    edit it further by adding or removing bars or using the add-automagic-bars
+    Edit menu option.
+- New 3-D grid
+  - A new 3-D grid is created. In a 3-D grid, there are multiple "layers," with
+  "down" clues running through the layers and "across" and "away" clues within
+  the layers. See the
+  [Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
+  for details on 3-D crosswords.
 
-After creating a grid, you can customize it by manually adding/removing
-blocks/bars, or by letting the software "automagically" add blocks.
+#### Toggling blocks/bars
 
-You can also create a 3-D grid from the "New" menu. In a 3-D grid, there are
-multiple "layers," with "down" clues running through the layers and "across"
-and "away" clues within the layers. See the
-[Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
-for details on 3-D crosswords.
+From the Edit menu, or using the special keys `.`, `_`, and `|`, you can
+toggle blocks ans bars in the grid. This manual editing should be done
+carefully, to ensure that the grid adheres to expected standards (which
+you can do by checking the Analysis report). Better approaches for grid
+creation are "Build grid assistively" and "Add automagic blocks/bars",
+described in the next sub-section.
+
+When you add or remove blocks/bars, that invalidates all the lights
+whose lists of cells changes as a result of the modification. Other lights
+may be impacted only with a number change (other than that impact, they
+continue their previous state made up of any existing clues, linked
+group memberships, regexp constraints). Invalidated lights get reset (they
+lose any existing clues, regexp constraints, and any linked groups that
+they were a part of get broken up).
+
+#### Build grid assistively
+
+You can get assistance in grid-building through the "Build grid assistively"
+interface, accessible from the Edit menu. In this interface, you're shown
+candidate locations for blocks/bars. The candidates are scored based upon grid
+validity and fill-viability (darker green suggestions are better). You can
+click on a suggested block/bar to put it into the grid (one nuance is that you
+can click on any suggestions _except_ the one in the currently active cell; but
+you can easily work around that by first navigating away from that cell).
+
+You can also fill lights/cells with letters while in this interface (but you
+cannot edit clues). The suggested block/bar locations get updated after each
+grid/fill revision. You can also choose to toggle a bar/block in any cell using
+the Edit menu (but you cannot add automagic blocks/bars). You can exit the
+interface by clicking on the Exit button within the interface, or by pressing
+the Escape key.
+
+For experts wishing to create themed grids, this might be the best option.
+Note that if you have provided "preferred entries" then they are taken
+into account when suggesting candidate locations for blocks/bars.
+
+#### Add automagic blocks/bars
+
+When you create a new grid with automagically added blocks/bars, or when you
+use the Edit menu option (or special keys `#` for blocks and `+` for bars),
+the software automatically adds blocks/bars to the current grid, while
+ensuring that the grid remains valid (in terms of connectivity, unches, etc.)
+and prioritizing fill-viability.
+
+This is generally the best option if you don't have a strong preference on
+shaping grid design.
+
+The first time this option is used (from the Edit menu, or when a new grid
+is created), it targets a certain number of lights, heuristically chosen.
+You can use "Add automagic blocks/bars" repeatedly even after that first
+use. On the subsequent calls, it only mutates the grid minimally on each
+call.
+
+"Add automagic blocks" adds blocks while maintaining the British chequered
+format (that has no consecutive unchecked cells) or the American format (that
+has all cells checked), whichever of the two formats is the state of the grid
+at that time.
+
+More details on automagic blocks/bars are
+[provided in the appendix](#automagic-blocks-bars).
+
+### Open menu
 
 The "Open" menu lets you open previously created crosswords, or return to
 an older revision of the current crossword, or open an Exolve file or a
@@ -295,14 +364,19 @@ in the Exolve format, the software remembers the HTML part that comes before
 and after the Exolve part, and will replicate it whenever you save again
 in the Exolve format.
 
+### Edit menu
+
 Next to the "Open" menu is the "Edit" menu, useful for tweaking the grid,
 autofilling it, and adding/modifying crossword features such as ninas:
 
-- Toggle block (.)
-- Add automagic blocks (#)
-- Toggle barred cell:
+- Toggle block in cell (.)
+- Toggle bar in cell:
   - Toggle bar-after (|)
   - Toggle bar-under (\_)
+- Build grid assistively
+  - _Leads to an interactive grid-builder interface._
+- Add automagic blocks (#)
+- Add automagic bars (+)
 - Autofill
   - _Leads to an autofill options panel._
 - Accept autofilled entries (=)
@@ -326,27 +400,13 @@ autofilling it, and adding/modifying crossword features such as ninas:
   - \[ \] Spellcheck clues/annos
   - \[ \] Allow asymmetry
 
-For the actions that modify the grid in non-cosmetic ways (.|\_), symmetric
-changes are automatically applied to the other end of the grid. This can be
-turned off by checking the "Allow asymmetry" checkbox in the
+For the actions that modify the grid in non-cosmetic ways (`.`, `|`, `_`),
+symmetric changes are automatically applied to the other end of the grid. This
+can be turned off by checking the "Allow asymmetry" checkbox in the
 "Edit &rarr; Preferences:" submenu. The chosen setting for this toggle will
 persist for that particular crossword (but will reset to the default of
-enforcing symmetry for a new crossword).
-
-"Add automagic blocks" essentially adds some blocks to the grid, while
-maintaining the British chequered format (that has no consecutive unchecked
-cells) or the American format (that has all cells checked), whichever of the
-two formats is the state of the grid at that time. "Add automagic blocks"
-can be used repeatedly. More details on what "Add automagic blocks" does
-are [provided in the appendix](#automagic-blocks).
-
-When you add or remove blocks/bars, that invalidates all the lights
-whose lists of cells changes as a result of the modification. Other lights
-may be impacted only with a number change (other than that impact, they
-continue their previous state made up of any existing clues, linked
-group memberships, regexp constraints). Invalidated lights get reset (they
-lose any existing clues, regexp constraints, and any linked groups that
-they were a part of get broken up).
+enforcing symmetry for a new crossword). The "Allow asymmetry" preference
+is also respected by "Build grid assistively" and "Add automagic blocks/bars".
 
 #### Reversing the current light
 When you choose the option to reverse a light from the Edit menu, the
@@ -1187,6 +1247,8 @@ properties of crosswords:
   vertical and horizontal through cut sizes to be at least 4, in 15x15
   grids. You can see the specific cells highlighted when you hover over
   a through-cut in the Analysis panel.
+- There should not be too many consecutive blocks/bars along any direction.
+  We limit to at most 2 consecutive bars and at most 4 consecutive blocks.
 - Solution entry length distributions should not be too skewed towards
   very short or very long.
 - Words (other than very common ones) should not be repeated in clues,
@@ -1213,6 +1275,8 @@ Here is an illustrative example of the kinds of analyses shown:
 > - Smallest "through cuts" found (hover over the lists to see the squares highlighted in the grid):
 >   - Vertical: (4 squares): \[r13c8 r9c8 r7c8 r3c8\]
 >   - Horizontal: (3 squares): \[r7c4 r8c8 r9c12\]
+> - Num-unches + light-lengths distribution
+    - (This is only shown for barred grids)
 > 
 > **All/Across/Down Grid-fill and Clues**
 > 
@@ -1470,40 +1534,53 @@ to be very relevant to some recent action that you took.
 
 ## Appendix
 
-### Automagic blocks
+### Automagic blocks/bars
 
-Here's what "Add automagic blocks" does, in detail (whether you use it when
+Here's what "Add automagic blocks/bars" does, in detail (whether you use it when
 creating a new blank grid or whether you invoke it on an existing grid):
-- It ensures that any added blocks continue to maintain symmetry and continue
-  to maintain full cell connectivity (i.e., there is a path from every white
-  cell to every other white cell, going through white cells only).
-- First, it looks at what kind of grid is being used or created: if an existing
-  grid has barred cells, then "Add automagic blocks" does not make any changes.
-- It makes 0 or 1 random change to each row, and then 0 or 1 random change to
-  each column, while maintaining certain grid properties as listed below.
-  The rows and columns are visited in shuffled order to better randomize the
-  created grids.
+- It ensures that any added blocks/bars continue to maintain full cell
+  connectivity (i.e., there is a path from every light cell to every other light
+  cell, going through light cells only).
+- It generates a list of potential mutations that keep the grid design viable,
+  and scores them using heuristics for fillability (taking preferred entries
+  int account, if any).
 - If an existing grid is of the American variety with every white square
   being a part of an across light as well as a down light (i.e., is "checked"),
   then, ensure that:
   - Every light is at least 3 letters in length.
   - Every white square is checked.
+  - There are at most 4 consecutive horizontal or vertical blocks.
   - (Note that when you choose the "No blocks" menu choice while creating a new
     blank grid, "Add automagic blocks" will create an American grid variety.)
-- Else, if an existing grid is of the British variety where the grid is
+- Else, if an existing grid is of the blocked British variety where the grid is
   chequered but there are no two adjacent unchecked cells, then, ensure that:
   - Every light is at least 4 letters in length.
   - There are no two adjacent unchecked cells.
+  - There are at most 4 consecutive horizontal or vertical blocks.
   - Lights have fewer than or equal to as many unchecked cells as checked cells,
     unless they have 9 or more letters, in which case they can have one more
     unchecked cell than checked cells.
-  - (Note that when you choose any of the chequered choices while creating a new
-    blank grid, "Add automagic blocks" will create a British grid variety.)
+- Else, if an existing grid is of the barred variety, then ensure that:
+  - Every light is at least 4 letters in length.
+  - There are no two adjacent unchecked cells.
+  - There are at most 2 consecutive horizontal or vertical bars.
+  - The number of unchecked cells `u` in a light of length `n` has these
+    limits:
+    | `n`     | `max u`     |
+    |---------|-------------|
+    | `<= 5`  | `1`         |
+    | `<= 7`  | `2`         |
+    | `<= 9`  | `3`         |
+    | `<= 12` | `4`         |
+    | `> 12`  | `ceil(n/3)` |
 - No cell where you've already entered a grid-fill letter will be turned into a
-  block.
+  block. No consecutive group of filled cells that was not already a light will
+  be turned into a light.
+- Symmetry is maintained, unless the "Allow asymmetry" preference has been
+  selected in the Edit menu.
 - The above procedure loops until a heuristically-determined minimum number of
-  lights is reached, when a new grid is being created. There is no target set
-  if you use the "Edit > Add automagic blocks" option.
+  lights is reached. The procedure can be repeated (the limit is successively
+  raised, until no more blocks/bars can be added).
 
 ### Autofill algorithm
 

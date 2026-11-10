@@ -562,10 +562,20 @@ body {
 .xet-analysis li {
   margin-top: 14px;
 }
+.xet-plotbar-red,
 .xet-plotbar {
-  background: dodgerblue;
   height: 16px;
   margin: 2px;
+}
+.xet-plotbar-red {
+  background: brown;
+}
+.xet-plotbar {
+  background: dodgerblue;
+}
+.xet-suggestion {
+  cursor: pointer;
+  z-index: 4;
 }
 #xet-tips .xlv-small-button {
   margin: 4px;
@@ -698,6 +708,13 @@ body {
   animation-duration: 2s;
   animation-direction: alternate;
   animation-iteration-count: infinite;
+}
+.xet-grid-building-panel {
+  outline: 2px solid darkgreen;
+  position: absolute;
+  background-color: #D1F9D1;
+  border-radius: 4px;
+  z-index: 10;
 }
 .xet-preflex-entry {
   color: green;

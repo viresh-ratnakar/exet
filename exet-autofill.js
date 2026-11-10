@@ -226,7 +226,7 @@ ExetFillState.prototype.getGridExolve = function(id) {
       const gridCell = this.grid[i][j];
       let entry = '.';
       if (gridCell.isLight) {
-        entry = '?';
+        entry = gridCell.currLetter ?? '?';
         entry += (gridCell.hasBarAfter && gridCell.hasBarUnder ?
                               '+' : (gridCell.hasBarAfter ?
                               '|' : (gridCell.hasBarUnder ? '_' : '')));
@@ -350,7 +350,7 @@ ExetFillState.prototype.killInvalidatedClues = function() {
     theClue.reversed = oldClue.reversed;
     if (isReversed[newCi]) {
       theClue.reversed = !theClue.reversed;
-      theClue.solution = '';  // will be recomputed by updatePuzzle().
+      theClue.solution = '';
     }
     if (oldClue.parentClueIndex) {
       console.assert(getsRelocated[oldClue.parentClueIndex], oldClue);
@@ -358,6 +358,25 @@ ExetFillState.prototype.killInvalidatedClues = function() {
       // Update "See XX"
       theClue.clue = exet.remapDisplayLabel(
           oldClue.clue, oldClue.dir, fullNewLabels);
+    }
+  }
+  for (const newCi in newPuz.clues) {
+    newPuz.setClueSolution(newCi);
+    if (!this.clues.hasOwnProperty(newCi)) {
+      this.clues[newCi] = newPuz.clues[newCi];
+      const newClue = this.clues[newCi];
+      console.assert(!newClue.clue, newCi);
+      newClue.clue = exet.draftClue(newCi, newPuz);
+      console.assert(!newClue.displayLabel, newCi);
+      newClue.displayLabel = newClue.label;
+    } else {
+      const newClue = this.clues[newCi];
+      if (!newClue.solution && !newClue.parentClueIndex) {
+        newClue.solution = newPuz.clues[newCi].solution;
+      }
+      if (!newClue.cells || newClue.cells.length == 0) {
+        newClue.cells = newPuz.clues[newCi].cells;
+      }
     }
   }
 
@@ -495,13 +514,14 @@ ExetFillState.prototype.setScore = function(autofill) {
       }
       if (fillCell.viability <= 0) {
         this.unfilled.push([i, j, fillCell.viability]);
-        this.scoreV = - Number.MAX_VALUE;
-        this.score = this.scoreV;
         this.viable = false;
+        this.scoreV = - Number.MAX_VALUE;
+        this.score = - Number.MAX_VALUE;
         return;
+      } else {
+        this.scoreV += Math.log(fillCell.viability);
+        this.unfilled.push([i, j, fillCell.viability]);
       }
-      this.scoreV += Math.log(fillCell.viability);
-      this.unfilled.push([i, j, fillCell.viability]);
     }
   }
   this.numLettersUsed = Object.keys(this.lettersUsed).length;
@@ -551,11 +571,51 @@ ExetFillState.prototype.setScore = function(autofill) {
   this.score += this.scoreF;
 }
 
+ExetFillState.prototype.getScoreForGridding = function() {
+  this.resetViability();
+  for (let s = 0; s < 2; s++) {
+    exet.refineLightChoices(this, 2000);
+  }
+  let numLights = 0;
+  let numPrefLights = 0;
+  let totalChoices = 0;
+  const prefsCovered = new Set;
+  for (const ci in this.clues) {
+    const theClue = this.clues[ci];
+    if (theClue.parentClueIndex) {
+      continue;
+    }
+    numLights++;
+    totalChoices += theClue.lChoices.length;
+    let hasPrefs = false;
+    for (const p of theClue.lChoices) {
+      const absp = Math.abs(p);
+      if (exet.preflexSet[absp]) {
+        hasPrefs = true;
+        prefsCovered.add(absp);
+      } else {
+        break;
+      }
+    }
+    if (hasPrefs) numPrefLights++;
+  }
+  if (numLights == 0) return 0;
+  let score = (totalChoices / (numLights * 100));  /** O(10) */
+  if (numPrefLights > 0) {
+    score += (prefsCovered.size + numPrefLights);  /** O(10) */
+  }
+  return score;
+}
+
 /**
  * Is [r,c] a cell to be counted for a constrained pangram?
  * autofill should be an ExetAutofill object.
  */
 ExetFillState.prototype.pangramCell = function(r, c, autofill) {
+  if (r < 0 || c < 0 || !autofill ||
+      r >= this.gridHeight || c >= this.gridWidth) {
+    return false;
+  }
   const gridCell = this.grid[r][c];
   if (!gridCell.isLight) {
     return false;
@@ -772,11 +832,11 @@ class ExetAutofill {
     const analysis = new ExetAnalysis(
         exet.puz.grid, exet.puz.gridWidth, exet.puz.gridHeight, exet.puz.layers3d);
     this.barred = analysis.numBars() > 0;
-    this.doublyChecked = analysis.unchequeredOK(false);
+    this.doublyChecked = analysis.doublyCheckedOK(false);
     this.parityHasLightRow = [true, true];
     this.parityHasLightCol = [true, true];
-    this.chequered = analysis.chequeredOK(false);
-    if (this.chequered) {
+    this.maybeChequered = analysis.unchesOK(false);
+    if (this.maybeChequered) {
       analysis.getChequeredParity(this.parityHasLightRow, this.parityHasLightCol);
     }
 

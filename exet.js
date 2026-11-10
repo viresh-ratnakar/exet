@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v1.08, August 15, 2026
+Current version: v1.10, November 10, 2026
 */
 
 function ExetModals() {
@@ -49,6 +49,7 @@ function ExetModals() {
 };
 
 ExetModals.prototype.freezeUI = function(msg) {
+  this.unfreezeUI();
   this.uiFreezerMsg.innerHTML = msg;
   this.uiFreezer.style.display = '';
 }
@@ -56,14 +57,49 @@ ExetModals.prototype.freezeUI = function(msg) {
 ExetModals.prototype.unfreezeUI = function() {
   this.uiFreezerMsg.innerHTML = '';
   this.uiFreezer.style.display = 'none';
+  if (this.freezeUnfreezeTimer) {
+    clearTimeout(this.freezeUnfreezeTimer);
+    this.freezeUnfreezeTimer = null;
+  }
+}
+
+/**
+ * func must be a bound func if it is from an object. Keep calling func
+ * until it returns the empty string. When it does not, update the "freeze"
+ * displayed msg with the return string.
+ * Adds a button to the message to allow the user to quit.
+ */
+ExetModals.prototype.freezeCallUnfreeze = function(msg, func, ...args) {
+  const msgPlus = `
+  ${msg}
+  <button class="xlv-small-button" onclick="exetModals.unfreezeUI()">Stop</button>
+  `;
+  this.freezeUI(msgPlus);
+  this.freezeUnfreezeTimer = setTimeout(() => {
+    const m = func(...args);
+    if (m) {
+      this.freezeCallUnfreeze(m, func, ...args);
+    } else {
+      this.unfreezeUI();
+    }
+  }, 1);
+}
+
+ExetModals.prototype.handleEscape = function() {
+  if (this.modal) {
+    this.hide();
+  }
+  if (exet.gridBuildingMode) {
+    exet.exitGridBuildingMode();
+  }
 }
 
 ExetModals.prototype.handleClick = function(e) {
-  if (!this.modal) {
-    return
+  if (e.key == "Escape") {
+    this.handleEscape();
   }
-  if (!this.modal.contains(e.target) || e.key == "Escape") {
-    this.hide()
+  if (this.modal && !this.modal.contains(e.target)) {
+    this.hide();
   }
 }
 
@@ -90,7 +126,7 @@ ExetModals.prototype.hide = function() {
 }
 
 function Exet() {
-  this.version = 'v1.09, October 18, 2026';
+  this.version = 'v1.10, November 10, 2026';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -143,6 +179,12 @@ function Exet() {
   }
 
   /**
+   * Are we in assistive grid-building mode, where automagic suggestions are
+   * shown for blocks/bars (and clue-editing is disabled).
+   */
+  this.gridBuildingMode = false;
+
+  /**
    * Max lengths of preferred/disallowed word lists.
    */
   this.MAX_PREFLEX = 50000;
@@ -180,7 +222,7 @@ function Exet() {
 
   // Params for light choices shown.
   this.sweepMaxChoices = 5000;
-  this.sweepMaxChoicesSmall = 4;
+  this.sweepMaxChoicesSmall = 1000;
   this.shownLightChoices = 200;
 
   /**
@@ -519,7 +561,7 @@ Exet.prototype.setPuzzle = function(puz) {
   this.exolveOtherSec = this.exolveOtherSec.trim();
 
   if (gridFillChanges) {
-    this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE)
+    this.updatePuzzle(0);
     return;
   }
 
@@ -547,7 +589,7 @@ Exet.prototype.setPuzzle = function(puz) {
     this.renderClue(clue);
   }
   if (clueChanges) {
-    this.updatePuzzle(exetRevManager.REV_CLUE_CHANGE)
+    this.updatePuzzle(0);
     return;
   }
 
@@ -775,8 +817,7 @@ Exet.prototype.setPuzzle = function(puz) {
   }
 
   // Display sweeping activity indicator
-  const gridParent = document.getElementById(`${this.puz.prefix}-grid-parent`);
-  gridParent.insertAdjacentHTML('beforeend',
+  this.puz.gridParent.insertAdjacentHTML('beforeend',
     `<div class="xet-sweeping-box"
        title="When there is a flashing red circle here, Exet is ` +
        'autofilling and/or pruning away non-viable grid-fill suggestions ' +
@@ -863,6 +904,15 @@ Exet.prototype.makeExetTab = function() {
             </div>
           </div>
           <hr>
+          <div class="xet-dropdown-item"
+              title="Doubly checked U.S.-style blocked grid with already added blocks that you can modify as needed"
+                onclick="exetBlank(document.getElementById('xet-w').value, ` +
+                  `document.getElementById('xet-h').value, 1, ` +
+                  `document.getElementById('xet-id').value, ` +
+                  `true, false, false, false, false);">
+              New U.S.-style doubly-checked grid (with blocks added)
+          </div>
+          <hr>
           <div class="xet-dropdown-div" style="padding-bottom:0"
               title="Chequered grid with already added blocks that you can modify as needed">
             New blocked lattice grid (with blocks added):
@@ -903,7 +953,7 @@ Exet.prototype.makeExetTab = function() {
           </div>
           <hr>
           <div class="xet-dropdown-div" style="padding-bottom:0"
-              title="Starting point for a chequered grid to which you will manually add blocks">
+              title="Starting point for a chequered grid to which you will manually add blocks (try 'Edit > Build grid assistively')">
             New blocked lattice grid (no added blocks):
             <div class="xet-controls-row">
               <div class="xet-dropdown-item"
@@ -942,16 +992,7 @@ Exet.prototype.makeExetTab = function() {
           </div>
           <hr>
           <div class="xet-dropdown-item"
-              title="Doubly checked U.S.-style blocked grid with already added blocks that you can modify as needed"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                  `document.getElementById('xet-h').value, 1, ` +
-                  `document.getElementById('xet-id').value, ` +
-                  `true, false, false, false, false);">
-              New U.S.-style doubly-checked grid (with blocks added)
-          </div>
-          <hr>
-          <div class="xet-dropdown-item"
-              title="Blank starting-point-grid for a blocked or barred grid to which you will manually add blocks/bars">
+              title="Blank starting-point-grid for a blocked or barred grid to which you will manually add blocks/bars (try 'Edit > Build grid assistively')">
             New blank grid (add blocks/bars later), choose style:
             <div class="xet-dropdown-submenu">
               <div class="xet-dropdown-subitem"
@@ -967,6 +1008,43 @@ Exet.prototype.makeExetTab = function() {
                     `document.getElementById('xet-id').value, ` +
                     `false, false, false, false, false);">
                 Without enums (U.S.-style)
+              </div>
+            </div>
+          </div>
+          <hr>
+          <hr>
+          <div class="xet-dropdown-item">
+            New barred grid:
+            <div class="xet-dropdown-submenu">
+              <div style="padding:4px;text-align:center">
+                <div>
+                  <label for="xet-barred-w">Width:</label>
+                  <input id="xet-barred-w" name="xet-barred-w" value="12"
+                    type="text" size="3" maxlength="3" placeholder="W">
+                  </input>
+                  &times;
+                  <label for="xet-barred-h">Height:</label>
+                  <input id="xet-barred-h" name="xet-barred-h" value="12"
+                    type="text" size="3" maxlength="3" placeholder="H">
+                  </input>
+                </div>
+                <br>
+                <div>
+                  Unique ID:
+                  <input id="xet-barred-id" name="xet-barred-id"
+                    value="xet-${Math.random().toString(36).substring(2, 8)}"
+                    title="Please change to a meaningful alphanumeric id (beginning with a letter) to identify easily later"
+                    type="text" size="15" maxlength="30" placeholder="alphanumeric unique id">
+                  </input>
+                </div>
+              </div>
+              <hr/>
+              <div class="xet-dropdown-subitem"
+                  onclick="exetBlank(document.getElementById('xet-barred-w').value, ` +
+                    `document.getElementById('xet-barred-h').value, 1, ` +
+                    `document.getElementById('xet-id').value, ` +
+                    `true, false, false, false, true, true);">
+                Create new barred grid!
               </div>
             </div>
           </div>
@@ -1041,15 +1119,10 @@ Exet.prototype.makeExetTab = function() {
 
           <div title="Toggle whether the current cell is a block or not" ` +
               `class="xet-dropdown-item" onclick="exet.handleKeyDown('.')">
-            Toggle block (.)
-          </div>
-          <div title="Try to autmatically add random blocks while ` +
-              `maintaining a valid grid"
-              class="xet-dropdown-item" onclick="exet.handleKeyDown('#')">
-            Add automagic blocks (#)
+            Toggle block in cell (.)
           </div>
           <div class="xet-dropdown-item">
-            Toggle barred cell:
+            Toggle bar in cell:
             <div class="xet-dropdown-submenu">
               <div class="xet-dropdown-subitem"
                   title="Toggle bar after this cell"
@@ -1062,6 +1135,23 @@ Exet.prototype.makeExetTab = function() {
                 Toggle bar-under (_)
               </div>
             </div>
+          </div>
+
+          <hr>
+          <div class="xet-dropdown-item"
+              title="Interactively build grid, using automagic suggestions for good blocks/bars based upon fill-viability""
+              onclick="exet.enterGridBuildingMode()">
+            Build grid assistively
+          </div>
+          <div class="xet-dropdown-item"
+              title="Try to autmatically add random blocks while maintaining a valid grid"
+              onclick="exet.handleKeyDown('#')">
+            Add automagic blocks (#)
+          </div>
+          <div class="xet-dropdown-item"
+              title="Try to autmatically add random bars while maintaining a valid grid"
+              onclick="exet.handleKeyDown('+')">
+            Add automagic bars (+)
           </div>
 
           <hr>
@@ -1801,17 +1891,20 @@ Exet.prototype.stripInputLF = function(inp) {
   inp.innerText = inp.innerText.replace(/\n/g, ' ')
 }
 
-Exet.prototype.addStat = function(dict, stat, details) {
+Exet.prototype.addStat = function(dict, stat, details, bad=false) {
   if (!dict[stat]) {
     dict[stat] = {
       count: 0,
       details: ''
-    }
+    };
   }
-  dict[stat].count++
+  dict[stat].count++;
   if (details) {
-    if (dict[stat].details) dict[stat].details += ', '
-    dict[stat].details += details
+    if (dict[stat].details) dict[stat].details += ', ';
+    dict[stat].details += details;
+  }
+  if (bad) {
+    dict[stat].bad = true;
   }
 }
 
@@ -2073,15 +2166,47 @@ Exet.prototype.updateAnalysis = function(elt) {
   } else {
     html += '<li>No bars</li>';
   }
-  if (analysis.unchequeredOK(false)) {
+  let spanUnches = null;
+  if (analysis.doublyCheckedOK(false)) {
     html += '<li>Every light cell is checked</li>';
-  } else  if (analysis.chequeredOK(false, false)) {
+  } else  if (analysis.unchesOK(false, false)) {
     html += '<li>No consecutive unches</li>';
-    if (!analysis.chequeredOK(false, true)) {
+    if (!analysis.unchesOK(false, true)) {
       html += '<li class="xet-red"><i>Some lights shorter than 9 letters have &gt;50% unches</i></li>';
+    }
+    if (layers3d == 1) {
+      for (useBlocks of [true, false]) {
+        const limit = useBlocks ? 5 : 3;
+        if (useBlocks && analysis.numBlocks() < limit) continue;
+        if (!useBlocks && analysis.numBars() < limit) continue;
+        const name = useBlocks ? 'blocks' : 'bars';
+        for (const horiz of [true, false]) {
+          const span = analysis.maxCollinear(horiz, useBlocks);
+          if (span > limit) {
+            html += `<li class="xet-red"><i>Too many (${span}) consecutive collinear ${horiz ? "horizontal" : "vertical"} ${name}</i></li>`;
+          }
+        }
+      }
+      if (analysis.numBars() > 0) {
+        spanUnches = analysis.getSpanUnches();
+      }
     }
   } else {
     html += '<li class="xet-red"><i>Has consecutive unches</i></li>';
+  }
+
+  if (spanUnches) {
+    /** We get here only for barred grids with non-consecutive unches */
+    const stats = {};
+    let someBad = false;
+    for (const spanUnch of spanUnches) {
+      const key = `Unches: ${String(spanUnch[1]).padStart(2, '0')}, length: ${String(spanUnch[0]).padStart(2, '0')}`;
+      const details = spanUnch[3];
+      const bad = !spanUnch[4];
+      if (bad) someBad = true;
+      this.addStat(stats, key, details, bad);
+    }
+    html += `<li><span${someBad ? ' class="xet-red"' : ''}>Num-unches + light-lengths distribution</span>:<br>${this.plotStats(stats)}</li>`;
   }
 
   const throughCuts = analysis.minThroughCuts();
@@ -2235,10 +2360,11 @@ Exet.prototype.plotStats = function(stats) {
   for (let key of keys) {
     html += '<tr>';
     const ct = stats[key].count;
+    const cls = stats[key].bad ? 'xet-plotbar-red' : 'xet-plotbar';
     html += `<td style="text-align:right">${ct}</td><td>`;
     html += numeric ? 'of' : '&times;';
     html += `</td><td>${key}</td>`;
-    html += `<td><div class="xet-plotbar"
+    html += `<td><div class="${cls}"
             style="width:${BARMAX * stats[key].count / maxv}px"`;
     if (stats[key].details) {
       html += ` title="${stats[key].details}"`;
@@ -3846,17 +3972,24 @@ Exet.prototype.currLight = function() {
   return this.puz.clues[ci];
 }
 
-Exet.prototype.draftClue = function(ci) {
-  const clue = this.puz.clues[ci]
+/**
+ * Pass puz object for use when mutating grid and working
+ * with a different puz.
+ */
+Exet.prototype.draftClue = function(ci, puz=null) {
+  if (!puz) {
+    puz = this.puz;
+  }
+  const clue = puz.clues[ci];
   if (!clue) {
     return '';
   }
   if (clue.parentClueIndex) {
-    const parent = this.puz.clues[clue.parentClueIndex];
-    return 'See ' + this.puz.clueLabelDisp(parent);
+    const parent = puz.clues[clue.parentClueIndex];
+    return 'See ' + puz.clueLabelDisp(parent);
   }
   let ret = this.DRAFT + ' ' + this.CLUE_NOT_SET;
-  let cells = this.puz.getAllCells(ci);
+  let cells = puz.getAllCells(ci);
   if (cells.length > 0 && this.requireEnums) {
     ret += ' (' + cells.length + ')';
   }
@@ -5015,13 +5148,13 @@ Exet.prototype.makeClueEditable = function() {
     /** Old version of Exolve */
     nextprevSpanXlv.remove();
   }
-  let nextprevSpan = document.getElementById('xet-nextprev-span');
-  if (!nextprevSpan) {
-    nextprevSpan = document.createElement('span');
-    nextprevSpan.id = 'xet-nextprev-span';
+  this.xetNextPrevSpan = document.getElementById('xet-nextprev-span');
+  if (!this.xetNextPrevSpan) {
+    this.xetNextPrevSpan = document.createElement('span');
+    this.xetNextPrevSpan.id = 'xet-nextprev-span';
   }
-  this.puz.currClue.appendChild(nextprevSpan);
-  nextprevSpan.innerHTML = `
+  this.puz.currClue.appendChild(this.xetNextPrevSpan);
+  this.xetNextPrevSpan.innerHTML = `
       <button id="xet-clue-menu-button"
           style="padding: 1px 4px"
           title="Click to see more options for ${this.puz.clueLabelDisp(theClue)}."
@@ -5296,161 +5429,6 @@ Exet.prototype.shuffle = function(arr) {
   }
 }
 
-Exet.prototype.automagicBlocksInner = function(chequered, targetNumClues, showAlerts=true) {
-  const minSpan = chequered ? 4 : 3;
-  const grid = this.puz.grid;
-  const w = this.puz.gridWidth;
-  const wby2 = Math.ceil(w / 2);
-  const h = this.puz.gridHeight;
-  const hby2 = Math.ceil(h / 2);
-  const layers3d = this.puz.layers3d;
-
-  const analysis = new ExetAnalysis(grid, w, h, layers3d);
-  const minwhby2 = Math.min(wby2, hby2);
-
-  const rowcols = [];
-  for (let x = 0; x < minwhby2; x++) {
-    rowcols.push(["row", x]);
-    rowcols.push(["col", x]);
-  }
-  for (let i = minwhby2; i < hby2; i++) {
-    rowcols.push(["row", i]);
-  }
-  for (let j = minwhby2; j < wby2; j++) {
-    rowcols.push(["col", j]);
-  }
-  /**
-   * Randomize the order of rowcols.
-   */
-  this.shuffle(rowcols);
-
-  let totalChanges = 0;
-  let numClues = Object.keys(this.puz.clues).length;
-  /**
-   * Add a maxLoops limit because technically, the randomness couuld
-   * lead to a no-op in every loop. Also, loop at least once even if
-   * targetNumClues <= numClues.
-   */
-  const maxLoops = Math.max(1, (targetNumClues - numClues));
-  let loop = 0;
-  while (numClues < targetNumClues && (loop++ < maxLoops)) {
-    let numChanges = 0;
-    let numCandidates = 0;
-    for (rc of rowcols) {
-      let k1 = rc[1];
-      let isRow = (rc[0] == "row");
-      let symk1 = w - 1 - k1;
-      if (isRow) {
-        symk1 = h - 1 - k1;
-      }
-      const spans = isRow ? analysis.acrossSpans(k1) : analysis.downSpans(k1);
-      const candidates = [];
-      for (let span of spans) {
-        for (let x = minSpan; x < span[1] - minSpan; x++) {
-          let k2 = span[0] + x;
-          let symk2 = h - 1 - k2;
-          if (isRow) {
-            symk2 = w - 1 - k2;
-          }
-          const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
-          const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
-          if (gridCell.solution != '?' || gridSymCell.solution != '?') {
-            continue;
-          }
-          gridCell.isLight = false;
-          gridSymCell.isLight = false;
-          if (analysis.isConnected() &&
-              ((chequered && analysis.chequeredOK()) ||
-               (!chequered && analysis.unchequeredOK())) &&
-              analysis.throughCutsBigEnough()) {
-            candidates.push(k2);
-          }
-          gridCell.isLight = true;
-          gridSymCell.isLight = true;
-        }
-      }
-      if (candidates.length == 0) {
-        continue;
-      }
-      numCandidates += candidates.length;
-      /**
-       * If there was only one span, and we're not doing a chequered grid, then
-       * do not skip breaking it up.
-       */
-      const noSkipping = !chequered && (spans.length == 1);
-      let randIndex = this.randomIndex(candidates, noSkipping);
-      if (randIndex < 0) {
-        /** We randomly chose not to make a change */
-        continue;
-      }
-      let k2 = candidates[randIndex];
-      let symk2 = h - 1 - k2;
-      if (isRow) {
-        symk2 = w - 1 - k2;
-      }
-      const gridCell = isRow ? grid[k1][k2] : grid[k2][k1];
-      const gridSymCell = isRow ? grid[symk1][symk2] : grid[symk2][symk1];
-      gridCell.isLight = false;
-      gridSymCell.isLight = false;
-      numChanges += 2;
-      numClues = this.killInvalidatedClues();
-      if (numClues >= targetNumClues) {
-        break;
-      }
-    }
-    totalChanges += numChanges;
-    if (numCandidates == 0) {
-      break;
-    }
-  }
-  if (totalChanges == 0) {
-    if (showAlerts) {
-      alert('Add automagic blocks: found no further candidate cells ' +
-            'for turning into blocks');
-    }
-  }
-  return totalChanges > 0;
-}
-
-Exet.prototype.automagicBlocks = function(noTarget=true) {
-  const grid = this.puz.grid;
-  const w = this.puz.gridWidth;
-  const h = this.puz.gridHeight;
-  const layers3d = this.puz.layers3d;
-  const analysis = new ExetAnalysis(grid, w, h, layers3d);
-  if (analysis.numBars() > 0) {
-    alert('Cannot add automagic blocks when the grid has barred cells');
-    return false;
-  }
-  if (this.puz.layers3d > 1) {
-    alert('Cannot add automagic blocks when the crossword has lights other than across/down');
-    return false;
-  }
-  if (!analysis.isConnected()) {
-    alert('Cannot add automagic blocks when the grid cells are not ' +
-          'fully connected');
-    return false;
-  }
-  if (!analysis.isSymmetric()) {
-    alert('Cannot add automagic blocks when the grid is not fully symmetric');
-    return false;
-  }
-  const showAlerts = noTarget;
-  if (analysis.unchequeredOK()) {
-    const target = noTarget ? w*h : Math.ceil(2*w*h/5.8);
-    return this.automagicBlocksInner(false, target, showAlerts);
-  } else  if (analysis.chequeredOK()) {
-    const lightRows = Math.floor(h/2) + (((h % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
-    const lightCols = Math.floor(w/2) + (((w % 2) == 1 && grid[0][0].isLight) ? 1 : 0);
-    const target = noTarget ? w*h : Math.floor((lightRows * (w/7.5)) + (lightCols * (h/7.5)));
-    return this.automagicBlocksInner(true, target, showAlerts);
-  } else {
-    if (showAlerts) alert('Cannot add automagic blocks to the current grid');
-    return false;
-  }
-  return false;
-}
-
 // Can be called with e as an event or as a key directly
 Exet.prototype.handleKeyDown = function(e) {
   let key = e.key || e;
@@ -5486,43 +5464,16 @@ Exet.prototype.handleKeyDown = function(e) {
   } else if (key == '@') {
     revType = exetRevManager.REV_METADATA_CHANGE;
     gridCell.hasCircle = !gridCell.hasCircle;
-  } else if (key == '.') {
-    gridCell.isLight = !gridCell.isLight;
-    if (!this.asymOK) {
-      const symRow = this.puz.gridHeight - 1 - row;
-      const symCol = this.puz.gridWidth - 1 - col;
-      const symCell = this.puz.grid[symRow][symCol];
-      symCell.isLight = gridCell.isLight;
-    }
-    this.killInvalidatedClues();
-  } else if (key == '|') {
-    if (col >= this.gridWidth - 1) {
+  } else if (key == '.' || key == '|' || key == '_') {
+    if (!this.toggleBarOrBlock(this.puz.grid, row, col, key)) {
       return;
     }
-    gridCell.hasBarAfter = !gridCell.hasBarAfter;
-    if (!this.asymOK) {
-      const symRow = this.puz.gridHeight - 1 - row;
-      const symCol = this.puz.gridWidth - 2 - col;
-      const symCell = this.puz.grid[symRow][symCol];
-      symCell.hasBarAfter = gridCell.hasBarAfter;
-    }
-    this.killInvalidatedClues();
-  } else if (key == '_') {
-    if (row >= this.gridHeight - 1) {
-      return;
-    }
-    gridCell.hasBarUnder = !gridCell.hasBarUnder;
-    if (!this.asymOK) {
-      const symRow = this.puz.gridHeight - 2 - row;
-      const symCol = this.puz.gridWidth - 1 - col;
-      const symCell = this.puz.grid[symRow][symCol];
-      symCell.hasBarUnder = gridCell.hasBarUnder;
-    }
-    this.killInvalidatedClues();
   } else if (key == '#') {
-    if (!this.automagicBlocks()) {
-      return;
-    }
+    this.automagicGrid(true);
+    return;
+  } else if (key == '+') {
+    this.automagicGrid(false);
+    return;
   } else {
     return;
   }
@@ -5636,36 +5587,6 @@ Exet.prototype.updateColourNinaLights = function(nOrCList, fullNewLabels) {
   }
 }
 
-/**
- * Returns the number of clues in the updated puzzle.
- */
-Exet.prototype.killInvalidatedClues = function() {
-  const fillState = new ExetFillState(this.puz);
-  const maps = fillState.killInvalidatedClues();
-  const cellsToIndex = maps[0];
-  const fullNewLabels = maps[1];
-  const getsRelocated = maps[2];
-
-  this.updateColourNinaLights(this.puz.colourfuls, fullNewLabels);;
-  this.updateColourNinaLights(this.puz.ninas, fullNewLabels);;
-
-  this.puz.clues = fillState.clues;
-  const newLightRegexps = {};
-  for (const macro in this.lightRegexps) {
-    if (!this.regexpIsMacro(macro)) continue;
-    newLightRegexps[macro] = this.lightRegexps[macro];
-  }
-  for (const oldCi in getsRelocated) {
-    if (!this.lightRegexps.hasOwnProperty(oldCi)) {
-      continue;
-    }
-    newLightRegexps[getsRelocated[oldCi]] = this.lightRegexps[oldCi];
-  }
-  this.lightRegexps = newLightRegexps;
-  this.processRegexps();
-  return Object.keys(cellsToIndex).length;
-}
-
 Exet.prototype.unlinkClue = function(ci) {
   let theClue = this.puz.clues[ci];
   if (!theClue || !theClue.childrenClueIndices ||
@@ -5776,57 +5697,6 @@ Exet.prototype.addLinkedClue = function() {
   this.updatePuzzle(exetRevManager.REV_GRIDFILL_CHANGE);
 }
 
-Exet.prototype.reverseLightInner = function(clue) {
-  const lastInd = clue.cells.length - 1;
-  console.assert(lastInd >= 1, clue);
-  const origCells = clue.reversed ? clue.cells.slice().reverse() : clue.cells;
-  const lastR = clue.cells[lastInd][0];
-  const lastC = clue.cells[lastInd][1];
-  const dir = clue.dir;
-
-  const key = this.puz.reversalKey(origCells);
-  if (clue.reversed) {
-    delete this.puz.usedReversals[key];
-  } else {
-    this.puz.usedReversals[key] =
-        this.cellCode(origCells[0][0], origCells[0][1]) + '-' +
-        this.cellCode(origCells[lastInd][0], origCells[lastInd][1]);
-  }
-  this.killInvalidatedClues();
-  this.updatePuzzle(exetRevManager.REV_LIGHT_REVERSAL);
-  const newIndex = dir + this.puz.grid[lastR][lastC].startsClueLabel;
-  this.puz.setClueSolution(newIndex);
-  return newIndex;
-}
-
-Exet.prototype.reverseLight = function() {
-  if (!this.puz) return
-  const ci = this.puz.currClueIndex;
-  if (!ci) return;
-  const clue = this.puz.clues[ci];
-  if (!clue) return;
-  if (clue.dir != 'A' && clue.dir != 'D' && clue.dir != 'Z') {
-    console.log('Cannot reverse nodir light at ' + ci);
-    return;
-  }
-  const lastInd = clue.cells.length - 1;
-  if (clue.cells.length <= 1) {
-    console.log('Cannot reverse light at ' + ci + ' with ' +
-                clue.cells.length + ' cells');
-    return;
-  }
-  const parent = clue.parentClueIndex ? this.puz.clues[clue.parentClueIndex] :
-      clue;
-  let msg = 'Are you sure you want to reverse this light?';
-  if (parent.solution && parent.solution.indexOf('?') < 0) {
-    msg = 'Are you sure you want to reverse this already-filled light?';
-  }
-  if (!confirm(msg)) {
-    return;
-  }
-  this.reverseLightInner(clue);
-}
-
 // TODO: deal with question hints
 Exet.prototype.killQuestion = function(idx, e) {
   this.puz.questionTexts = this.puz.questionTexts.slice(0, idx).concat(
@@ -5919,364 +5789,6 @@ Exet.prototype.populateQuestions = function(questions) {
     exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
   });
   this.remakeQuestionsList();
-}
-
-Exet.prototype.populateColourNina = function(isNina, newColour) {
-  // this.coloursInUse[] should have been set.
-  const func = isNina ? 'exet.addNina' : 'exet.addColour';
-  let html = `
-    <p class="xet-action"><b>${isNina ? 'Nina' : 'Colour'} set!</b>
-    You can modify it with these options:</p>
-  <p>
-    <input type="radio" name="xet-colour-type" id="xet-colour-cell"
-      checked
-      onclick="exet.colourToAddType = 'cell'; ${func}()" value="cell">
-    <label for="xet-colour-cell">
-      ${isNina ? 'Add the current <b>cell</b> to a nina' :
-          'Set the colour of the current <b>cell</b>'}
-    </label><br>
-    <input type="radio" name="xet-colour-type" id="xet-colour-light"
-      onclick="exet.colourToAddType = 'light'; ${func}()" value="light">
-    <label for="xet-colour-light">
-      ${isNina ? 'Add the current <b>light</b> to a nina' :
-          'Set the colour of the current <b>light</b>'}
-    </label>
-    <hr>
-  </p>`;
-
-  const newColourLabel = `
-    Use this colour:&nbsp;
-    <input id="xet-colour-new-name" name="xet-colour-new-name"
-       title="Change to any valid HTML colour name or #hex code or rgb() triple and press Enter"
-       value="${newColour}"
-       class="xlv-answer" size="16" type="text"></input>`
-  for (let idx = 0; idx < this.coloursInUse.length; idx++) {
-    const colour = this.coloursInUse[idx];
-    html += `
-    <div class="xet-colour-nina" id="xet-colour-nina-${idx}">
-      <div class="xet-colour-sample xlv-coloured-cell"
-          id="xet-colour-sample-${idx}" style="background:${colour}">
-      </div>
-      <div class="xet-colour-nina-radio">
-        <input type="radio" name="xet-colour-name" id="xet-colour-${idx}"
-           value="${colour}">
-        <label for="xet-colour-${idx}">
-          ${idx == this.coloursInUse.length - 1 ? newColourLabel : colour}
-        </label>
-      </div>
-    </div>`;
-  }
-
-  this.tweakColourNina.innerHTML = html;
-
-  for (let i = 0; i < this.coloursInUse.length; i++) {
-    document.getElementById("xet-colour-nina-" + i).addEventListener('click',
-      isNina ? this.addNina.bind(this, i) : this.addColour.bind(this, i));
-  }
-
-  const newSample = document.getElementById(
-      "xet-colour-sample-" + (this.coloursInUse.length - 1));
-  const newName = document.getElementById("xet-colour-new-name");
-  newName.addEventListener('change', e => {
-    const colour = newName.value.replace(/ /g, '').toLowerCase();
-    const idx = this.coloursInUse.length - 1;
-    if (!this.puz.isColour(colour)) {
-      newName.value = this.coloursInUse[idx];
-    } else {
-      this.coloursInUse[idx] = colour;
-      newSample.style.background = colour;
-      if (isNina) {
-        this.addNina(idx);
-      } else {
-        this.addColour(idx);
-      }
-    }
-  });
-  newName.addEventListener('click', e => {
-    e.stopPropagation();
-  });
-}
-
-Exet.prototype.removeNinaOrColour = function(nOrCList) {
-  let index = -1;
-  let lindex = -1;
-  let doBreak = false;
-  const light = this.currLight();
-  const lightCells = (light && light.cells) ? JSON.stringify(light.cells) :
-                     'NONE';
-  for (let i = 0; !doBreak && i < nOrCList.length; i++) {
-    const nOrC = nOrCList[i];
-    for (let x = 0; x < nOrC.list.length; x++) {
-      const cccc = nOrC.list[x];
-      if (!cccc.cells || cccc.cells.length < 1) continue;
-      if (!cccc.isLight) {
-        // Note the first mention of cell, but continue to look for the light.
-        if (index < 0 &&
-            cccc.cells[0][0] == this.puz.currRow &&
-            cccc.cells[0][1] == this.puz.currCol) {
-          index = i;
-          lindex = x;
-        }
-      } else {
-        if (JSON.stringify(cccc.cells) == lightCells) {
-          index = i;
-          lindex = x;
-          doBreak = true;
-          break;
-        }
-      }
-    }
-  }
-  if (index < 0) {
-    return index;
-  }
-  nOrCList[index].list = nOrCList[index].list.slice(0, lindex).concat(
-      nOrCList[index].list.slice(lindex + 1));
-  return index;
-}
-
-Exet.prototype.removeNina = function() {
-  const nindex = this.removeNinaOrColour(this.puz.ninas);
-  if (nindex < 0) {
-    return false;
-  }
-  if (this.puz.ninas[nindex].list.length == 0) {
-    this.puz.ninas = this.puz.ninas.slice(0, nindex).concat(
-        this.puz.ninas.slice(nindex + 1));
-  }
-  this.puz.redisplayNinas();
-  this.puz.activateCell(this.puz.currRow, this.puz.currCol);
-  return true;
-}
-
-Exet.prototype.addNina = function(index=-1) {
-  if (this.tweakColourNina.style.display == 'none') {
-    return
-  }
-  const light = this.currLight();
-  if (this.colourToAddType == 'light' && !light) {
-    return
-  }
-  this.removeNina();
-  if (index < 0) {
-    index = this.coloursInUseIndex;
-  } else {
-    this.coloursInUseIndex = index;
-  }
-  const colour = this.coloursInUse[index];
-  let nindex = this.findOrAddColour(this.puz.ninas, colour);
-  if (this.colourToAddType == 'cell') {
-    this.puz.ninas[nindex].list.push({
-      str: this.cellCode(this.puz.currRow, this.puz.currCol),
-      cells: [[this.puz.currRow, this.puz.currCol]],
-      isLight: false,
-    });
-  } else {
-    this.puz.ninas[nindex].list.push({
-      str: this.puz.clueLabelDisp(light),
-      cells: light.cells,
-      isLight: true,
-    });
-  }
-  this.puz.redisplayNinas();
-  document.getElementById("xet-colour-" + index).checked = true;
-}
-
-Exet.prototype.findOrAddColour = function(nOrCList, colour) {
-  let index = -1;
-  for (let i = 0; i < nOrCList.length; i++) {
-    if (nOrCList[i].colour == colour) {
-      index = i;
-      break;
-    }
-  }
-  if (index < 0) {
-    index = nOrCList.length;
-    nOrCList.push({
-      colour: colour,
-      list: [],
-    });
-  }
-  return index;
-}
-
-Exet.prototype.toggleNina = function(evt) {
-  const gridCell = exet.puz.currCell()
-  if (!gridCell || !gridCell.isLight) {
-    return;
-  }
-  if (this.removeNina()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
-    return;
-  }
-  this.coloursInUse = [];
-  this.colourToAddType = 'cell'
-  for (let n of this.puz.ninas) {
-    this.coloursInUse.push(n.colour);
-  }
-  this.coloursInUseIndex = this.coloursInUse.length - 1;
-  const newColours = this.puz.NINA_COLORS;
-  let cnum = 0;
-  let newColour = '';
-  while (cnum < newColours.length) {
-    newColour = newColours[cnum++];
-    if (!this.coloursInUse.includes(newColour)) {
-      break;
-    }
-  }
-  this.coloursInUse.push(newColour);
-  if (this.coloursInUseIndex < 0) {
-    this.coloursInUseIndex = 0;
-  }
-
-  this.populateColourNina(true, newColour);
-  exetModals.showModal(this.tweakColourNina);
-  evt.stopPropagation();
-  this.addNina();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
-}
-
-Exet.prototype.removeColour = function() {
-  const cindex = this.removeNinaOrColour(this.puz.colourfuls);
-  if (cindex < 0) {
-    return false;
-  }
-  if (this.puz.colourfuls[cindex].list.length == 0) {
-    this.puz.colourfuls = this.puz.colourfuls.slice(0, cindex).concat(
-        this.puz.colourfuls.slice(cindex + 1));
-  }
-  this.puz.recolourCells();
-  this.puz.activateCell(this.puz.currRow, this.puz.currCol);
-  return true;
-}
-
-Exet.prototype.addColour = function(index=-1) {
-  if (this.tweakColourNina.style.display == 'none') {
-    return
-  }
-  const light = this.currLight();
-  if (this.colourToAddType == 'light' && !light) {
-    return
-  }
-  this.removeColour();
-  if (index < 0) {
-    index = this.coloursInUseIndex;
-  } else {
-    this.coloursInUseIndex = index;
-  }
-  const colour = this.coloursInUse[index];
-  let cindex = this.findOrAddColour(this.puz.colourfuls, colour);
-  if (this.colourToAddType == 'cell') {
-    this.puz.colourfuls[cindex].list.push({
-      str: this.cellCode(this.puz.currRow, this.puz.currCol),
-      cells: [[this.puz.currRow, this.puz.currCol]],
-      isLight: false,
-    });
-  } else {
-    this.puz.colourfuls[cindex].list.push({
-      str: this.puz.clueLabelDisp(light),
-      cells: light.cells,
-      isLight: true,
-    });
-  }
-  this.puz.recolourCells();
-  document.getElementById("xet-colour-" + index).checked = true;
-}
-
-Exet.prototype.toggleColour = function(evt) {
-  const gridCell = exet.puz.currCell()
-  if (!gridCell || !gridCell.isLight) {
-    return;
-  }
-  if (this.removeColour()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
-    return;
-  }
-  this.coloursInUse = [];
-  this.colourToAddType = 'cell'
-  for (let c of this.puz.colourfuls) {
-    if (this.coloursInUse.includes(c.colour)) {
-      continue;
-    }
-    this.coloursInUse.push(c.colour)
-  }
-  this.coloursInUseIndex = this.coloursInUse.length - 1;
-  const newColours = ['blue', 'green', 'red', 'cyan',
-                      'magenta', 'orange', 'brown'];
-  let cnum = 0;
-  let newColour = '';
-  while (cnum < newColours.length) {
-    newColour = newColours[cnum++];
-    if (!this.coloursInUse.includes(newColour)) {
-      break;
-    }
-  }
-  this.coloursInUse.push(newColour);
-  if (this.coloursInUseIndex < 0) {
-    this.coloursInUseIndex = 0;
-  }
-
-  this.populateColourNina(false, newColour);
-  exetModals.showModal(this.tweakColourNina);
-  evt.stopPropagation();
-  this.addColour();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
-}
-
-Exet.prototype.markNinasAsPrefilled = function() {
-  this.ninasMarkedAsPrefilled = [];
-  let cells = []
-  for (let nina of this.puz.ninas) {
-    for (let cccc of nina.list) {
-      if (!cccc.cells || cccc.cells.length < 1) continue;
-      cells = cells.concat(cccc.cells)
-    }
-  }
-  for (let cell of cells) {
-    const gridCell = this.puz.grid[cell[0]][cell[1]];
-    if (!gridCell.isLight || gridCell.prefill) continue;
-    gridCell.prefill = true;
-    this.ninasMarkedAsPrefilled.push(cell);
-  }
-}
-Exet.prototype.unmarkNinasAsPrefilled = function() {
-  for (let cell of this.ninasMarkedAsPrefilled) {
-    const gridCell = this.puz.grid[cell[0]][cell[1]];
-    if (!gridCell.isLight || !gridCell.prefill) continue;
-    gridCell.prefill = false;
-  }
-}
-
-Exet.prototype.clearAllMarkings = function() {
-  if (!confirm('Are you sure you want to clear all circles, prefills, ' +
-               'colours, and ninas?')) {
-    return;
-  }
-  let changed = false;
-  for (let i = 0; i < this.puz.gridHeight; i++) {
-    for (let j = 0; j < this.puz.gridWidth; j++) {
-      const gridCell = this.puz.grid[i][j];
-      if (gridCell.hasCircle) {
-        gridCell.hasCircle = false;
-        changed = true;
-      }
-      if (gridCell.prefill) {
-        gridCell.prefill = false;
-        changed = true;
-      }
-    }
-  }
-  if (this.puz.ninas.length > 0) {
-    this.puz.ninas = [];
-    changed = true;
-  }
-  if (this.puz.colourfuls.length > 0) {
-    this.puz.colourfuls = [];
-    changed = true;
-  }
-  if (changed) {
-    this.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
-  }
 }
 
 Exet.prototype.parentWithId = function(elt) {
@@ -6417,8 +5929,10 @@ Exet.prototype.makeExolve = function(specs) {
 }
 
 Exet.prototype.updatePuzzle = function(revType=0) {
-  if (revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
-      revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE) {
+  if (revType > 0 &&
+      revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
+      revType != exetRevManager.REV_AUTOFILL_GRIDFILL_CHANGE &&
+      this.autofill) {
     /**
      * Alert the user that their ongoing autofill run had to be aborted, even
      * though they might not be expecting that. Hopefully a rare scenario.
@@ -6461,6 +5975,9 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   }
   if (revType > 0) {
     exetRevManager.throttledSaveRev(revType);
+  }
+  if (this.gridBuildingMode) {
+    this.enterGridBuildingMode();
   }
 }
 
@@ -6714,6 +6231,9 @@ Exet.prototype.addToDontReuse = function(p, dontReuse) {
 Exet.prototype.refineLightChoices = function(fillState, limit=0) {
   fillState.preflexUsed = new Set;
   fillState.dontReuse = new Set;
+  /**
+   * Go through all the already-filled lights first.
+   */
   for (const ci in fillState.clues) {
     const theClue = fillState.clues[ci];
     if (theClue.parentClueIndex) {
@@ -6736,14 +6256,20 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
       }
     }
   }
+  /** sort to consider the most constrained lights first */
+  const cis = Object.keys(fillState.clues);
+  cis.sort((ci1, ci2) =>
+      fillState.clues[ci1].lChoices.length -
+      fillState.clues[ci2].lChoices.length);
   let changes = 0;
-  for (const ci in fillState.clues) {
+  for (const ci of cis) {
     const theClue = fillState.clues[ci];
     if (theClue.parentClueIndex ||
         !theClue.solution || theClue.solution.indexOf('?') < 0) {
       continue;
     }
-    const cells = this.puz.getAllCells(ci);
+    /** We use fillState to getAllCells() -- could be different from this.puz */
+    const cells = this.puz.getAllCells(ci, fillState.clues);
     const toConsider = (limit <= 0) ? theClue.lChoices.length :
         Math.min(limit, theClue.lChoices.length);
     const choices = theClue.lChoices.slice(0, toConsider);
@@ -6943,7 +6469,7 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
     }
   }
   let count = 0;
-  while (changes > 0 && count < 1) {
+  while (changes > 0 && count < 3) {
     count++;
     changes = 0;
     for (let ci in tempFillState.clues) {
@@ -6963,7 +6489,7 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
         let lchoice = tempClue.lChoices[i];
         let key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
         if (lchoice < 0) key.reverse();
-        console.assert(key.length = cells.length, key.length, cells.length);
+        console.assert(key.length == cells.length, key.length, cells.length);
         for (let k = 0; k < key.length; k++) {
           cellChoiceSets[k][key[k]] = true;
         }
@@ -7066,7 +6592,7 @@ Exet.prototype.findDeadendsByClue = function() {
   for (let lchoice of choices) {
     let key = exetLexicon.lexkey(exetLexicon.getLex(lchoice));
     if (lchoice < 0) key.reverse();
-    console.assert(key.length = cells.length, key.length, cells.length);
+    console.assert(key.length == cells.length, key.length, cells.length);
     let tempFillState = new ExetFillState(this.fillState);
     for (let i = 0; i < cells.length; i++) {
       let cell = cells[i];
@@ -7785,60 +7311,6 @@ Exet.prototype.checkVersion = function() {
   xhttp.send();
 }
 
-Exet.prototype.getLocalStorageUsed = function() {
-  let s = 0;
-  for (let idx = 0; idx < window.localStorage.length; idx++) {
-    const id = window.localStorage.key(idx);
-    s += window.localStorage.getItem(id).length;
-  }
-  return s;
-}
-
-Exet.prototype.getLocalStorageLeft = function() {
-  let k500 = '1234567812345678';
-  while (k500.length < 500000) {
-    k500 = k500 + k500;
-  }
-  const tempKey = '42-exet-cap-42-';
-  const limit = 20;
-  let s = 0;
-  for (let i = 0; i < limit; i++) {
-    // Only count up to 10 MB
-    try {
-      window.localStorage.setItem(tempKey + i, k500);
-      s += k500.length;
-    } catch (err) {
-      break;
-    }
-  }
-  for (let i = 0; i < limit; i++) {
-    window.localStorage.removeItem(tempKey + i);
-  }
-  return s;
-}
-
-Exet.prototype.inMB = function(num) {
-  return (num / 1000000).toFixed(2)
-}
-
-Exet.prototype.checkLocalStorage = function() {
-  this.lsUsed = this.getLocalStorageUsed();
-  if (this.lsUsedAtStart < 0) {
-    this.lsUsedAtStart = this.lsUsed;
-    this.lsLeftAtStart = this.getLocalStorageLeft();
-  }
-  const lsFree = this.lsUsedAtStart + this.lsLeftAtStart - this.lsUsed;
-  this.lsUsedSpan.innerText = this.inMB(this.lsUsed);
-  this.lsFreeSpan.innerText = this.inMB(lsFree);
-  const oldWasAmple = this.lsLeftIsAmple;
-  this.lsLeftIsAmple = (lsFree > 50000);
-  this.lsFreeSpan.style.color = this.lsLeftIsAmple ? 'inherit' : 'red';
-  if (this.lsLeftIsAmple && !oldWasAmple) {
-    exetRevManager.saveRev(exetRevManager.REV_RESAVE);
-  }
-  return this.lsLeftIsAmple;
-}
-
 Exet.prototype.checkBackup = function() {
   const backupTime = document.getElementById("xet-last-backup-time");
   backupTime.innerHTML = (new Date(exetState.lastBackup)).toLocaleString();
@@ -7847,29 +7319,6 @@ Exet.prototype.checkBackup = function() {
   const backupElem = document.getElementById("xet-last-backup");
   backupElem.style.color = isRecent ? 'inherit' : 'red';
   return isRecent;
-}
-
-/**
- * Returns the status from checkLocalStorage()
- */
-Exet.prototype.checkStorage = function() {
-  const warnings = [];
-  const backupOK = this.checkBackup();
-  if (!backupOK) {
-    warnings.push('Last back-up is quite stale, please save a new one.');
-  }
-  const lsOK = this.checkLocalStorage();
-  if (!lsOK) {
-    warnings.push('Local Storage is running low, please delete some older puzzle revisions.');
-  }
-  if (warnings.length > 0) {
-    this.storageHeading.style.color = 'red';
-    this.storageHeading.title = warnings.join(' ');
-  } else {
-    this.storageHeading.style.color = 'inherit';
-    this.storageHeading.title = 'Manage local storage, back up crosswords to file.';
-  }
-  return lsOK;
 }
 
 Exet.prototype.periodicChecks = function() {
@@ -7934,6 +7383,7 @@ Exet.prototype.changeLexicon = function() {
 }
 
 function exetFromHistory(exetRev) {
+  exet.exitGridBuildingMode();
   exet.prefix = exetRev.prefix;
   exet.suffix = exetRev.suffix;
   exetRevManager.retrievePrefUnpref(exetRev);
@@ -7977,7 +7427,8 @@ function exetFromHistory(exetRev) {
 
 function exetBlank(w, h, layers3d=1, id='', automagic=false,
                    chequered=true, topUnches=false, leftUnches=false,
-                   requireEnums=true) {
+                   requireEnums=true, barred=false) {
+  exet.exitGridBuildingMode();
   if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
     alert('Width and height must be specified in the range, 1-100');
     return;
@@ -8017,6 +7468,10 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
       grid = grid + '\n  ' + gridRow[i % 2];
     }
   } else {
+    if (barred) {
+      alert("Barred 3-D crosswords are not supported");
+      return;
+    }
     if (layers3d <= 0 || h % layers3d != 0) {
       alert("#layers in 3-D crosswords must be a positive divisor of height");
       return;
@@ -8075,8 +7530,8 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
   }
   exet.startNav();
 
-  if (automagic && exet.automagicBlocks(false)) {
-    exet.updatePuzzle(exetRevManager.REV_CREATED_AUTOBLOCK);
+  if (automagic) {
+    exet.automagicGrid(!barred, false);
     return;
   }
   exetRevManager.throttledSaveRev(exetRevManager.REV_CREATED_BLANK);
@@ -8092,6 +7547,7 @@ function exetBlank3D(w3d, h3d, d3d, id='') {
 }
 
 function exetLoadFile() {
+  exet.exitGridBuildingMode();
   let fr = new FileReader(); 
   fr.onload = function(){ 
     const buffer = fr.result;
@@ -8321,15 +7777,15 @@ function exetInit() {
     }
   }
   if (!exet.puz) {
-    let url = new URL(location.href)
-    let newgrid = url.searchParams.get('newgrid')
+    const url = new URL(location.href);
+    const newgrid = url.searchParams.get('newgrid');
     if (newgrid == 'blank') {
-      exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension, 1, '', false, false)
+      exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension, 1, '', false, false);
     } else {
-      exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension, 1, '', true, true)
+      exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension, 1, '', true, true);
     }
   }
-  exet.finishSetup()
+  exet.finishSetup();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

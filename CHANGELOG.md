@@ -1,5 +1,35 @@
 # Changelog
 
+### Exet v1.10, November 10, 2026
+
+- Add a "Build grid assistively" Edit menu option. This brings up an interface
+  in which block/bar suggestions (only valid ones, and scored for
+  fill-viability) are shown and can be clicked on. Clue-editing is disabled.
+  The user can also continue to fill the grid.
+- Take fill-viability into account for "automagic" editing too. This makes it
+  slower (and also makes new automagic grid creation) slower. Mitigate that
+  by showing an status bar that also allows you to interrupt the process through
+  a "Stop" button.
+- Add support for automagic bars too (previously only blocks were automagic).
+  Use WSJ specs as the standard to strive for when adding bars.
+- In grid analysis, for grids with unches show a distibution of
+  #unches/light-length combinations (also identify bad combinations, using the
+  WSJ specs).
+- Be more aggressive in weeding out bad fill candidates in the background,
+  making it more likely that a shown light-fill candidate, when selected, will
+  continue to keep the fill viable.
+- For automagically added blocks/bars, highlight them for a short while so
+  that the user can see which ones were added (esp. useful for bars).
+- Refactor, creating a new exet-grid-edits.js file. Move more of the
+  storage-related code to exet-storage.js.
+
+### Exet v1.09.2, October 25, 2026
+
+- When there are unches, show the distribution of "#unches + light-length" in
+  the Analysis panel. This is particularly useful for barred puzzles, where
+  publications such as WSJ have specific expectations.
+- Refactor the analysis code a bit.
+
 ### Exet v1.09.1, October 21, 2026
 
 - Set showNinasOnRevealAll in Exolve, as it no longer does that by default,

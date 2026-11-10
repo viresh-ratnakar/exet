@@ -94,6 +94,36 @@ class ExetAnalysis {
     this.w = w;
     this.h = h;
     this.layers3d = layers3d;
+    this.crossers = new Array(h);
+    for (let i = 0; i < h; i++) {
+      this.crossers[i] = new Array(w);
+      for (let j = 0; j < w; j++) {
+        this.crossers[i][j] = 0;
+      }
+    }
+  }
+
+  setCrossers() {
+    for (let i = 0; i < this.h; i++) {
+      for (let j = 0; j < this.w; j++) {
+        this.crossers[i][j] = 0;
+        if (!this.grid[i][j].isLight) {
+          continue;
+        }
+        if ((j > 0 && this.grid[i][j-1].isLight &&
+             !this.grid[i][j-1].hasBarAfter) ||
+            (j < this.w - 1 && this.grid[i][j+1].isLight &&
+             !this.grid[i][j].hasBarAfter)) {
+          this.crossers[i][j]++;
+        }
+        if ((i > 0 && this.grid[i-1][j].isLight &&
+             !this.grid[i-1][j].hasBarUnder) ||
+            (i < this.h - 1 && this.grid[i+1][j].isLight &&
+             !this.grid[i][j].hasBarUnder)) {
+          this.crossers[i][j]++;
+        }
+      }
+    }
   }
 
   isConnected() {
@@ -155,72 +185,78 @@ class ExetAnalysis {
 
   /**
    * Return horizontal spans of cells for the given row. The returned array has
-   * [<column-index>, <num-cells>] entries.
+   * [<column-index>, <num-cells>, <label>] entries.
    * @param {number} row
-   * @return {!Array<!Array<number>>}
    */
   acrossSpans(row) {
     const spans = [];
     let start = -1;
     let len = 0;
+    let label = '';
     for (let j = 0; j < this.w; j++) {
-      if (this.grid[row][j].isLight) {
+      const gridCell = this.grid[row][j];
+      if (gridCell.isLight) {
         if (start >= 0 && j > 0 && this.grid[row][j-1].isLight &&
             !this.grid[row][j-1].hasBarAfter) {
           len++;
         } else {
           if (len > 1) {
-            spans.push([start, len]);
+            spans.push([start, len, label]);
           }
           start = j;
           len = 1;
+          label = '' + gridCell.startsClueLabel + 'a';
         }
       } else {
         if (len > 1) {
-          spans.push([start, len]);
+          spans.push([start, len, label]);
         }
         start = -1;
         len = 0;
+        label = '';
       }
     }
     if (len > 1) {
-      spans.push([start, len]);
+      spans.push([start, len, label]);
     }
     return spans;
   }
   
   /**
    * Return vertical spans of cells for the given column. The returned array has
-   * [<row-index>, <num-cells>] entries.
+   * [<row-index>, <num-cells>, <label>] entries.
    * @param {number} col
-   * @return {!Array<!Array<number>>}
    */
   downSpans = function(col) {
     const spans = [];
     let start = -1;
     let len = 0;
+    let label = '';
     for (let i = 0; i < this.h; i++) {
-      if (this.grid[i][col].isLight) {
+      const gridCell = this.grid[i][col];
+      if (gridCell.isLight) {
         if (start >= 0 && i > 0 && this.grid[i-1][col].isLight &&
             !this.grid[i-1][col].hasBarUnder) {
           len++;
         } else {
           if (len > 1) {
-            spans.push([start, len]);
+            spans.push([start, len, label]);
           }
           start = i;
           len = 1;
+          label = '' + gridCell.startsClueLabel + 'd';
         }
       } else {
         if (len > 1) {
-          spans.push([start, len]);
+          spans.push([start, len, label]);
         }
         start = -1;
         len = 0;
+        label = '';
       }
     }
     if (len > 1) {
-      spans.push([start, len]);
+      spans.push([start, len, label]);
     }
     return spans;
   }
@@ -288,128 +324,188 @@ class ExetAnalysis {
     let count = 0;
     for (let i = 0; i < this.h; i++) {
       for (let j = 0; j < this.w; j++) {
-        if (!this.grid[i][j].isLight) {
+        const gridCell = this.grid[i][j];
+        if (!gridCell.isLight) {
           continue
         }
-        if (j < this.w - 1 && this.grid[i][j].hasBarAfter) {
+        if (j < this.w - 1 && gridCell.hasBarAfter) {
           count++;
         }
-        if (i < this.h - 1 && this.grid[i][j].hasBarUnder) {
+        if (i < this.h - 1 && gridCell.hasBarUnder) {
           count++;
         }
       }
     }
     return count;
   }
+
+  /**
+   * Checks a barred grid against "WSJ" unches specs:
+   * len <= 5 at most 1
+   * len >= 6 <= 7 at most 2
+   * len >= 8 <= 9 at most 3
+   * len >= 10 <= 12 at most 4
+   * extended to len > 12 at most ceil(len/3)
+   */
+  barredUnchesOK(len, unches) {
+    if (len <= 5) return unches <= 1;
+    else if (len <= 7) return unches <= 2;
+    else if (len <= 9) return unches <= 3;
+    else if (len <= 12) return unches <= 4;
+    else return unches <= Math.ceil(len / 3);;
+  }
+
+  barredGridUnchesOK() {
+    const spanUnches = this.getSpanUnches();
+    for (const spanUnch of spanUnches) {
+      if (!spanUnch[4]) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Return the longest # of consecutive collinear blocks/bars, horizontal or vertical
+   */
+  maxCollinear(horizontal, useBlocks) {
+    let max = 0;
+    const endoff = useBlocks ? 0 : 1;
+    const imax = horizontal ? this.h - endoff : this.w - endoff;
+    const jmax = horizontal ? this.w : this.h;
+    const barProp = horizontal ? 'hasBarUnder' : 'hasBarAfter';
+    const inStretch = (c) => {
+      return useBlocks ? (!c.isLight) : (c.isLight && c[barProp]);
+    };
+    for (let i = 0; i < imax; i++) {
+      let start = -1;
+      for (let j = 0; j < jmax; j++) {
+        const gridCell = horizontal ? this.grid[i][j] : this.grid[j][i];
+        if (inStretch(gridCell)) {
+          if (start < 0) start = j;
+          const span = j - start + 1;
+          if (span > max) max = span;
+        } else {
+          start = -1;
+        }
+      }
+    }
+    return max;
+  }
+
+  /**
+   * Returns true if both maxCollinear(h/v, false) are <= 2.
+   */
+  maxCollinearBarsOK() {
+    return ((this.maxCollinear(true, false) <= 2) &&
+            (this.maxCollinear(false, false) <= 2));
+  }
+
+  /**
+   * Returns true if both maxCollinear(h/v, true) are <= 4.
+   */
+  maxCollinearBlocksOK() {
+    return ((this.maxCollinear(true, true) <= 4) &&
+            (this.maxCollinear(false, true) <= 4));
+  }
+
+  /**
+   * Returns an array where each entry is: [span-length, unches, checked, label, barredUnchesOK]
+   */
+  getSpanUnches() {
+    this.setCrossers();
+    const spanUnches = [];
+    for (let i = 0; i < this.h; i++) {
+      const spans = this.acrossSpans(i);
+      for (const span of spans) {
+        let numChecked = 0;
+        let numUnches = 0;
+        for (let j = span[0]; j < span[0] + span[1]; j++) {
+          if (this.crossers[i][j] < 2) numUnches++;
+          else numChecked++;
+        }
+        const len = numUnches + numChecked;
+        spanUnches.push([len, numUnches, numChecked, span[2],
+                         this.barredUnchesOK(len, numUnches)]);
+      }
+    }
+    for (let j = 0; j < this.w; j++) {
+      const spans = this.downSpans(j);
+      for (let span of spans) {
+        let numChecked = 0;
+        let numUnches = 0;
+        for (let i = span[0]; i < span[0] + span[1]; i++) {
+          if (this.crossers[i][j] < 2) numUnches++;
+          else numChecked++;
+        }
+        const len = numUnches + numChecked;
+        spanUnches.push([len, numUnches, numChecked, span[2],
+                         this.barredUnchesOK(len, numUnches)]);
+      }
+    }
+    return spanUnches;
+  }
   
   /**
-   * Returns true if the grid is OK as a chequered, UK-style grid:
+   * Returns true if the grid is OK as a chequered or barred UK-style grid:
    * - No consecitive unches
    * - No lights shorter than 4 (only if checkSpanLen is passed as true)
    * - No short lights with more unches than checked cells (only if
    *   checkUnchFrac is passed as true)
+   * - Allows barred grids
    */
-  chequeredOK(checkSpanLen=true, checkUnchFrac=true) {
-    const crossers = new Array(this.h);
+  unchesOK(checkSpanLen=true, checkUnchFrac=true) {
+    this.setCrossers();
     for (let i = 0; i < this.h; i++) {
-      crossers[i] = new Array(this.w);
       for (let j = 0; j < this.w; j++) {
-        crossers[i][j] = 0;
-        if (!this.grid[i][j].isLight) {
+        const gridCell = this.grid[i][j];
+        if (!gridCell.isLight) {
           continue;
         }
-        if ((j > 0 && this.grid[i][j-1].isLight &&
-             !this.grid[i][j-1].hasBarAfter) ||
-            (j < this.w - 1 && this.grid[i][j+1].isLight &&
-             !this.grid[i][j].hasBarAfter)) {
-          crossers[i][j]++;
-        }
-        if ((i > 0 && this.grid[i-1][j].isLight &&
-             !this.grid[i-1][j].hasBarUnder) ||
-            (i < this.h - 1 && this.grid[i+1][j].isLight &&
-             !this.grid[i][j].hasBarUnder)) {
-          crossers[i][j]++;
-        }
-        if (crossers[i][j] == 1 &&
-            ((j > 0 && crossers[i][j-1] == 1 &&
+        if (this.crossers[i][j] == 1 &&
+            ((j > 0 && this.crossers[i][j-1] == 1 &&
               !this.grid[i][j-1].hasBarAfter) ||
-             (i > 0 && crossers[i-1][j] == 1 &&
+             (i > 0 && this.crossers[i-1][j] == 1 &&
               !this.grid[i-1][j].hasBarUnder))) {
           return false;
         }
       }
     }
     const minSpan = 4;
-    for (let i = 0; i < this.h; i++) {
-      const spans = this.acrossSpans(i);
-      for (const span of spans) {
-        if (checkSpanLen && span[1] < minSpan) {
-          return false;
-        }
-        let numChecked = 0;
-        let numUnches = 0;
-        for (let j = span[0]; j < span[0] + span[1]; j++) {
-          if (crossers[i][j] < 2) numUnches++;
-          else numChecked++;
-        }
-        if (numUnches > numChecked + 1) {
-          return false;
-        }
-        if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
-          return false;
-        }
+    const spanUnches = this.getSpanUnches();
+    for (const spanUnch of spanUnches) {
+      const len = spanUnch[0];
+      if (checkSpanLen && len < minSpan) {
+        return false;
       }
-    }
-    for (let j = 0; j < this.w; j++) {
-      const spans = this.downSpans(j);
-      for (let span of spans) {
-        if (checkSpanLen && span[1] < minSpan) {
-          return false;
-        }
-        let numChecked = 0;
-        let numUnches = 0;
-        for (let i = span[0]; i < span[0] + span[1]; i++) {
-          if (crossers[i][j] < 2) numUnches++;
-          else numChecked++;
-        }
-        if (numUnches > numChecked + 1) {
-          return false;
-        }
-        if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
-          return false;
-        }
+      const numUnches = spanUnch[1];
+      const numChecked = spanUnch[2];
+      if (numUnches > numChecked + 1) {
+        return false;
+      }
+      if (checkUnchFrac && numUnches == numChecked + 1 && numUnches < 5) {
+        return false;
       }
     }
     return true;
   }
   
   /**
-   * Returns true if the grid is OK as an unchequered, US-style grid:
+   * Returns true if the grid is OK as an doubly-checked, US-style grid:
    * - Each light cell is doubly checked
    * - No lights shorter than 3 (only if checkSpanLen is passed as true)
+   * - No bars.
    */
-  unchequeredOK(checkSpanLen=true) {
-    const crossers = new Array(this.h);
+  doublyCheckedOK(checkSpanLen=true) {
+    this.setCrossers();
     for (let i = 0; i < this.h; i++) {
-      crossers[i] = new Array(this.w);
       for (let j = 0; j < this.w; j++) {
-        crossers[i][j] = 0;
-        if (!this.grid[i][j].isLight) {
+        const gridCell = this.grid[i][j];
+        if (!gridCell.isLight) {
           continue;
         }
-        if ((j > 0 && this.grid[i][j-1].isLight &&
-             !this.grid[i][j-1].hasBarAfter) ||
-            (j < this.w - 1 && this.grid[i][j+1].isLight &&
-             !this.grid[i][j].hasBarAfter)) {
-          crossers[i][j]++;
+        if (this.crossers[i][j] < 2) {
+          return false;
         }
-        if ((i > 0 && this.grid[i-1][j].isLight &&
-             !this.grid[i-1][j].hasBarUnder) ||
-            (i < this.h - 1 && this.grid[i+1][j].isLight &&
-             !this.grid[i][j].hasBarUnder)) {
-          crossers[i][j]++;
-        }
-        if (crossers[i][j] < 2) {
+        if (gridCell.hasBarAfter || gridCell.hasBarUnder) {
           return false;
         }
       }
@@ -618,7 +714,7 @@ class ExetAnalysis {
    * are at least as big as one-fourth of the size along that dimension.
    */
   throughCutsBigEnough() {
-    if (this.layers3d > 1) {
+    if (this.layers3d > 1 || this.numBars() > 0) {
       return true;
     }
     const throughCuts = this.minThroughCuts();
