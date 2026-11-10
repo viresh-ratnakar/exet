@@ -169,7 +169,7 @@ ExetRevManager.prototype.skippableKey = function(id) {
 
 ExetRevManager.prototype.sizeOfPrefUnpref = function(id) {
   let sz = 0;
-  for (isPref of [true, false]) {
+  for (const isPref of [true, false]) {
     const key = this.keyPrefUnpref(id, isPref);
     let data = window.localStorage.getItem(key);
     if (data) {
@@ -196,7 +196,7 @@ ExetRevManager.prototype.choosePuzRev = function(params) {
   if (params.onlyPuz) {
     let lsUsed = 0;
     let stored = window.localStorage.getItem(params.onlyPuz.id);
-    if (lsUsed) {
+    if (stored) {
       lsUsed = stored.length + this.sizeOfPrefUnpref(params.onlyPuz.id);
     }
     choices = [{id: params.onlyPuz.id, title: params.onlyPuz.title, space: lsUsed, timestamp: 0}];
@@ -562,7 +562,7 @@ ExetRevManager.prototype.saveLocal = function(k, v) {
   try {
     window.localStorage.setItem(k, v);
   } catch (err) {
-    this.checkStorage();
+    exet.checkStorage();
     alert('No available local storage left. Please use the ' +
           '"Manage local storage" menu option to free up some space.');
     console.log('Could not save value of length ' + v.length + ' for key: ' + k)
@@ -586,7 +586,7 @@ ExetRevManager.prototype.hashPrefUnpref = function(arr) {
 ExetRevManager.prototype.savePrefUnpref = function(id, revs, doGC=false) {
   const isCurrPuz = (exet.puz && exet.puz.id && exet.puz.id == id);
   console.assert(doGC || isCurrPuz, doGC, isCurrPuz);
-  for (isPref of [true, false]) {
+  for (const isPref of [true, false]) {
     const hashName = isPref ? 'preflexHash' : 'unpreflexHash';
     if (!doGC && isCurrPuz && !exet[hashName]) {
       continue;
@@ -632,7 +632,7 @@ ExetRevManager.prototype.savePrefUnpref = function(id, revs, doGC=false) {
 }
 
 ExetRevManager.prototype.retrievePrefUnpref = function(rev) {
-  for (isPref of [true, false]) {
+  for (const isPref of [true, false]) {
     const hashName = isPref ? 'preflexHash' : 'unpreflexHash';
     const objName = isPref ? 'preflex' : 'unpreflex';
     let obj = null;
@@ -797,7 +797,7 @@ ExetRevManager.prototype.saveAllRevisions = function() {
     }
     storage[id] = storedRevs;
     this.savePrefUnpref(id, storedRevs.revs, true);
-    for (isPref of [true, false]) {
+    for (const isPref of [true, false]) {
       const key = this.keyPrefUnpref(id, isPref);
       const data = window.localStorage.getItem(key);
       if (data) {
@@ -845,7 +845,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
         console.log('Weird stored item for id [' + id + ']:' + storedJson);
         continue;
       }
-      for (rev of storedRevs['revs']) {
+      for (const rev of storedRevs['revs']) {
         const revHash = exetLexicon.javaHash(JSON.stringify(rev));
         existingRevs[revHash] = true;
       }
@@ -854,10 +854,12 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
     let numRevsMerged = 0;
     let numDupRevs = 0;
     let numNonLatest = 0;
+    let specialPrefixes = 0;
     const mergeOnlyLatest = document.getElementById(
       'xet-merge-only-latest-revs').checked ? true : false;
     for (let id in allSavedRevs) {
-      if (id.startsWith(this.SPECIAL_KEY_PREFIX)) {
+      if (id.startsWith(exetRevManager.SPECIAL_KEY_PREFIX)) {
+        specialPrefixes++;
         continue;
       }
       savedRevs = allSavedRevs[id]['revs'];
@@ -885,7 +887,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
       let stored = window.localStorage.getItem(id);
       const prefKey = exetRevManager.keyPrefUnpref(id, true);
       let storedPref = window.localStorage.getItem(prefKey);
-      const unprefKey = exetRevManager.keyPrefUnpref(id, true);
+      const unprefKey = exetRevManager.keyPrefUnpref(id, false);
       let storedUnpref = window.localStorage.getItem(unprefKey);
       try {
         if (stored) {
@@ -912,7 +914,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
       }
       let addedPref = false;
       let addedUnpref = false;
-      for (rev of revsToSplice) {
+      for (const rev of revsToSplice) {
         stored['revs'].push(rev);
         if (rev.preflexHash && allSavedRevs[prefKey] &&
             allSavedRevs[prefKey][rev.preflexHash]) {
@@ -926,7 +928,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
         }
       }
       stored['revs'].sort((r1, r2) => r1.timestamp - r2.timestamp);
-      for (rev of stored['revs']) {
+      for (const rev of stored['revs']) {
         if (rev.revNum > stored.maxRevNum) {
           stored.maxRevNum = rev.revNum;
         }
@@ -947,7 +949,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
     const ignored = (numNonLatest > 0) ?
         `Ignored ${numNonLatest} non-latest revisions.` : '';
     alert(`From ${numRevs} revisions considered across ` +
-          `${Object.keys(allSavedRevs).length} crosswords, merged ` +
+          `${Object.keys(allSavedRevs).length - specialPrefixes} crosswords, merged ` +
           `${numRevsMerged} revisions. There were ${numDupRevs} revisions ` +
           `that already existed. ${ignored}`);
   } 

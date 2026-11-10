@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.10, November 10, 2026
+#### Version: Exet v1.10.1, November 10, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -72,8 +72,8 @@ local storage (you can back up all of Exet's local storage into a file). Exet
 never sends your crosswords to wherever it might be getting served from.
 
 You can download the crosswords that you create with Exet in the
-[Exolve](https://github.com/viresh-ratnakar/exolve) format, in the .puz
-format, and as PDFs. You can also grab embeddable HTML code for adding your
+[Exolve](https://github.com/viresh-ratnakar/exolve) format, in the .puz/.ipuz
+formats, and as PDFs. You can also grab embeddable HTML code for adding your
 crossword to any web site or blog, using Exolve (but see the
 [known caveats in the Exolve
 documentation](https://github.com/viresh-ratnakar/exolve#exolve-widget)).
@@ -104,7 +104,7 @@ For English, Exet provides two word list options that you can switch between
 
 The "Lufz" list of English words used by Exet for providing grid-fill
 suggestions is a modified version of the "UKACD" words list, which comes with
-its own copyight notice that is reproduced near the bottom of this page. I made
+its own copyright notice that is reproduced near the bottom of this page. I made
 the following modifications to the UKACD words list:
 
 - Added a variety of words, idioms, proverbs collated from several web
@@ -120,7 +120,7 @@ the following modifications to the UKACD words list:
   code. Source code for the last few steps is available in my
   [Lufz GitHub repository](https://github.com/viresh-ratnakar/lufz).
 - I also added stemming info and regional spelling variants. Stemming info
-  is added using the Porter2 algotithm implementation in
+  is added using the Porter2 algorithm implementation in
   [wink-porter2-stemmer](https://github.com/winkjs/wink-porter2-stemmer)
   (but I added many more stemming overrides). Details are in the Lufz README
   file.
@@ -170,7 +170,7 @@ The Portuguese (Brazilian) "Lufz" lexicon was assembled from the following sourc
   [dicionario-fonetico](https://github.com/iwmo/dicionario-fonetico),
   which is derived from the
   [Common Orthographic Vocabulary of the Portuguese
-  Language]("http://www.portaldalinguaportuguesa.org/index.php?action=fonetica&act=list").
+  Language](http://www.portaldalinguaportuguesa.org/index.php?action=fonetica&act=list).
 - I trimmed away some swear words (using my English exclusion list).
 - I added importance score using occurrences in Portuguese Wikipedia.
 - The lexicon was huge, so I retained only entries that I found at least 1 occurrence for
@@ -211,7 +211,7 @@ commensurate pay-off, in my opinion).
 
 You can use the "preferred fills" feature as a substitute for full custom
 word lists: just load your custom word list as the list of preferred fills,
-and then set the minimum popularty threshold to 100% (which will prevent
+and then set the minimum popularity threshold to 100% (which will prevent
 any words outside the preferred fills list from getting suggested or used
 in autofill). The only limitation is that you're limited to 50,000 words
 (which is probably sufficient for most users).
@@ -268,15 +268,15 @@ them use "automagic" block/bar addition, which is explained in detail later):
     edit it further by adding or removing blocks or using the
     add-automagic-blocks Edit menu option.
 - New blocked lattice grid (with blocks added)
-  - This allows you to create one of four variants of a chequered grid, wih
+  - This allows you to create one of four variants of a chequered grid, with
     blocks added automagically to create a reasonable grid. You can always
     edit it further by adding or removing blocks or using the
     add-automagic-blocks Edit menu option. This is the standard blocked grid
     type used in "commonwealth" puzzles (i.e., non-U.S.-style).
 - New blocked lattice grid (no added blocks)
-  - This allows you to create one of four variants of a chequered grid, wih
+  - This allows you to create one of four variants of a chequered grid, with
     no further blocks added. You can add blocks to such a grid manually or
-    manually or automagically at any later point in time.
+    automagically at any later point in time.
 - New blank grid (add blocks/bars later)
   - This is a completely blank grid to which you would manually add blocks
     or bars (or both). A sub-menu lets you choose whether you want the grid to
@@ -295,7 +295,7 @@ them use "automagic" block/bar addition, which is explained in detail later):
 #### Toggling blocks/bars
 
 From the Edit menu, or using the special keys `.`, `_`, and `|`, you can
-toggle blocks ans bars in the grid. This manual editing should be done
+toggle blocks and bars in the grid. This manual editing should be done
 carefully, to ensure that the grid adheres to expected standards (which
 you can do by checking the Analysis report). Better approaches for grid
 creation are "Build grid assistively" and "Add automagic blocks/bars",
@@ -380,7 +380,7 @@ autofilling it, and adding/modifying crossword features such as ninas:
 - Autofill
   - _Leads to an autofill options panel._
 - Accept autofilled entries (=)
-- Jump to most constrained light (!)
+- Jump through most constrained unfilled lights (!)
 - Mark grid cell:
   - Toggle encircling (@)
   - Toggle marking prefilled (0)
@@ -478,7 +478,7 @@ settings that control the nature of fill suggestions. These are:
 - Whether to exclude proper nouns.
 - Whether to avoid reusing words with common "stems". This option only works
   for English. It's ON by default. If, say SWIM has been picked as a grid
-  entry, then this option precents SWIMS and SWIMMING getting suggested
+  entry, then this option prevents SWIMS and SWIMMING getting suggested
   for other unfilled entries (as well as in autofill).
   - Caveat: I have significantly expanded the notion of stemming beyond the
     algorithm used in Porter Stemmer. Any heuristic stemming approach is always
@@ -495,13 +495,13 @@ settings that control the nature of fill suggestions. These are:
   "US", "Canada". This swaps certain word pairs in the lexicon, so that
   the regionally preferred variant gets ranked/scored higher, and also removes
   the regionally non-preferred variant from consideration in finding pattern
-  matches through `getLexChoices()`. For example, "honor" will be used insted of
+  matches through `getLexChoices()`. For example, "honor" will be used instead of
   "honour" with "US", but vice-versa for "Britain"/"Canada". Please file bugs
   if you notice any mistakes. The "No preference" option simply uses the
   preference inherent in the word list's own ranking/scoring. For the Nediger
   List, this results in low scores for "Britain" variants.
 - Whether to allow grid-fill suggestions (and autofill) to try to reverse
-  lights (and linked lights). This is false be default for 2-D crosswords, and
+  lights (and linked lights). This is false by default for 2-D crosswords, and
   true by default for 3-D crosswords. When true, if there is a reversed
   grid-fill suggestion (shown with a &lArr; prefix in the list of suggestions)
   that you decide to accept, the light will be reversed (clue numberings may
@@ -547,8 +547,8 @@ available) in the word list.
 
 When Exet determines (using its lexicon) that for some unfilled cell, exactly
 one letter choice is viable, it shows that letter choice in gray. You can use
-the Edit > Autofill menu's "Accept autofilled entries" option to accept all
-such autofilled letter suggestions.
+the Edit menu's "Accept autofilled entries (=)" (or Edit > Autofill > Accept)
+to accept all such autofilled letter suggestions.
 
 #### Preferred and excluded words/phrases
 
@@ -587,8 +587,8 @@ single
 If any one of the words in a group (say `table`) is present in the grid-fill,
 then no other member of its group (e.g., `chair`) will be suggested as a
 grid-fill. If the "No stem dupes" option has been selected, then even
-stem-variants of other members of its group (e.g., `chairs`) will be suggested.
-The same exclusion will apply in fills generated by autofill/
+stem-variants of other members of its group (e.g., `chairs`) will not be
+suggested. The same exclusion will apply in fills generated by autofill.
 
 #### Light-specific menu
 Just above the editable version of the current clue (shown above the grid),
@@ -950,7 +950,7 @@ database of published cryptic clues, for:
   phrases from the clue are searched for by default, but you can easily edit
   the SQL query to add any longer phrase that you may have used as an indicator.
 
-The "Research" tab also lets you research definions from
+The "Research" tab also lets you research definitions from
 [**Puzzmo**](https://puzzmo.com) and definition and cryptic wordplay ideas
 from [**Fodder** (fodder.ing)](https://fodder.ing).
 
@@ -964,8 +964,8 @@ for the entry in the currently selected light. However, you can generate wordpla
 candidates for any other word or phrase, by editing the input field(s) near the
 top in each tab. These tabs are:
 
-- **Anagrams/()**: Shows anagrams and containments for the current entry
-  ("fodder").
+- **Anagrams**: Shows anagrams, composite/extended anagrams, and anagrammed
+  deletions for the current entry ("fodder").
   - For anagrams, there is an interactive slot for drafting a
     tentative anagram—you can use that to craft composite/extended anagrams,
     as the software automatically updates anagrams of any unused letters from
@@ -975,30 +975,28 @@ top in each tab. These tabs are:
     single letter is included as a word in the word list, the list of anagrams
     shown also includes anagrams of the fodder with just one letter left
     out.
-  - Anagrams components that are present intact as subtrings in the fodder
+  - Anagrams components that are present intact as substrings in the fodder
     are shown in green. This means that single-letter parts are also shown
     in green.
   - Anagram components are marked with `*` (anagram) or `<<` (reversal) or
     nothing, as appropriate, depending upon how they are seen in the fodder.
-  - Containments (A around B) are shown in a tabular form showing all
-    anagrams of A and B. The anagram colouring/annotating scheme described
-    above is used here too.
   - For anagrams, charades, and containments, if the fodder is too long
     (longer than 13), then we trim it down and indicate this trimming by
     showing it in red and showing exclamation marks next to it. You can
     generate the wordplay for the full untrimmed fodder by appending an
-    exclamation mark at the end (this can be SLOW and may lock up your
-    browser for a short while).
-- **Charades/-**: Shows candidate charades and anagrammed deletions.
-    - Anagrammed deletions (`*(A - B*)`) are shown together above charades
-      (for convenience: you can easily scroll past them if needed). Anagrammed
-      deletions include the common special case where the anagrammed part has
-      one extra letter than the fodder. Anagrammed deletions are sorted to
-      show shorter deletions first.
+    exclamation mark at the end or clicking on the shown exclamation mark (this
+    can be SLOW and may lock up your browser for a short while).
+  - Anagrammed deletions (`*(A - B*)`) are shown together above charades
+    (for convenience: you can easily scroll past them if needed). Anagrammed
+    deletions exclude the common special case where the anagrammed part has
+    one extra letter than the fodder (as those are covered in Edits).
+    Anagrammed deletions are sorted to show shorter deletions first.
+- **Containers**:: Shows containments (A around B) in a tabular form, with all
+    anagrams of A and B. The anagram colouring/annotating scheme described
+    above is used here too.
+- **Charades**: Shows candidate charades.
     - Charades are listed in decreasing order of the average length of
       components.
-    - For short fodders, you'll find more anagrammed deletions than charades,
-      and the for long fodders, you'll find more charades. 
     - We try to avoid duplicating what's already covered by
       anagrams/containments, so these are generally not included in charades.
     - The anagram colouring/annotating scheme described above is used here too.
@@ -1011,7 +1009,7 @@ top in each tab. These tabs are:
   - Also shows homophones and Spoonerisms (derived using the Carnegie Mellon
     Pronouncing Dictionary—see their copyright notice at the end of this
     document).
-- **Hidden**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
+- **Hiddens**: Uses [nutrimatic.org](https://nutrimatic.org) to show meaningful
   "hidden word" and "reversed hidden word" wordplay possibilities for the
   entry in the current light. Setters can tweak the wordplay as they choose.
 - **Alternations**: Uses [nutrimatic.org](https://nutrimatic.org) to show
@@ -1062,7 +1060,7 @@ top in each tab. These tabs are:
 
     - For alternations, the default is to search for "every-second-letter"
       possibilities. But if you want to search for "every-third-letter"
-      possbilities (say), then you can modify the query to be somthing
+      possibilities (say), then you can modify the query to be something
       like this:
 
       > [`https://nutrimatic.org/2024/?q=cAArAAeAAaAAtAAeAAd`](https://nutrimatic.org/2024/?q=cAArAAeAAaAAtAAeAAd)
@@ -1137,7 +1135,7 @@ following, \<title\> in a filename stands for the puzzle title.
   formatting in clues will get stripped out as the .puz format does not support
   it (.puz does not support annotations either).
 - **Download IPUZ file (exet-\<title\>.ipuz)**: Download a .ipuz file. Note that
-  .puz does not support many crossword features (afaik). The software will alert
+  .ipuz does not support many crossword features (afaik). The software will alert
   you if it is not able to provide a .ipuz download.
 - **Download grid image SVG file...**
   - **With solutions (exet-\<title\>-solution-grid.svg)**: Download
@@ -1200,7 +1198,7 @@ in Exet to recover the crosswords completely).
 
 ### Backing up the crosswords to a file
 
-The "Storage" menu has a "Back uo all current crosswords to ..." option,
+The "Storage" menu has a "Back up all current crosswords to ..." option,
 which saves the entire revision history to a JSON file
 (named exet-backup-_timestamp_.json), as a way of having a back-up beyond the
 browser's local storage. Apart from using as a back-up mechanism, you can also
@@ -1400,7 +1398,7 @@ You can specify how much answer space to provide for a question by providing
 an enum (just like in a crossword clue). The enum can be hidden from the
 solvers by appending a \* to it (which is useful for long-form answers).
 You can also specify the correct answer to a question, to be shown after
-"Reval all."
+"Reveal all."
 The questions-editing panel shows some examples that illustrate the
 [available question-formatting
 options](https://github.com/viresh-ratnakar/exolve#exolve-question).
@@ -1421,14 +1419,18 @@ option. Here is the list of sections that you can add:
 - [exolve-postscript](https://github.com/viresh-ratnakar/exolve#exolve-postscript)
 - [exolve-relabel](https://github.com/viresh-ratnakar/exolve#exolve-relabel)
 - [exolve-submit](https://github.com/viresh-ratnakar/exolve#exolve-submit)
-- [exolve-force-{bar,hyphen}-{below,after}](https://github.com/viresh-ratnakar/exolve#exolve-force-hyphen-right-exolve-force-hyphen-below-exolve-force-bar-right-exolve-force-bar-below)
+- [exolve-force-{bar,hyphen}-{below,right}](https://github.com/viresh-ratnakar/exolve#exolve-force-hyphen-right-exolve-force-hyphen-below-exolve-force-bar-right-exolve-force-bar-below)
+- [exolve-cell-size](https://github.com/viresh-ratnakar/exolve#exolve-cell-size)
+- [exolve-email](https://github.com/viresh-ratnakar/exolve#exolve-email)
+- [exolve-no-rebus](https://github.com/viresh-ratnakar/exolve#rebus-cells)
+- [exolve-cell-decorator](https://github.com/viresh-ratnakar/exolve#exolve-cell-decorator)
 
 If there are any problems in parsing the specified text, then the error is shown
 in red and the specified text is not used until the error is fixed. The
 specified Exolve sections, when free from errors, are updated as you type (with
 a short lag).
 
-The  `exolve-postscript` section is typically used to saw site-specific
+The  `exolve-postscript` section is typically used to show site-specific
 navigational elements. This section (if present) is normally hidden in Exet.
 The only exception is when you are actively editing "Other Exolve sections"
 (as you may want to edit the `exolve-postscript` section itself and see what the
@@ -1543,7 +1545,7 @@ creating a new blank grid or whether you invoke it on an existing grid):
   cell, going through light cells only).
 - It generates a list of potential mutations that keep the grid design viable,
   and scores them using heuristics for fillability (taking preferred entries
-  int account, if any).
+  into account, if any).
 - If an existing grid is of the American variety with every white square
   being a part of an across light as well as a down light (i.e., is "checked"),
   then, ensure that:
@@ -1606,7 +1608,7 @@ details:
   - *viability(row, col)* maps the number of choices for that cell to the range
     *0..5*:
     ```
-      viability = (#choices == 0) ? 0 : min(5, log2(#choices))
+      viability = (#choices == 0) ? 0 : 1 + min(4, log2(#choices))
     ```
   - Heuristic: treat *viability(row, col) &divide; 5* as the independent
     probability of an unfilled cell being fillable.

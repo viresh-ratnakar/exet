@@ -620,7 +620,6 @@ ExetFillState.prototype.pangramCell = function(r, c, autofill) {
   if (!gridCell.isLight) {
     return false;
   }
-
   if (autofill.pangramAll) {
     return true;
   }
@@ -641,11 +640,11 @@ ExetFillState.prototype.pangramCell = function(r, c, autofill) {
     return false;
   }
 
-  const firsts = [];
+  let firsts = [];
   if (gridCell.startsAcrossClue) firsts.push('A' + gridCell.startsClueLabel);
   if (gridCell.startsDownClue) firsts.push('D' + gridCell.startsClueLabel);
   if (gridCell.startsZ3dClue) firsts.push('Z' + gridCell.startsClueLabel);
-  const lasts = [];
+  let lasts = [];
   if (autofill.pangramLasts || exet.tryReversals) {
     if (gridCell.endsAcrossClue) lasts.push('A' + gridCell.endsAcrossClue);
     if (gridCell.endsDownClue) lasts.push('D' + gridCell.endsDownClue);
@@ -1432,6 +1431,9 @@ class ExetAutofill {
   }
 
   beamSearchStep() {
+    if (!this.running) {
+      return;
+    }
     if (this.throttledTimer) {
       clearTimeout(this.throttledTimer);
     }

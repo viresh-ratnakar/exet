@@ -273,7 +273,7 @@ function Exet() {
      shown for lights (for example, forcing a palindrome, or a specific
      substring) using the "Edit regexp constraints" Edit menu option.`,
     `You can create a <i>3-D</i> crossword using
-     <i>Open &gt; New 3-D grid:</i>. You can also reverse some lights with
+     <i>New &gt; New 3-D grid:</i>. You can also reverse some lights with
      <i>Edit &gt; Reverse current light</i>. You can let autofill suggest
      reversals using the "Try reversals: [ ]" option on the main Exet tab.
      Reversed lights are often seen in 3-D crosswords.`,
@@ -446,7 +446,7 @@ Exet.prototype.setPuzzle = function(puz) {
     alert('Rebus cells are not supported');
     return;
   }
-  if (puz.offNumClueIndices.length > 0) {
+  if (Object.keys(puz.offNumClueIndices).length > 0) {
     alert('Non-numeric clues not yet supported');
     return;
   }
@@ -1042,7 +1042,7 @@ Exet.prototype.makeExetTab = function() {
               <div class="xet-dropdown-subitem"
                   onclick="exetBlank(document.getElementById('xet-barred-w').value, ` +
                     `document.getElementById('xet-barred-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
+                    `document.getElementById('xet-barred-id').value, ` +
                     `true, false, false, false, true, true);">
                 Create new barred grid!
               </div>
@@ -1139,17 +1139,17 @@ Exet.prototype.makeExetTab = function() {
 
           <hr>
           <div class="xet-dropdown-item"
-              title="Interactively build grid, using automagic suggestions for good blocks/bars based upon fill-viability""
+              title="Interactively build grid, using automagic suggestions for good blocks/bars based upon fill-viability"
               onclick="exet.enterGridBuildingMode()">
             Build grid assistively
           </div>
           <div class="xet-dropdown-item"
-              title="Try to autmatically add random blocks while maintaining a valid grid"
+              title="Try to automatically add random blocks while maintaining a valid grid"
               onclick="exet.handleKeyDown('#')">
             Add automagic blocks (#)
           </div>
           <div class="xet-dropdown-item"
-              title="Try to autmatically add random bars while maintaining a valid grid"
+              title="Try to automatically add random bars while maintaining a valid grid"
               onclick="exet.handleKeyDown('+')">
             Add automagic bars (+)
           </div>
@@ -1592,12 +1592,16 @@ Exet.prototype.makeExetTab = function() {
   <div style="padding:6px">
     <b>Edit these additional Exolve sections here, if desired:</b><br>
     <ul>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-credits">exolve-credits</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-credits">exolve-credits</a>,
+        <a href="https://github.com/viresh-ratnakar/exolve#exolve-email">exolve-email</a></li>
     <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-force-hyphen-right-exolve-force-hyphen-below-exolve-force-bar-right-exolve-force-bar-below">exolve-force-{bar,hyphen}-{below,right}</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-option">exolve-option</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-postscript">exolve-postscript</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-relabel">exolve-relabel</a></li>
-    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-submit">exolve-submit</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-option">exolve-option</a>,
+        <a href="https://github.com/viresh-ratnakar/exolve#exolve-postscript">exolve-postscript</a>,
+        <a href="https://github.com/viresh-ratnakar/exolve#rebus-cells">exolve-no-rebus</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-relabel">exolve-relabel</a>,
+        <a href="https://github.com/viresh-ratnakar/exolve#exolve-submit">exolve-submit</a></li>
+    <li><a href="https://github.com/viresh-ratnakar/exolve#exolve-cell-size">exolve-cell-size</a>,
+        <a href="https://github.com/viresh-ratnakar/exolve#exolve-cell-decorator">exolve-cell-decorator</a></li>
     </ul>
     If there are any problems in parsing the text, then the error will be shown in red below and
     the text will not be used until the error is fixed.
@@ -1605,7 +1609,7 @@ Exet.prototype.makeExetTab = function() {
   <div id="xet-other-sections-error" style="min-height:20px" class="xet-red">
   </div>
   <div class="xet-choices-box xet-mid-tall-box">
-     <textarea rows="100" cols="55" wrap="hard" id="xet-other-sections-text">
+     <textarea rows="80" cols="55" wrap="hard" id="xet-other-sections-text">
      </textarea>
   </div>
 </div>
@@ -1889,510 +1893,6 @@ Exet.prototype.stripInputLF = function(inp) {
   if (!inp) return
   if (inp.innerText.indexOf('\n') < 0) return
   inp.innerText = inp.innerText.replace(/\n/g, ' ')
-}
-
-Exet.prototype.addStat = function(dict, stat, details, bad=false) {
-  if (!dict[stat]) {
-    dict[stat] = {
-      count: 0,
-      details: ''
-    };
-  }
-  dict[stat].count++;
-  if (details) {
-    if (dict[stat].details) dict[stat].details += ', ';
-    dict[stat].details += details;
-  }
-  if (bad) {
-    dict[stat].bad = true;
-  }
-}
-
-Exet.prototype.essenceOfAnno = function(s) {
-  let out = '';
-  for (let c of s) {
-    if (c == '*') {
-      out += ' anagram ';
-    } else if (c == '.' || c == '!' || c == '?' || c == '+' || c == ':') {
-      out += ' ';
-    } else {
-      out += c;
-    }
-  }
-  out = out.replace(/ [ ]*/g, ' ').trim();
-  // Remove words containing {}
-  out = out.replace(/[^ ]*{[^}]*}[^ ]*/g, ' ');
-  // Remove words containing ()
-  out = out.replace(/[^ ]*\([^)]*\)[^ ]*/g, ' ');
-  // Remove words containing []
-  out = out.replace(/[^ ]*\[[^\]]*\][^ ]*/g, ' ');
-  // Remove parens
-  out = out.replace(/[\[\]}){(]/g, '');
-  // Remove ".."
-  out = out.replace(/"[^"]*"/g, ' ');
-  // Remove '..'
-  out = out.replace(/'[^']*'/g, ' ');
-  // Remove words with 2 or more uppercase letters
-  out = out.replace(/[a-zA-Z'-]*[A-Z][a-zA-Z'-]*[A-Z][a-zA-Z'-]*/g, ' ');
-  // Remove words containing <>
-  out = out.replace(/[^ ]*<[^ ]*>[^ ]*/g, ' ');
-  // Remove words starting with -
-  out = out.replace(/ -[^ ]*/g, ' ');
-  // Remove single-letter words
-  out = out.replace(/( [A-Za-z])+ /g, ' ');
-  out = out.replace(/^([A-Za-z] )+/g, ' ');
-  out = out.replace(/( [A-Za-z])+$/g, ' ');
-
-  if (s.match(/-[^ ]\+/) || s.match(/\+[^ ]-/)) {
-    out += ' substitution';
-  }
-  out = out.replace(/ [ ]*/g, ' ').trim().toLowerCase();
-  if (!out) {
-    out = 'charade or other';
-  }
-  return out;
-}
-
-function ExetLightInfo() {
-  this.lights = 0
-  this.filled = 0
-  this.lengths = {}
-  this.clueLengths = {}
-  this.substrings = {}
-  this.popularities = {}
-  this.letters = {}
-  for (let c of exetLexicon.letters) {
-    this.letters[c] = {count: 0, details: ''}
-  }
-  this.ischild = 0
-  this.set = 0
-  this.annos = 0
-  this.words = {}
-  this.annotations = {}
-}
-
-Exet.prototype.getSubstrings = function(s) {
-  const letters = exetLexicon.letterString(s);
-  const substrings = new Set;
-  for (let len = 3; len <= letters.length; len++) {
-    const end = letters.length - len;
-    for (let start = 0; start <= end; start++) {
-      substrings.add(letters.substr(start, len));
-    }
-  }
-  return substrings;
-}
-
-/**
- * Remove "subsumed" substrings from the histogram.
- */
-Exet.prototype.trimSubsumedSubstrings = function(substrings) {
-  const toDelete = [];
-  const keys = Object.keys(substrings);
-  for (const sub of keys) {
-    let subsumed = false;
-    for (const sup of keys) {
-      if (sup.length <= sub.length ||
-          substrings[sub].count != substrings[sup].count ||
-          sup.indexOf(sub) < 0) {
-        continue;
-      }
-      subsumed = true;
-      break;
-    }
-    if (subsumed) {
-      toDelete.push(sub);
-      continue;
-    }
-  }
-  for (const sub of toDelete) {
-    delete substrings[sub];
-  }
-}
-
-Exet.prototype.getLightInfos = function() {
-  const infos = {
-    All: new ExetLightInfo(),
-    Across: new ExetLightInfo(),
-    Down: new ExetLightInfo(),
-    Other: new ExetLightInfo(),
-  };
-  const allInfo = infos['All'];
-  const aInfo = infos['Across'];
-  const dInfo = infos['Down'];
-  const oInfo = infos['Other'];
-  for (const ci in this.puz.clues) {
-    const theClue = this.puz.clues[ci];
-    const dirInfo = theClue.dir == 'A' ?
-      aInfo : (theClue.dir == 'D' ?  dInfo : oInfo);
-    allInfo.lights++;
-    dirInfo.lights++;
-    if (theClue.parentClueIndex) {
-      allInfo.ischild++;
-      dirInfo.ischild++;
-      continue;
-    }
-    let label = theClue.label + theClue.dir.toLowerCase();
-    if (theClue.solution && theClue.solution.indexOf('?') < 0) {
-      allInfo.filled += 1;
-      dirInfo.filled += 1;
-      const lexl = exetLexicon.lexicon.length;
-      let index = lexl;
-      let solText = theClue.solution;
-      const fillClue = this.fillState.clues[ci];
-      if (fillClue && fillClue.lChoices.length == 1) {
-        index = fillClue.lChoices[0];
-        solText = exetLexicon.getLex(index);
-      }
-      const pop = 5 * Math.round(20 * (lexl - index) / lexl);
-      label += ': ' + solText;
-      this.addStat(allInfo.popularities, pop, label);
-      this.addStat(dirInfo.popularities, pop, label);
-      const substrings = this.getSubstrings(solText);
-      for (const substring of substrings) {
-        this.addStat(allInfo.substrings, substring, label);
-        this.addStat(dirInfo.substrings, substring, label);
-      }
-      /**
-       * Include filled entries in reporting stem-dupes in clues.
-       */
-      const depunctSol = exetLexicon.depunct(solText, true /* forDeduping */);
-      const words = depunctSol.split(' ');
-      for (const word of words) {
-        const stem = exetLexicon.stem(word).toLowerCase();
-        this.addStat(allInfo.words, stem, label);
-        this.addStat(dirInfo.words, stem, label);
-      }
-    }
-    this.addStat(allInfo.lengths, theClue.enumLen, label);
-    this.addStat(dirInfo.lengths, theClue.enumLen, label);
-    const depunctClue = exetLexicon.depunct(theClue.clue, true /* forDeduping */);
-    if (depunctClue && !this.isDraftClue(theClue.clue)) {
-      allInfo.set += 1;
-      dirInfo.set += 1;
-      const labelAndClue = label + ' [' + depunctClue + ']';
-      const words = depunctClue.split(' ');
-      for (const word of words) {
-        const stem = exetLexicon.stem(word).toLowerCase();
-        this.addStat(allInfo.words, stem, labelAndClue);
-        this.addStat(dirInfo.words, stem, labelAndClue);
-      }
-      this.addStat(allInfo.clueLengths, words.length, label);
-      this.addStat(dirInfo.clueLengths, words.length, label);
-    }
-    if (theClue.anno) {
-      allInfo.annos += 1;
-      dirInfo.annos += 1;
-      const anno = this.essenceOfAnno(theClue.anno);
-      if (anno) {
-        this.addStat(allInfo.annotations, anno, label);
-        this.addStat(dirInfo.annotations, anno, label);
-      }
-    }
-  }
-  // In *.words and *.substrings, retain only those that have count > 1
-  for (const key of Object.keys(infos)) {
-    const info = infos[key]
-    for (const word of Object.keys(info.words)) {
-      if (info.words[word].count <= 1) {
-        delete info.words[word];
-      }
-    }
-    for (const substring of Object.keys(info.substrings)) {
-      if (info.substrings[substring].count <= 1) {
-        delete info.substrings[substring];
-      }
-    }
-    this.trimSubsumedSubstrings(info.substrings);
-  }
-  const grid = this.puz.grid;
-  const w = this.puz.gridWidth;
-  const h = this.puz.gridHeight;
-  for (let i = 0; i < h; i++) {
-    for (let j = 0; j < w; j++) {
-      const gridCell = grid[i][j];
-      if (!gridCell.isLight || gridCell.solution == '?') continue;
-      const rowcol = 'row-' + (h - i) + ',' + 'col-' + (j + 1);
-      this.addStat(allInfo.letters, gridCell.solution, rowcol);
-      if (gridCell.acrossClueLabel) {
-        this.addStat(aInfo.letters, gridCell.solution, rowcol);
-      }
-      if (gridCell.downClueLabel) {
-        this.addStat(dInfo.letters, gridCell.solution, rowcol);
-      }
-      if (gridCell.z3dClueLabel) {
-        this.addStat(dInfo.letters, gridCell.solution, rowcol);
-      }
-    }
-  }
-  if (oInfo.lights == 0) {
-    delete infos['Other'];
-  }
-  return infos;
-}
-
-Exet.prototype.updateAnalysis = function(elt) {
-  const grid = this.puz.grid;
-  const w = this.puz.gridWidth;
-  const h = this.puz.gridHeight;
-  const layers3d = this.puz.layers3d;
-
-  const analysis = new ExetAnalysis(grid, w, h, layers3d);
-
-  let html = '<p><b>Grid</b></p><p><ul>';
-  html = html + `<li>${w*h} cells, dimensions: ${w} &times; ${h}</li>`;
-
-  const isConnected = analysis.isConnected();
-  if (!isConnected) {
-    html += '<li class="xet-red"><i>Does not have all light cells connected</i></li>';
-  } else {
-    html += '<li>All light cells are connected</li>';
-  }
-  if (!analysis.isSymmetric()) {
-    html += '<li class="xet-red"><i>Not symmetric</i></li>';
-  } else {
-    html += '<li>Symmetric</li>';
-  }
-  let numBlocks = analysis.numBlocks();
-  if (numBlocks > 0) {
-    html += `<li>${numBlocks} (${(numBlocks * 100 /
-          (w * h)).toFixed(2)}%) blocked cells</li>`;
-  } else {
-    html += '<li>No blocked cells</li>';
-  }
-  let numBars = analysis.numBars();
-  if (numBars > 0) {
-    html += `<li>${numBars} bars</li>`;
-  } else {
-    html += '<li>No bars</li>';
-  }
-  let spanUnches = null;
-  if (analysis.doublyCheckedOK(false)) {
-    html += '<li>Every light cell is checked</li>';
-  } else  if (analysis.unchesOK(false, false)) {
-    html += '<li>No consecutive unches</li>';
-    if (!analysis.unchesOK(false, true)) {
-      html += '<li class="xet-red"><i>Some lights shorter than 9 letters have &gt;50% unches</i></li>';
-    }
-    if (layers3d == 1) {
-      for (useBlocks of [true, false]) {
-        const limit = useBlocks ? 5 : 3;
-        if (useBlocks && analysis.numBlocks() < limit) continue;
-        if (!useBlocks && analysis.numBars() < limit) continue;
-        const name = useBlocks ? 'blocks' : 'bars';
-        for (const horiz of [true, false]) {
-          const span = analysis.maxCollinear(horiz, useBlocks);
-          if (span > limit) {
-            html += `<li class="xet-red"><i>Too many (${span}) consecutive collinear ${horiz ? "horizontal" : "vertical"} ${name}</i></li>`;
-          }
-        }
-      }
-      if (analysis.numBars() > 0) {
-        spanUnches = analysis.getSpanUnches();
-      }
-    }
-  } else {
-    html += '<li class="xet-red"><i>Has consecutive unches</i></li>';
-  }
-
-  if (spanUnches) {
-    /** We get here only for barred grids with non-consecutive unches */
-    const stats = {};
-    let someBad = false;
-    for (const spanUnch of spanUnches) {
-      const key = `Unches: ${String(spanUnch[1]).padStart(2, '0')}, length: ${String(spanUnch[0]).padStart(2, '0')}`;
-      const details = spanUnch[3];
-      const bad = !spanUnch[4];
-      if (bad) someBad = true;
-      this.addStat(stats, key, details, bad);
-    }
-    html += `<li><span${someBad ? ' class="xet-red"' : ''}>Num-unches + light-lengths distribution</span>:<br>${this.plotStats(stats)}</li>`;
-  }
-
-  const throughCuts = analysis.minThroughCuts();
-  if (numBars == 0 && isConnected && layers3d == 1) {
-    /** Display through-cut sizes */
-    html += '<li>Smallest "through cuts" found (hover over the lists to see ' +
-            'the squares highlighted in the grid):\n<ul>\n';
-    for (let d = 0; d < 2; d++) {
-      const cells = throughCuts[d];
-      const  orientation = (d == 0) ? 'Vertical' : 'Horizontal';
-      const cellNames = [];
-      for (const cell of cells) {
-        cellNames.push(`r${h - cell[0]}c${cell[1] + 1}`);
-      }
-      html += '<li class="xet-through-cut" id="xet-through-cut-' + d + '">' +
-              orientation + ': (' + cells.length + ' squares): [' +
-              cellNames.join(' ') + ']</li>\n';
-    }
-    html += '</ul></li>\n';
-  }
-
-  html += '</ul></p>';
-
-  let lightInfos = this.getLightInfos()
-  html += `<p><select name="xet-analysis-select"
-          id="xet-analysis-select" style="font-weight:bold" value="All"
-    onchange="exet.selectAnalysis()">`
-  for (let key in lightInfos) {
-    html = html + `
-      <option value="${key}">${key}</option>`
-  }
-  html += '</select> <b>Grid-fill and Clues</b></p>'
-  for (let key in lightInfos) {
-    html += `<div id="xet-analysis-${key}" class="xet-analysis-choices"
-            style="display:none"><table>`
-    let info = lightInfos[key];
-    html += `<tr><td colspan="2"><b>Number of lights</b>:
-              ${info.lights}</td></tr>`;
-    let unparented = info.lights - info.ischild;
-    html += `<tr><td colspan="2"
-              title="Same as # lights if there are no linked clues">
-                <b>Number of entries</b>: ${unparented}</td></tr>`;
-    html += `<tr><td colspan="2"><b>Filled entries</b>: ${info.filled} (${(
-                    info.lights > 0 ?
-                      100*info.filled/info.lights : 0).toFixed(2)}%)</td></tr>`;
-    html += `<tr><td colspan="2"><b>Set clues (i.e., not ${this.DRAFT})</b>: ${info.set} (${(
-                    unparented > 0 ? 100*info.set/unparented : 0).toFixed(2)}%)</td></tr>`;
-    html += '<tr><td colspan="2" class="xet-small"><br><i>Hover on the blue bars to see details</i></td></tr>';
-    html += `<tr><td class="xet-td"><div><b>Entry lengths</b>:<br>${this.plotStats(
-                  info.lengths)}</div>`;
-    html += `<div><span title="Popularity, when available in the lexicon, is ` +
-      `the percentile by occurrence count over a large corpus such ` +
-      `as Wikipedia"><b>Entry word/phrase popularity percentiles</b></span>:<br>${
-                  this.plotStats(info.popularities, 5)}</div</td>`;
-    html += `<td class="xet-td"><b>Letters used</b>:<br>
-              ${this.plotStats(info.letters)}</td></tr>`;
-    html += `<tr><td class="xet-td"><div
-               title="The most popular word form is shown for the words that have a common stem"><b>Word
-               stems repeated in set clues</b>:<br>${this.plotStats(
-        info.words)}</di>`;
-    html += `<div><b>Substrings repeated in solution entries</b>:<br>${this.plotStats(
-        info.substrings)}</div></td>`;
-    html += `<td class="xet-td"><div><b>Word-lengths of set clues</b>:<br>${this.plotStats(
-        info.clueLengths)}</div>`;
-    html += `<div><b>Annotations provided in clues</b>: ${info.annos} (${(
-          unparented > 0 ? 100*info.annos/unparented : 0).toFixed(2)}%)
-              ${this.plotStats(info.annotations)}</div></td></tr>`;
-    html += '</table></div>';
-  }
-  elt.innerHTML = html;
-
-  /** Set up highlighting of through cuts */
-  for (let d = 0; d < 2; d++) {
-    const elt = document.getElementById('xet-through-cut-' + d);
-    if (!elt) continue;
-    elt.addEventListener('mouseover', (e) => {
-      for (const cell of throughCuts[d]) {
-        const div = this.puz.makeCellDiv(cell[0], cell[1], 'purple');
-        div.classList.add('xet-through-cut-cell');
-        this.puz.gridParent.appendChild(div);
-        const scissors = this.puz.addCellText(
-            cell[0], cell[1], '&#9988;', 16, 10, false);
-        scissors.classList.add('xet-through-cut-cell');
-      }
-      this.puz.colourGroup.style.display = 'none';
-      this.puz.ninaGroup.style.display = 'none';
-    });
-    elt.addEventListener('mouseout', (e) => {
-      const elts = this.puz.gridParent.getElementsByClassName(
-          'xet-through-cut-cell');
-      const nonLiveList = [];
-      for (let i = 0; i < elts.length; i++) {
-        nonLiveList.push(elts[i]);
-      }
-      for (const elt of nonLiveList) {
-        elt.remove();
-      }
-      this.puz.colourGroup.style.display = '';
-      this.puz.ninaGroup.style.display = '';
-    });
-  }
-  this.selectAnalysis();
-}
-
-Exet.prototype.plotStats = function(stats) {
-  let keys = Object.keys(stats);
-  let numeric = true;
-  let totalCount = 0;
-  for (let key of keys) {
-    if (isNaN(key)) {
-      numeric = false;
-    }
-    totalCount += stats[key].count;
-  }
-  if (numeric) {
-    keys.sort((a, b) => a - b);
-  } else {
-    keys.sort((a, b) => stats[b].count - stats[a].count);
-  }
-  let min = Number.MAX_VALUE;
-  let max = Number.MIN_VALUE;
-  let count = 0;
-  let distinct = 0;
-  let sum = 0;
-  let median = 0;
-  let medianFound = false;
-  let html = '<p>';
-  let maxv = 1;
-  for (let key of keys) {
-    let v = stats[key].count;
-    count += v;
-    if (v > 0) distinct++;
-    if (v > maxv) maxv = v;
-    if (numeric) {
-      key = Number(key);
-      if (key > max) max = key;
-      if (key < min) min = key;
-      sum += (key * v)
-      if (!medianFound && count >= (totalCount / 2)) {
-        median = key;
-        medianFound = true;
-      }
-    }
-  }
-  if (numeric) {
-    keys = Object.keys(stats);
-    keys.sort((a, b) => a - b);
-  }
-  html += '<table class="xet-stats-table">';
-  const BARMAX = 150;
-  for (let key of keys) {
-    html += '<tr>';
-    const ct = stats[key].count;
-    const cls = stats[key].bad ? 'xet-plotbar-red' : 'xet-plotbar';
-    html += `<td style="text-align:right">${ct}</td><td>`;
-    html += numeric ? 'of' : '&times;';
-    html += `</td><td>${key}</td>`;
-    html += `<td><div class="${cls}"
-            style="width:${BARMAX * stats[key].count / maxv}px"`;
-    if (stats[key].details) {
-      html += ` title="${stats[key].details}"`;
-    }
-    html += '></div></td>';
-    html += '</tr>';
-  }
-  html += '</table>';
-  html += '</p>';
-  html += `<p class="xet-indent">Distinct values: ${distinct}`;
-  if (numeric && count > 0) {
-    html += `
-      <br>Range: ${min} - ${max}
-      <br>Average: ${(sum / count).toFixed(1)}
-      <br>Median: ${median}`;
-  }
-  html += '</p>';
-  return html;
-}
-
-Exet.prototype.selectAnalysis = function() {
-  let picker = document.getElementById('xet-analysis-select')
-  if (!picker) return
-  let id = 'xet-analysis-' + picker.value
-  let choices = document.getElementsByClassName('xet-analysis-choices')
-  for (let i = 0; i < choices.length; i++) {
-    choices[i].style.display = (choices[i].id == id ? '' : 'none')
-  }
 }
 
 Exet.prototype.updateMetadata = function() {
@@ -3163,7 +2663,7 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
  */
 Exet.prototype.lcs = function(a, b, dp) {
   // dp is already an (n+1)x(m+1) array.
-  // dp[i][j] = length of longest common subseq. of a[0..i-1], j[0..j-1].
+  // dp[i][j] = length of longest common subseq. of a[0..i-1], b[0..j-1].
   const n = a.length;
   const m = b.length;
   if (n == 0 || m == 0) return [0, 0, 0];
@@ -4634,7 +4134,7 @@ Exet.prototype.maybeShowFormat = function() {
       modSub = this.deTag(sub, inClue);
     } else if (tag == 'caps') {
       if (onlyClear) continue;
-      heading = 'Toggle letter capitalizaton in selection:';
+      heading = 'Toggle letter capitalization in selection:';
       modSub = '';
       for (let c of sub) {
         const uc = c.toUpperCase();
@@ -4733,15 +4233,7 @@ Exet.prototype.processRegexps = function(errs=[], badkeys=new Set) {
 }
 
 Exet.prototype.regexpIsMacro = function(k) {
-  if (!k.startsWith('A') && !k.startsWith('D')) {
-    return true;
-  }
-  const numStr = k.substr(1);
-  const num = parseInt(numStr);
-  if (isNaN(num) || num <= 0) {
-    return true;
-  }
-  return false;
+  return !(/^[ADZ][1-9]\d*$/.test(k));
 }
 
 /**
@@ -4848,13 +4340,12 @@ Exet.prototype.showLightRegexps = function(evt) {
     if (!clue || clue.parentClueIndex) {
       continue;  // Only one row per entry; skip linked children here.
     }
-    let label = clue.fullDisplayLabel || this.puz.clueLabelDisp(clue);
+    let label = this.puz.clueLabelDisp(clue);
     if (clue.childrenClueIndices) {
       for (const cci of clue.childrenClueIndices) {
         const cClue = this.puz.clues[cci];
         if (cClue) {
-          label += ', ' + (cClue.fullDisplayLabel ||
-                            this.puz.clueLabelDisp(cClue));
+          label += ', ' + this.puz.clueLabelDisp(cClue);
         }
       }
     }
@@ -7448,7 +6939,7 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
         gridRow[1] = gridRow[1] + (j % 2 == 0 ? '. ' : '? ');
       } else if (topUnches && !leftUnches) {
         gridRow[0] = gridRow[0] + (j % 2 == 0 ? '? ' : '. ');
-        gridRow[1] = gridRow[1] + '?';
+        gridRow[1] = gridRow[1] + '? ';
       } else if (topUnches && leftUnches) {
         gridRow[0] = gridRow[0] + (j % 2 == 0 ? '. ' : '? ');
         gridRow[1] = gridRow[1] + '? ';
@@ -7749,12 +7240,12 @@ function exetFailedToLoadLexicon() {
     if (lopts) {
       lopts.value = exetState.lexicon;
     }
+    /** We may have killed the backgroud viability sweep, resume it. */
+    exet.resetViability();
   } else {
     /** Trigger failure message for this first attempt to load the lexicon */
     exetLexiconInit();
   }
-  /** We may have killed the backgroud viability sweep, resume it. */
-  exet.resetViability();
   exetModals.unfreezeUI();
   exetLexiconSaved = null;
   exetLexiconNewName = null;

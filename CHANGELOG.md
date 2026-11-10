@@ -1,5 +1,22 @@
 # Changelog
 
+### Exet v1.10.1, November 10, 2026
+
+- Clean-ups, bug-fixes, refactorings.
+- Move lots of Analysis code from exet.js to exet-analysis.js (most are
+  functions within Exet, but that's OK, we just also move exet-analysis.js
+  &lt;script&gt; tag to go after exet.js in the html files.
+- Actually use `xet-barred-id` (not `xet-id`) for barred grid creation.
+- Update set of allowed exolve sections in "Other".
+- Fix bug in changing lexicon region (entries in anagrams and phones were not
+  getting swapped correctly).
+- Fix bug: use `REV_CREATED_AUTOBAR` when warranted.
+- In Assistive Grid Building, if the user manually enters a situation where
+  both bars and blocks are present, then we quit the assistive mode.
+- Many README typo-fixes nd clean-ups.
+- Add a new test file, `exet-test-lexicon.html` that tests some of the lexicon
+  code using a small toy lexicon.
+
 ### Exet v1.10, November 10, 2026
 
 - Add a "Build grid assistively" Edit menu option. This brings up an interface
@@ -37,7 +54,7 @@
 
 ### Unnumbered bug fix
 
-- Typo: lightRegexpC should be ligjtRegexpsC
+- Typo: lightRegexpC should be lightRegexpsC
 
 ### Exet v1.09, October 18, 2026
 

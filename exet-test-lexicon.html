@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Lexicon, Regions, Stems & Wordplay</title>
+<script>
+exetConfig = {
+  language: "en",
+  script: "Latin",
+  defaultDimension: 5,
+  defaultPopularity: 50,
+  researchTools: [{url: "https://en.wiktionary.org/wiki/", name: "Wiktionary"}],
+  extraTabs: [],
+  listsLinks: [{name: "Abbreviations", url: "https://en.wikipedia.org/wiki/Crossword_abbreviations"}],
+};
+
+/**
+ * Tiny synthetic lexicon with stems, scores, phones, and regional swaps.
+ * Index 0 is empty string; 1..12 are ordered by descending score.
+ */
+var exetLexicon = {
+  id: "test-en-v1",
+  stemsId: "test-en-v1",
+  language: "en",
+  script: "Latin",
+  letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+  lexicon: [
+    "",
+    "CAT",         // 1 (stem cycle: 1 -> 2 -> 1)
+    "CATS",        // 2
+    "COLOR",       // 3 (US/Britain swap pair with 8: COLOUR)
+    "HONOR",       // 4 (US/Britain swap pair with 9: HONOUR)
+    "REALIZE",     // 5 (US/Britain swap pair with 10: REALISE, in dontBanish)
+    "I do",        // 6 (not a proper noun despite capital I)
+    "X-ray",       // 7 (not a proper noun due to hyphen)
+    "COLOUR",      // 8
+    "HONOUR",      // 9
+    "REALISE",     // 10
+    "Paris",       // 11 (proper noun)
+    "ACT"          // 12 (anagram of CAT)
+  ],
+  scores: [0, 99.9, 95.0, 90.0, 88.0, 85.0, 80.0, 75.0, 51.0, 50.0, 49.0, 45.0, 40.0],
+  stems:  [0, 2,    1,    8,    9,    10,   6,    7,    3,    4,    5,    11,   12],
+  index: {
+    "???": [1, 12],
+    "????": [2, 6, 7],
+    "?????": [3, 4, 11],
+    "??????": [8, 9],
+    "???????": [5, 10]
+  },
+  anagrams: [[]],
+  phones: [
+    [],
+    [["K", "AE", "T"]],
+    [["K", "AE", "T", "S"]],
+    [["K", "AH", "L", "ER"]],
+    [["AA", "N", "ER"]],
+    [["R", "IY", "AH", "L", "AY", "Z"]],
+    [["AY", "D", "UW"]],
+    [["EH", "K", "S", "R", "EY"]],
+    [["K", "AH", "L", "ER"]],
+    [["AA", "N", "ER"]],
+    [["R", "IY", "AH", "L", "AY", "Z"]],
+    [["P", "AE", "R", "IH", "S"]],
+    [["AE", "K", "T"]]
+  ],
+  phindex: [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]],
+  regions: {
+    "Britain": {
+      swaps: [[8, 3], [9, 4], [10, 5]],
+      dontBanish: [5, 10]
+    },
+    "US": {
+      swaps: [[3, 8], [4, 9], [5, 10]],
+      dontBanish: []
+    }
+  }
+};
+// Put all words in shard 0 for single-shard anagram lookup in this tiny test:
+exetLexicon.anagrams = [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]];
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div style="background:#eef;padding:8px;margin-bottom:8px;font-family:monospace;border:1px solid #99c">
+  <b>Lexicon Test Harness:</b>
+  <button onclick="runLexiconAssertions()">Run Self-Checks</button>
+  <span id="test-status" style="margin-left:12px"></span>
+</div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+function runLexiconAssertions() {
+  const errs = [];
+  const assert = (cond, msg) => { if (!cond) errs.push(msg); };
+
+  assert(!exetLexicon.isProperNoun("I do"), "'I do' should not be a proper noun");
+  assert(!exetLexicon.isProperNoun("X-ray"), "'X-ray' should not be a proper noun");
+  assert(exetLexicon.isProperNoun("Paris"), "'Paris' should be a proper noun");
+
+  assert(JSON.stringify(exetLexicon.stemGroup(2)) === "[1,2]", "stemGroup(2) should be [1,2]");
+
+  exetLexicon.preferRegion("Britain");
+  const brit5 = exetLexicon.getLexChoices("?????");
+  assert(!brit5.some(idx => exetLexicon.getLex(idx) === "COLOR"),
+         "COLOR should be banished in Britain region");
+  const brit7 = exetLexicon.getLexChoices("???????");
+  assert(brit7.length === 2 && exetLexicon.getLex(brit7[0]) === "REALISE",
+         "REALISE should rank first and REALIZE should remain via dontBanish in Britain");
+  exetLexicon.preferRegion("");
+
+  const status = document.getElementById("test-status");
+  if (errs.length === 0) {
+    status.innerHTML = "<b style='color:green'>All lexicon checks passed!</b>";
+  } else {
+    status.innerHTML = "<b style='color:red'>Failed: " + errs.join("; ") + "</b>";
+  }
+}
+</script>
+</body>
+</html>

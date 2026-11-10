@@ -216,7 +216,7 @@ Exet.prototype.automagicGridInner = function(
   rev = (fromEditMenu || (divCount > numAdded)) ?
             exetRevManager.REV_GRID_CHANGE :
             (useBlocks ? exetRevManager.REV_CREATED_AUTOBLOCK :
-                         exetRevManager.REV_CREATED_AUTOBLOCK);
+                         exetRevManager.REV_CREATED_AUTOBAR);
   this.updatePuzzle(rev);
   if (row >= 0 && col >= 0) {
     this.flashBarOrBlock(row, col, divider);
@@ -270,7 +270,7 @@ Exet.prototype.automagicGrid = function(useBlocks, fromEditMenu=true) {
   }
   if (!analysis.isSymmetric() && !this.asymOK) {
     if (fromEditMenu) {
-      alert('Cannot add automagic blocks/bars when the grid is not fully symmetric, without selecting the "all asymmetry" preference.');
+      alert('Cannot add automagic blocks/bars when the grid is not fully symmetric, without selecting the "Allow asymmetry" preference.');
     }
     return;
   }
@@ -329,7 +329,8 @@ Exet.prototype.getSym = function(row, col, bb = '.') {
 
 Exet.prototype.getSymCell = function(grid, row, col, bb = '.') {
   const [sr, sc] = this.getSym(row, col, bb);
-  if (sr < 0 || sc < 0 || sr >= this.gridHeight || sc >= this.gridWidth) {
+  if (sr < 0 || sc < 0 ||
+      sr >= this.puz.gridHeight || sc >= this.puz.gridWidth) {
     return null;
   }
   return grid[sr][sc];
@@ -337,18 +338,18 @@ Exet.prototype.getSymCell = function(grid, row, col, bb = '.') {
 
 /**
  * Pass what as 'set', 'unset', or 'toggle'
- * Pass unset = true to unset instead of setting.
  * Returns number of blocks/bars touched (if they already had
  * the desired value, they are still counted).
  */
 Exet.prototype.setBarOrBlock = function(grid, row, col, bb, what) {
-  if (row < 0 || col < 0 || row >= this.gridHeight || col >= this.gridWidth) {
+  if (row < 0 || col < 0 ||
+      row >= this.puz.gridHeight || col >= this.puz.gridWidth) {
     return 0;
   }
-  if (bb == '|' && (col == this.gridWidth - 1)) {
+  if (bb == '|' && (col == this.puz.gridWidth - 1)) {
     return 0;
   }
-  if (bb == '_' && (row == this.gridHeight - 1)) {
+  if (bb == '_' && (row == this.puz.gridHeight - 1)) {
     return 0;
   }
   const cell = grid[row][col];
@@ -388,7 +389,7 @@ Exet.prototype.flashElt = function(elt) {
   const endFlashing = () => {
     elt.classList.remove('xlv-overwritten');
   };
-  setTimeout(endFlashing, 5000);
+  setTimeout(endFlashing, 3000);
 }
 
 /**
@@ -485,7 +486,6 @@ Exet.prototype.showViableBBInner = function(fill, analysis, hasUnches) {
     <span class="xet-smaller-text">Click on Analysis from the Exet menu for more details.</span>
   </center>
   `;
-  this.gridBuildingPanel.style.top = '' + top + 'px';
   const blockMutations = (numBlocks > 0 || numBars == 0) ?
     this.getMutableCells(fill, analysis, true, hasUnches, rowcols) : [];
   this.displayBBChoices(blockMutations);
@@ -518,6 +518,11 @@ Exet.prototype.enterGridBuildingMode = function() {
   const hasUnches = !analysis.doublyCheckedOK();
   if (hasUnches && !analysis.unchesOK()) {
     alert('Cannot suggest blocks/bars when grid already has bad unches or too-short lights');
+    this.exitGridBuildingMode();
+    return;
+  }
+  if (analysis.numBars() > 0 && analysis.numBlocks() > 0) {
+    alert('Cannot suggest blocks/bars when grid has both');
     this.exitGridBuildingMode();
     return;
   }

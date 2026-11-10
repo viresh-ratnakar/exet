@@ -21,6 +21,7 @@ See the full Exet license notice in exet.js.
  *   anagrams: hashed index array
  *   phones: array parallel to lexicon, each entry is an array of phone arrays
  *   phindex: hashed index array
+ *   scores: optional array parallel to lexicon, containing scores
  *
  *   stems: optional array, parallel to lexicon. stems[x] points to the next
  *     index in the same group, and following this cycle should eventually
@@ -28,8 +29,10 @@ See the full Exet license notice in exet.js.
  *   stemsId: Should match id.
  *   regions: optional object, keyed by name of region, pointing to
  *     region-specific object containg a "swaps" key pointing to a
- *     index-swap-pairs list . Each pair is guaranteed to be in the same
- *     stem-group.
+ *     index-swap-pairs list. Each pair is guaranteed to be in the same
+ *     stem-group. Also contains a dontBanish list of lexicon indices that
+ *     should not be banished for the region even if they are not preferred
+ *     (eg., -ize endings in Britain).
  * It supplements this objects with various utility functions and a few data
  * structures.
  */
@@ -458,7 +461,7 @@ function exetLexiconInit() {
       noProperNouns=false,
       indexLimit=0,
       tryRev=false,
-      preflexByLen=[],
+      preflexByLen={},
       unpreflexSet={},
       regexp=null) {
     if (indexLimit <= 0) {
@@ -1293,9 +1296,9 @@ function exetLexiconInit() {
     for (let i = 0; i < exetLexicon.anagrams.length; i++) {
       const anagrams = exetLexicon.anagrams[i];
       for (let j = 0; j < anagrams.length; j++) {
-        const redirected = redirects.get(anagrams[i]);
+        const redirected = redirects.get(anagrams[j]);
         if (redirected) {
-          anagrams[i] = redirected;
+          anagrams[j] = redirected;
         }
       }
       anagrams.sort((a, b) => a - b);
@@ -1304,9 +1307,9 @@ function exetLexiconInit() {
     for (let i = 0; i < exetLexicon.phindex.length; i++) {
       const phindex = exetLexicon.phindex[i];
       for (let j = 0; j < phindex.length; j++) {
-        const redirected = redirects.get(phindex[i]);
+        const redirected = redirects.get(phindex[j]);
         if (redirected) {
-          phindex[i] = redirected;
+          phindex[j] = redirected;
         }
       }
       phindex.sort((a, b) => a - b);
