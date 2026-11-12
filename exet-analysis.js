@@ -984,7 +984,7 @@ Exet.prototype.updateAnalysis = function(elt) {
       html += '<li class="xet-red"><i>Some lights shorter than 9 letters have &gt;50% unches</i></li>';
     }
     if (layers3d == 1) {
-      for (useBlocks of [true, false]) {
+      for (const useBlocks of [true, false]) {
         const limit = useBlocks ? 5 : 3;
         if (useBlocks && analysis.numBlocks() < limit) continue;
         if (!useBlocks && analysis.numBars() < limit) continue;
@@ -1069,13 +1069,13 @@ Exet.prototype.updateAnalysis = function(elt) {
     html += `<div><span title="Popularity, when available in the lexicon, is ` +
       `the percentile by occurrence count over a large corpus such ` +
       `as Wikipedia"><b>Entry word/phrase popularity percentiles</b></span>:<br>${
-                  this.plotStats(info.popularities, 5)}</div</td>`;
+                  this.plotStats(info.popularities, 5)}</div></td>`;
     html += `<td class="xet-td"><b>Letters used</b>:<br>
               ${this.plotStats(info.letters)}</td></tr>`;
     html += `<tr><td class="xet-td"><div
                title="The most popular word form is shown for the words that have a common stem"><b>Word
                stems repeated in set clues</b>:<br>${this.plotStats(
-        info.words)}</di>`;
+        info.words)}</div>`;
     html += `<div><b>Substrings repeated in solution entries</b>:<br>${this.plotStats(
         info.substrings)}</div></td>`;
     html += `<td class="xet-td"><div><b>Word-lengths of set clues</b>:<br>${this.plotStats(

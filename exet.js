@@ -827,7 +827,7 @@ Exet.prototype.setPuzzle = function(puz) {
 
   this.markClueEnds();  /** Needed for some autofill options */
   this.fillState = new ExetFillState(this.puz);
-  this.resetViability();
+  this.resetViability();  /** Also calls autofill.reset() */
 
   this.autofill = new ExetAutofill();
 
@@ -1950,7 +1950,7 @@ Exet.prototype.updateOtherSections = function() {
     const text = this.otherSecText.value;
     const matches = text.match(/exolve-[a-zA-Z0-9-]+/g);
     for (let i = 0; matches && i < matches.length; i++) {
-      m = matches[i];
+      const m = matches[i];
       if (!ALLOWED_SECTIONS[m]) {
         this.otherSecError.innerText = m + ' is not allowed here';
         return;
@@ -1966,8 +1966,11 @@ Exet.prototype.updateOtherSections = function() {
     try {
       const oldalert = window.alert;
       window.alert = function() {};
-      const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
-      window.alert = oldalert;
+      try {
+        const newPuz = new Exolve(specs, "xet-temp", null, false, 0, 0, false);
+      } finally {
+        window.alert = oldalert;
+      }
     } catch (err) {
       specsOK = false;
       this.otherSecError.innerText = '' + err;
@@ -2340,7 +2343,7 @@ Exet.prototype.makeWebFillsPanel = function() {
       </div>
     `;
   }
-  html += '<div>';
+  html += '</div>';
   this.webFillsPanel.innerHTML = html;
   this.showWebFillsButton.title += ': ' + names.join(', ');
 
@@ -2444,7 +2447,7 @@ Exet.prototype.pushCharadeCandidate = function(elements) {
     score += x.score;
     i++;
     if (x.container) {
-      contents = '';
+      let contents = '';
       while (i < x.container) {
         let y = elements[i];
         if (!y.possible) {
@@ -2560,13 +2563,13 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   while (this.charadeParts <= this.charadeMax) {
     if (!this.charadeSplits) {
       this.charadeSplits = this.getAllSplits(
-          this.charadeFodder, this.charadeParts)
-      this.charadeSplitIndex = 0
+          this.charadeFodder, this.charadeParts);
+      this.charadeSplitIndex = 0;
     }
     while (this.charadeSplitIndex < this.charadeSplits.length) {
       let split = this.charadeSplits[this.charadeSplitIndex];
       let viable = [];
-      for (let part of split) {
+      for (const part of split) {
         let possible = '';
         let score = 0;
         const choices = exetLexicon.displayAnagrams(
@@ -2582,9 +2585,8 @@ Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
         }
         viable.push({possible: possible, score: score});
       }
-      if (viable.length < this.charadeParts) {
-        continue;
-      }
+      console.assert(viable.length == this.charadeParts,
+                     viable, this.charadeParts);
       this.pushCharadeCandidate(viable);
       /**
        * The Containments tab already shows full containments.
@@ -2720,7 +2722,7 @@ Exet.prototype.editsMatch = function(fodder, phrase, dp,
   const phrase_lc = phrase.toLowerCase();
   for (let i = 0; i < m; i++) {
     j++;
-    while (phrase_norm[i] != phrase_lc[j]) {
+    while (j < phrase_lc.length && phrase_norm[i] != phrase_lc[j]) {
       j++;
     }
     corresp.push(j);
@@ -2760,7 +2762,7 @@ Exet.prototype.editsMatch = function(fodder, phrase, dp,
                Math.max(p5_l, f5.length) +
                Math.max(p7_l, f7.length);
 
-  candidate = phrase + ' &rarr; ';
+  let candidate = phrase + ' &rarr; ';
   if (p1) candidate += `<span class="xet-red">${p1}</span>`;
   if (f1) candidate += `<span class="xet-blue">(+${f1})</span>`;
   if (p2) candidate += p2;
@@ -2927,9 +2929,9 @@ Exet.prototype.populateCompanag = function() {
           class="xlv-answer xet-companag-text" id='xet-ca-anagram'></input>
         </td>
       </tr>
+      <tr>
         <td class="xet-td"><u><span id="xet-ca-unused"></span></u></td>
         <td class="xet-td"><u><span id="xet-ca-extra"></span></u></td>
-      <tr>
       </tr>
       <tr>
         <td class="xet-td">
@@ -3254,7 +3256,7 @@ Exet.prototype.toClipboard = function(solved=true, inpid) {
               suffix;
 
   inp.select();
-  inp.setSelectionRange(0, 99999);
+  inp.setSelectionRange(0, inp.value.length);
   document.execCommand("copy");
   setTimeout(() => {
     inp.value = ''
@@ -3689,6 +3691,7 @@ Exet.prototype.replaceHandlers = function() {
       exet.clearCurrSaved.apply(exet.puz, arguments);
       exet.unmarkNinasAsPrefilled();
       const theClue = exet.currClue();
+      if (!theClue) return;
       theClue.clue = exet.draftClue(exet.currClueIndex());
       theClue.solution = '';
       exet.puz.setClueSolution(exet.currClueIndex());
@@ -4115,7 +4118,7 @@ Exet.prototype.maybeShowFormat = function() {
       (sub.indexOf('~') >= 0 ||
        sub.indexOf('{') >= 0 || sub.indexOf('}') >= 0));
 
-  numActive = 0;
+  let numActive = 0;
   for (let tag of Object.keys(this.formatTags)) {
     const opt = document.getElementById('xet-format-' + tag);
     opt.style.display = 'none';
@@ -4201,14 +4204,12 @@ Exet.prototype.maybeShowFormat = function() {
     }
     const b = opt.firstElementChild;
     if (reversed) {
-      let temp = deltaStart;
+      const temp = deltaStart;
       deltaStart = deltaEnd;
       deltaEnd = temp;
     }
-    b.setAttribute('onclick',
-        `exet.updateFormat(${inClue}, ` +
-        `"${text.replace(/"/g, '\\"')}", "${modText.replace(/"/g, '\\"')}", ` +
-        `${deltaStart}, ${deltaEnd})`);
+    b.onclick = () => exet.updateFormat(inClue, text, modText,
+                                        deltaStart, deltaEnd);
     opt.style.display = '';
     numActive++;
   }
@@ -4282,11 +4283,13 @@ Exet.prototype.processRegexp = function(k, reStr) {
   let rePart = reStr;
   let flagsPart = '';
   try {
+    /** The REs do not allow \w etc., but that's OK */
     const reForSlashFormat = /^\/([^/]*)\/([^/]*)/;
     const slashMatch = reForSlashFormat.exec(reStr);
     if (slashMatch) {
       rePart = slashMatch[1];
-      flagsPart = slashMatch[2];
+      /** g and y make RegExp.test() stateful: drop them. */
+      flagsPart = slashMatch[2].replace(/[gy]/g, '');
     }
     re = rePart ? new RegExp(rePart, flagsPart) : null;
   } catch (err) {
@@ -4422,13 +4425,13 @@ Exet.prototype.handleRegexpChange = function() {
     for (const macroLine of macroLines) {
       const l = macroLine.trim();
       if (!l) continue;
-      const parts = l.split('=');
-      if (parts.length != 2) {
+      const eq = l.indexOf('=');
+      if (eq < 0) {
         errs.push('"' + l + '" is not formatted as "macro = value"');
         continue;
       }
-      const k = parts[0].trim();
-      const v = parts[1].trim();
+      const k = l.slice(0, eq).trim();
+      const v = l.slice(eq + 1).trim();
       if (!k || !v || !this.regexpIsMacro(k)) {
         errs.push('"' + l + '" does not have valid macro name/value');
         continue;
@@ -4490,6 +4493,7 @@ Exet.prototype.makeLinkingPanel = function() {
       as a linked clue.  &nbsp;
     <button class="xlv-small-button" id="xet-unlink" style="color:red">
     Break linked clues
+    </button>
     `;
   this.linking.style.display = 'none';
   this.puz.currClue.appendChild(this.linking);
@@ -4766,7 +4770,7 @@ Exet.prototype.makeClueEditable = function() {
     if (!opt || opt.style.display == 'none') {
       return false;
     }
-    b = opt.firstElementChild;
+    const b = opt.firstElementChild;
     if (typeof b.onclick == "function") {
       b.onclick.apply(b);
     }
@@ -6461,7 +6465,7 @@ Exet.prototype.renderPreflex = function() {
   }
   const currHtml = this.preflexInput.innerHTML;
   if (preflexHtml != currHtml) {
-    delta = preflexTextLen - this.preflexInput.innerText.length;
+    const delta = preflexTextLen - this.preflexInput.innerText.length;
     this.saveCursor();
     if (delta < 0) {
       this.adjustSavedCursor(delta, delta);
@@ -6920,7 +6924,10 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
                    chequered=true, topUnches=false, leftUnches=false,
                    requireEnums=true, barred=false) {
   exet.exitGridBuildingMode();
-  if (!w || !h || w <= 0 || h <= 0 || w > 100 || h > 100) {
+  w = Number(w);
+  h = Number(h);
+  if (!Number.isInteger(w) || !Number.isInteger(h) ||
+      w <= 0 || h <= 0 || w > 100 || h > 100) {
     alert('Width and height must be specified in the range, 1-100');
     return;
   }
@@ -7118,7 +7125,8 @@ function exetLoadFile() {
     exetRevManager.throttledSaveRev(
         exetRevManager.REV_LOADED_FROM_FILE, exet.exolveFile);
   } 
-  let f = document.getElementById('xet-file').files[0];
+  const f = document.getElementById('xet-file').files[0];
+  if (!f) return;
   exet.exolveFile = f.name;
   fr.readAsArrayBuffer(f);
 }

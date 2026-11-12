@@ -827,7 +827,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
       alert('Could not parse the saved revisions file');
       return;
     }
-    existingRevs = {};
+    const existingRevs = {};
     for (let idx = 0; idx < window.localStorage.length; idx++) {
       const id = window.localStorage.key(idx);
       if (exetRevManager.skippableKey(id)) {
@@ -862,7 +862,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
         specialPrefixes++;
         continue;
       }
-      savedRevs = allSavedRevs[id]['revs'];
+      const savedRevs = allSavedRevs[id]['revs'];
       if (!savedRevs || savedRevs.length == 0) {
         continue;
       }
@@ -870,7 +870,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
       if (mergeOnlyLatest) {
         numNonLatest += savedRevs.length - 1;
       }
-      revsToSplice = [];
+      const revsToSplice = [];
       for (let i = start; i < savedRevs.length; i++) {
         numRevs++;
         const rev = savedRevs[i];
@@ -954,6 +954,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
           `that already existed. ${ignored}`);
   } 
   const f = document.getElementById('xet-merge-revs-file').files[0];
+  if (!f) return;
   fr.readAsText(f);
 }
 

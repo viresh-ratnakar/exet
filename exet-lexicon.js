@@ -163,7 +163,7 @@ function exetLexiconInit() {
     exetLexicon.lettersOf = function(s) {
       const parts = s.toUpperCase().split('');
       const out = [];
-      for (p of parts) {
+      for (const p of parts) {
         if (this.letterSet[p]) out.push(p);
       }
       return out;
@@ -207,7 +207,7 @@ function exetLexiconInit() {
     exetLexicon.lettersOf = function(s) {
       const parts = this.partsOf(s.toUpperCase());
       const out = [];
-      for (p of parts) {
+      for (const p of parts) {
         if (this.letterSet[p]) out.push(p);
       }
       return out;
@@ -477,7 +477,7 @@ function exetLexiconInit() {
     // First look at preferred choices (these may have idx >= indexLimit)
     const seen = {};
     if (preflexByLen[keylen]) {
-      for (idx of preflexByLen[keylen]) {
+      for (const idx of preflexByLen[keylen]) {
         if (dontReuse && dontReuse.has(idx)) continue;
         if (dontUse && dontUse.has(idx)) continue;
         const phrase = this.lexicon[idx];
@@ -925,7 +925,7 @@ function exetLexiconInit() {
                 this.lexicon[deltaAnagram]))) {
           continue;
         }
-        candidate = [partial[0], deltaAnagram].sort((a, b) => a - b);
+        const candidate = [partial[0], deltaAnagram].sort((a, b) => a - b);
         if (!seenAnagrams[candidate]) {
           seenAnagrams[candidate] = true;
           anagrams.push(candidate);
@@ -948,7 +948,7 @@ function exetLexiconInit() {
       // Delta has sorted order, need to set seqOK to true for recursive call.
       const deltaAnagrams = this.getAnagramsKIndices(delta, limit, k - 1, true);
       for (let deltaAnagram of deltaAnagrams) {
-        candidate = [partial[0]].concat(deltaAnagram).sort((a, b) => a - b);
+        const candidate = [partial[0]].concat(deltaAnagram).sort((a, b) => a - b);
         if (!seenAnagrams[candidate]) {
           seenAnagrams[candidate] = true;
           anagrams.push(candidate);

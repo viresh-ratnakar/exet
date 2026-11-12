@@ -1,5 +1,14 @@
 # Changelog
 
+### Exet v1.10.2, November 11, 2026
+
+- More tidying up: minor bug/typo fixes.
+- Add missing "const"s/"let"s.
+- Fix window.alert() getting clobbered in corner cases.
+- Fix some mal-formatted html.
+- In regexp constraints, disallow g and y flags as they are stateful.
+- Stricter checking of user inputs for exetBlank() dimensions.
+
 ### Exet v1.10.1, November 10, 2026
 
 - Clean-ups, bug-fixes, refactorings.
