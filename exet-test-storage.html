@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Revisions, backup, merge, auto-free</title>
+<script src="exet-test-common.js"></script>
+<script>
+ExetTest.setup({
+  words: ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE', 'SLATE', 'STEAM'],
+  dim: 5,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+const LS = () => window.localStorage;
+const storedPuz = (id) => JSON.parse(LS().getItem(id));
+const numRevs = (id) => { const s = LS().getItem(id); return s ? JSON.parse(s).revs.length : 0; };
+
+/** Removes everything this page's tests may have created. */
+function resetStorage() {
+  const doomed = [];
+  for (let i = 0; i < LS().length; i++) {
+    const k = LS().key(i);
+    if (k.indexOf('xet-test-') >= 0) doomed.push(k);
+  }
+  for (const k of doomed) LS().removeItem(k);
+}
+
+/** Replaces the file-download function; returns what was "downloaded". */
+function withDownloadCaptured(fn) {
+  const orig = Exolve.prototype.fileDownload;
+  const captured = {json: null, name: null};
+  Exolve.prototype.fileDownload = function(data, mime, name) {
+    captured.json = data;
+    captured.name = name;
+  };
+  try {
+    fn();
+  } finally {
+    Exolve.prototype.fileDownload = orig;
+  }
+  return captured;
+}
+
+function synthPuzzle(id, n, ageMs) {
+  const revs = [];
+  const t0 = Date.now() - ageMs;
+  for (let r = 0; r < n; r++) {
+    revs.push({id: id, title: id, revNum: r + 1, revType: 20, timestamp: t0 + r,
+               details: '', prefix: '', suffix: '', exolve: 'exolve-begin exolve-end'});
+  }
+  return JSON.stringify({id: id, maxRevNum: n, revs: revs});
+}
+
+const REVMGR = () => exetRevManager;
+
+ExetTest.add('saveRev(): saves changes, skips identical state, keeps revision numbers', async t => {
+  resetStorage();
+  const id = 'xet-test-store-1';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  t.eq(numRevs(id), 1, 'loading a file saved one revision');
+  REVMGR().saveRev(REVMGR().REV_RESAVE);
+  t.eq(numRevs(id), 1, 'saving an unchanged state adds nothing');
+  exet.puz.clues['A1'].clue = 'A changed clue (5)';
+  REVMGR().saveRev(REVMGR().REV_CLUE_CHANGE);
+  t.eq(numRevs(id), 2, 'a changed clue adds a revision');
+  const s = storedPuz(id);
+  t.eq([s.maxRevNum, s.revs[1].revNum, s.revs[1].revType],
+       [2, 2, REVMGR().REV_CLUE_CHANGE], 'revision numbers and types');
+  t.ok(s.revs[1].exolve.indexOf('A changed clue') >= 0, 'the saved Exolve text has the new clue');
+});
+
+ExetTest.add('throttledSaveRev(): rapid calls are coalesced into one revision', async t => {
+  resetStorage();
+  const id = 'xet-test-store-2';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  const oldLag = REVMGR().saveLagMS;
+  REVMGR().saveLagMS = 40;
+  try {
+    exet.puz.clues['A1'].clue = 'Rapid change one (5)';
+    REVMGR().throttledSaveRev(REVMGR().REV_CLUE_CHANGE);
+    exet.puz.clues['A1'].clue = 'Rapid change two (5)';
+    REVMGR().throttledSaveRev(REVMGR().REV_CLUE_CHANGE);
+    exet.puz.clues['A1'].clue = 'Rapid change three (5)';
+    REVMGR().throttledSaveRev(REVMGR().REV_CLUE_CHANGE);
+    t.eq(numRevs(id), 1, 'nothing saved immediately');
+    await ExetTest.sleep(200);
+    t.eq(numRevs(id), 2, 'exactly one revision saved after the lag');
+    t.ok(storedPuz(id).revs[1].exolve.indexOf('Rapid change three') >= 0, 'it holds the latest state');
+  } finally {
+    REVMGR().saveLagMS = oldLag;
+  }
+});
+
+ExetTest.add('Backup, wipe, merge: revisions plus preferred/excluded words come back', async t => {
+  resetStorage();
+  const id = 'xet-test-store-3';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  exet.setPreflex(['EAGLE']);
+  exet.setUnpreflex(['EARTH']);
+  REVMGR().saveRev(REVMGR().REV_PREFLEX_CHANGE);
+  exet.puz.clues['A1'].clue = 'Backup test clue (5)';
+  REVMGR().saveRev(REVMGR().REV_CLUE_CHANGE);
+  const n = numRevs(id);
+  t.eq(n, 3, 'three revisions before the backup');
+
+  const backup = withDownloadCaptured(() => REVMGR().saveAllRevisions());
+  t.ok(backup.json, 'a backup file was produced: ' + backup.name);
+  const parsed = JSON.parse(backup.json);
+  t.ok(parsed[id], 'the backup contains the crossword');
+  t.ok(parsed[REVMGR().keyPrefUnpref(id, true)], 'the backup contains the preferred-words data');
+  t.ok(parsed[REVMGR().keyPrefUnpref(id, false)], 'the backup contains the excluded-words data');
+
+  resetStorage();
+  t.eq(LS().getItem(id), null, 'storage wiped');
+  await ExetTest.mergeRevisionsText(backup.json);
+  t.eq(numRevs(id), n, 'all revisions restored by merging');
+  t.ok(LS().getItem(REVMGR().keyPrefUnpref(id, true)), 'preferred-words data restored under the preferred-words key');
+  t.ok(LS().getItem(REVMGR().keyPrefUnpref(id, false)), 'excluded-words data restored under the excluded-words key');
+  const prefData = JSON.parse(LS().getItem(REVMGR().keyPrefUnpref(id, true)) || '{}');
+  const unprefData = JSON.parse(LS().getItem(REVMGR().keyPrefUnpref(id, false)) || '{}');
+  t.ok(Object.values(prefData).some(a => JSON.stringify(a) == '["EAGLE"]'), 'restored preferred words are [EAGLE]');
+  t.ok(Object.values(unprefData).some(a => JSON.stringify(a) == '["EARTH"]'), 'restored excluded words are [EARTH]');
+
+  exet.setPreflex([]);
+  exet.setUnpreflex([]);
+  const revs = storedPuz(id).revs;
+  REVMGR().retrievePrefUnpref(revs[revs.length - 1]);
+  t.eq(exet.preflex, ['EAGLE'], 'retrievePrefUnpref() brings back the preferred words');
+  t.eq(exet.unpreflex, ['EARTH'], 'retrievePrefUnpref() brings back the excluded words');
+
+  /** Merging the same file again must not duplicate anything. */
+  const alertsBefore = t.alerts.length;
+  await ExetTest.mergeRevisionsText(backup.json);
+  t.eq(numRevs(id), n, 'merging the same backup again adds no duplicate revisions');
+  t.ok(/merged 0 revisions/.test(t.alerts.slice(alertsBefore).join(' ')),
+       'merge summary says 0 merged: ' + t.alerts.slice(alertsBefore).join(' ').substring(0, 120));
+});
+
+ExetTest.add('Merge with "only latest" brings in just the newest revision', async t => {
+  resetStorage();
+  const id = 'xet-test-store-4';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  for (let k = 1; k <= 2; k++) {
+    exet.puz.clues['A1'].clue = `Latest-only test ${k} (5)`;
+    REVMGR().saveRev(REVMGR().REV_CLUE_CHANGE);
+  }
+  t.eq(numRevs(id), 3, 'three revisions');
+  const backup = withDownloadCaptured(() => REVMGR().saveAllRevisions());
+  resetStorage();
+  await ExetTest.mergeRevisionsText(backup.json, true);
+  t.eq(numRevs(id), 1, 'only the latest revision was merged');
+  t.ok(storedPuz(id).revs[0].exolve.indexOf('Latest-only test 2') >= 0, 'and it is the newest one');
+});
+
+ExetTest.add('Merge: cancelling the file dialog does not throw', async t => {
+  const input = document.getElementById('xet-merge-revs-file');
+  Object.defineProperty(input, 'files', {value: [], configurable: true});
+  let threw = '';
+  try { REVMGR().mergeRevisionsFile(); } catch (err) { threw = String(err); }
+  t.ok(!threw, 'mergeRevisionsFile() with no file chosen does not throw ' + threw);
+});
+
+ExetTest.add('Merge: a file that is not JSON is reported, not fatal', async t => {
+  const before = t.alerts.length;
+  await ExetTest.mergeRevisionsText('this is not json');
+  t.ok(t.alerts.length > before, 'alert shown: ' + t.alerts.slice(before).join(' / '));
+});
+
+ExetTest.add('Backup includes every crossword, even when stale preferred-word data is cleaned up', async t => {
+  resetStorage();
+  /**
+   * Insertion order matters: Exet saves a puzzle's preferred-words data
+   * BEFORE the puzzle's own record, so the stale data sits at a lower index
+   * than the puzzle. Cleaning it up while the backup loop walks over
+   * localStorage by index can then make the loop skip the next puzzle.
+   */
+  LS().setItem(REVMGR().keyPrefUnpref('xet-test-bk-1', true), JSON.stringify({'12345': ['STALE']}));
+  for (const k of [1, 2, 3, 4]) LS().setItem('xet-test-bk-' + k, synthPuzzle('xet-test-bk-' + k, 3, 3600000 * 5));
+  const backup = withDownloadCaptured(() => REVMGR().saveAllRevisions());
+  const parsed = JSON.parse(backup.json);
+  for (const k of [1, 2, 3, 4]) {
+    t.ok(parsed['xet-test-bk-' + k], `backup contains xet-test-bk-${k}`);
+  }
+});
+
+ExetTest.add('Auto-free: thins old revisions of every crossword, and its backup is complete', async t => {
+  resetStorage();
+  LS().setItem(REVMGR().keyPrefUnpref('xet-test-af-1', true), JSON.stringify({'12345': ['STALE']}));
+  for (const k of [1, 2, 3]) LS().setItem('xet-test-af-' + k, synthPuzzle('xet-test-af-' + k, 60, 3600000 * 5));
+  const backup = withDownloadCaptured(() => REVMGR().autofree());
+  /** 60 revisions: odd indices below 60-25=35 that are over an hour old go: 17 removed. */
+  for (const k of [1, 2, 3]) {
+    t.eq(numRevs('xet-test-af-' + k), 43, `xet-test-af-${k} thinned from 60 to 43 revisions`);
+  }
+  const parsed = backup.json ? JSON.parse(backup.json) : {};
+  for (const k of [1, 2, 3]) {
+    const revs = parsed['xet-test-af-' + k] ? parsed['xet-test-af-' + k].revs.length : 0;
+    t.eq(revs, 60, `the backup made before thinning has all 60 revisions of xet-test-af-${k}`);
+  }
+});
+
+ExetTest.add('Auto-free keeps recent revisions untouched', async t => {
+  resetStorage();
+  LS().setItem('xet-test-af-recent', synthPuzzle('xet-test-af-recent', 60, 60000));
+  withDownloadCaptured(() => REVMGR().autofree());
+  t.eq(numRevs('xet-test-af-recent'), 60, 'revisions from the last hour are all kept');
+  LS().setItem('xet-test-af-few', synthPuzzle('xet-test-af-few', 20, 3600000 * 5));
+  withDownloadCaptured(() => REVMGR().autofree());
+  t.eq(numRevs('xet-test-af-few'), 20, 'the latest 25 revisions are always kept');
+});
+
+ExetTest.add('saveLocal(): reports a full localStorage instead of throwing', async t => {
+  if (!(LS() instanceof ExetTest.MemStorage)) {
+    t.info('Skipped: needs the in-memory localStorage (do not use ?realstorage).');
+    return;
+  }
+  const oldQuota = LS().quotaChars;
+  try {
+    LS().quotaChars = LS().used() + 50;
+    const ok = REVMGR().saveLocal('xet-test-quota', 'x'.repeat(500));
+    t.eq(ok, false, 'saveLocal returns false when the quota is exceeded');
+    t.ok(t.alerts.some(a => a.indexOf('No available local storage') >= 0), 'the user is told to free up space');
+    t.eq(LS().getItem('xet-test-quota'), null, 'nothing partial was stored');
+  } finally {
+    LS().quotaChars = oldQuota;
+  }
+});
+
+ExetTest.start('Exet Test: revisions, backup, merge, auto-free', `
+  Uses an in-memory localStorage, so your real crosswords are safe.
+  Two checks here ("Backup includes every crossword..." and "Auto-free...") exercise a hazard:
+  the loops over localStorage can skip a crossword when stale preferred-word data is deleted mid-loop.
+  <br><b>Manual checks</b> (add <code>?realstorage</code> to use the real storage; back up first!):
+  <ol style="margin:2px 0">
+   <li>Open &gt; Manage local storage: sizes and the revision list should look sane.</li>
+   <li>Make a backup, delete a crossword's revisions, merge the backup: they should come back.</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

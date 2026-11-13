@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v1.10, November 10, 2026
+Current version: v1.10.3, November 13, 2026
 */
 
 function ExetModals() {
@@ -126,7 +126,7 @@ ExetModals.prototype.hide = function() {
 }
 
 function Exet() {
-  this.version = 'v1.10, November 10, 2026';
+  this.version = 'v1.10.3, November 13, 2026';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -1060,7 +1060,7 @@ Exet.prototype.makeExetTab = function() {
                     type="text" size="3" maxlength="3" placeholder="W">
                   </input>
                   &times;
-                  <label for="xet-3d-h">Height:</label>
+                  <label for="xet-3d-h">Layers:</label>
                   <input id="xet-3d-h" name="xet-3d-h" value="5"
                     type="text" size="3" maxlength="3" placeholder="H">
                   </input>
@@ -6281,7 +6281,7 @@ Exet.prototype.viability = function(len) {
  * Fills cChoices (only initializes) and lChoices in exet.fillState.
  */
 Exet.prototype.resetViability = function() {
-  if (this.autofill) {
+  if (this.autofill && this.autofill.running) {
     this.autofill.reset('Aborted');
   }
   this.fillState.resetViability();
@@ -6920,6 +6920,10 @@ function exetFromHistory(exetRev) {
   }
 }
 
+/**
+ * When layers3d > 1, it specifies the number of layers, and h
+ * in that case should be layers3d * depth.
+ */
 function exetBlank(w, h, layers3d=1, id='', automagic=false,
                    chequered=true, topUnches=false, leftUnches=false,
                    requireEnums=true, barred=false) {
@@ -7035,13 +7039,13 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
   exetRevManager.throttledSaveRev(exetRevManager.REV_CREATED_BLANK);
 }
 
-function exetBlank3D(w3d, h3d, d3d, id='') {
-  if (w3d <= 0 || h3d <= 0 || d3d <= 0 ||
-      w3d % 2 != 1 || h3d % 2 != 1 || d3d % 2 != 1) {
+function exetBlank3D(w3d, layers3d, d3d, id='') {
+  if (w3d <= 0 || layers3d <= 0 || d3d <= 0 ||
+      w3d % 2 != 1 || layers3d % 2 != 1 || d3d % 2 != 1) {
     alert("All dimensions in 3-D crosswords should be positive odd numbers");
     return
   }
-  return exetBlank(w3d, h3d * d3d, h3d, id);
+  return exetBlank(w3d, layers3d * d3d, layers3d, id);
 }
 
 function exetLoadFile() {

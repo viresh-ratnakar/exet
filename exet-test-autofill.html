@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Autofill, viability and suggested fills</title>
+<script src="exet-test-common.js"></script>
+<script>
+/**
+ * A 5x5 "double word square": every row and every column must be a word, and
+ * all ten entries are different. This one is known to exist in the lexicon:
+ *   S M A S H      across: SMASH MARCO ANGEL ROUND TREES
+ *   M A R C O      down:   SMART MANOR ARGUE SCENE HOLDS
+ *   A N G E L
+ *   R O U N D
+ *   T R E E S
+ * The extra words are fillers, so that the search has some distractions.
+ * (Other valid squares may exist; the checks accept any valid fill.)
+ */
+var SQUARE_ACROSS = ['SMASH', 'MARCO', 'ANGEL', 'ROUND', 'TREES'];
+var SQUARE_DOWN = ['SMART', 'MANOR', 'ARGUE', 'SCENE', 'HOLDS'];
+var FILLERS = ['WAVES', 'BOOST', 'SHAKE', 'TRADE', 'ERROR', 'QUICK', 'LIVED', 'DEVIL',
+               'SAUDI', 'IRISH', 'LEAST', 'HOLES', 'PRIDE', 'PRIOR', 'SOUND', 'NOBLE',
+               'SPEND', 'LANDS', 'BILLY', 'BRICK', 'GRASS', 'GAMES', 'ROGER', 'AGREE',
+               'VOICE', 'BADLY', 'STONE', 'MIXED', 'MERCY', 'AFTER'];
+var ALL_WORDS = SQUARE_ACROSS.concat(SQUARE_DOWN, FILLERS);
+ExetTest.setup({words: ALL_WORDS, dim: 5});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+let idCounter = 0;
+const newId = () => `xet-test-autofill-${++idCounter}`;
+
+function openSquare() {
+  const id = newId();
+  /** Not chequered, so that all cells are light: a full 5x5 word square. */
+  exetBlank(5, 5, 1, id, false, false, false, false, false);
+  return id;
+}
+
+/** Row and column strings of the current grid (letters or '?'). */
+function gridWords() {
+  const g = exet.puz.grid;
+  const rows = [], cols = [];
+  for (let i = 0; i < 5; i++) {
+    let r = '', c = '';
+    for (let j = 0; j < 5; j++) {
+      r += g[i][j].currLetter;
+      c += g[j][i].currLetter;
+    }
+    rows.push(r);
+    cols.push(c);
+  }
+  return {rows: rows, cols: cols};
+}
+
+/**
+ * Loads a 5x5 open grid with some letters pre-filled, through Exet's real
+ * Open-file path, and waits for the viability computation to settle.
+ */
+async function loadPinned(rows) {
+  const id = newId();
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5, {gridRows: rows}));
+  await ExetTest.sleep(300);
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'Exet to be idle');
+  return id;
+}
+
+const statusNow = () => exet.autofill.status;
+const startBtn = () => document.getElementById('xet-autofill-startstop');
+
+async function runAutofill(t, timeoutMs) {
+  exet.autofill.lag = 5;  /** default 200 ms between steps: too slow for tests */
+  startBtn().click();
+  await ExetTest.until(() => !exet.autofill.running, timeoutMs || 60000, 'autofill to stop');
+  if (statusNow() != 'Succeeded!') {
+    t.info(`autofill ended with status "${statusNow()}"; alerts: ${t.alerts.join(' | ')}`);
+  }
+  return statusNow();
+}
+
+ExetTest.add('Autofill completes an open 5x5 into a valid double word square', async t => {
+  openSquare();
+  await ExetTest.until(() => exet.autofill, 3000, 'autofill object');
+  const status = await runAutofill(t);
+  t.eq(status, 'Succeeded!', 'autofill status');
+  t.eq(t.alerts, [], 'no alerts during autofill');
+  if (status != 'Succeeded!') return;
+  const accept = document.getElementById('xet-autofill-accept');
+  t.ok(!accept.disabled, 'Accept button is enabled after success');
+  accept.click();
+  const {rows, cols} = gridWords();
+  const all = rows.concat(cols);
+  t.ok(all.every(w => ALL_WORDS.indexOf(w) >= 0), 'every row and column is a lexicon word: ' + all.join(' '));
+  t.eq(new Set(all).size, 10, 'all ten entries are distinct');
+});
+
+ExetTest.add('Autofill honors letters already placed in the grid', async t => {
+  await loadPinned(['SMASH', '?????', '?????', '?????', '?????']);
+  const status = await runAutofill(t);
+  t.eq(status, 'Succeeded!', 'autofill status');
+  if (status != 'Succeeded!') return;
+  document.getElementById('xet-autofill-accept').click();
+  const {rows, cols} = gridWords();
+  t.eq(rows[0], 'SMASH', 'the pinned first row is kept');
+  const all = rows.concat(cols);
+  t.ok(all.every(w => ALL_WORDS.indexOf(w) >= 0), 'every row and column is a lexicon word: ' + all.join(' '));
+});
+
+ExetTest.add('A grid that cannot be filled does not hang or claim success', async t => {
+  /** No word starts with Z, and the corner cell is in both an across and a down. */
+  await loadPinned(['Z????', '?????', '?????', '?????', '?????']);
+  exet.autofill.lag = 5;
+  startBtn().click();
+  await ExetTest.until(() => !exet.autofill.running, 20000, 'autofill to stop');
+  t.ok(statusNow() != 'Succeeded!', 'status is not "Succeeded!": ' + statusNow());
+  t.ok(t.alerts.length > 0 || statusNow() == 'Failed',
+       'the user is told (alert) or the status says Failed: ' + t.alerts.join(' / ').substring(0, 100));
+});
+
+ExetTest.add('Autofill can be paused, and cleared', async t => {
+  openSquare();
+  await ExetTest.until(() => exet.autofill, 3000, 'autofill object');
+  exet.autofill.lag = 300;  /** slow, so we can pause it mid-flight */
+  startBtn().click();
+  t.ok(exet.autofill.running, 'running after Start');
+  await ExetTest.sleep(50);
+  startBtn().click();  /** Pause */
+  t.ok(!exet.autofill.running, 'not running after Pause');
+  t.eq(statusNow(), 'Paused', 'status is Paused');
+  const clear = document.getElementById('xet-autofill-clear');
+  t.ok(!clear.disabled, 'Clear is enabled while paused');
+  clear.click();
+  t.eq(statusNow(), 'Cleared', 'status is Cleared after Clear');
+  t.ok(!exet.autofill.running, 'still not running');
+});
+
+ExetTest.add('Viability: suggested fills respect crossing letters', async t => {
+  /** Fill row 0 = SMASH. Down entry 1 (column 0) must start with S. */
+  await loadPinned(['SMASH', '?????', '?????', '?????', '?????']);
+  const lc = exet.fillState.clues['D1'].lChoices || [];
+  const choices = lc.map(i => exetLexicon.getLex(Math.abs(i)));
+  t.ok(choices.length > 0, 'D1 has candidates: ' + choices.join(','));
+  t.ok(choices.every(w => w[0] == 'S'), 'all D1 candidates start with S');
+  t.ok(choices.indexOf('SMART') >= 0, 'SMART is among the D1 candidates');
+});
+
+ExetTest.start('Exet Test: autofill and viability', `
+  A 5x5 open grid is filled from a ~40-word lexicon (a double word square is hidden in it).
+  <b>Manual checks:</b>
+  <ol style="margin:2px 0">
+   <li>Edit &gt; New blank grid &gt; no blocks 5x5 (US-style). Open <i>Autofill</i>, press Start: the grid should fill, then Accept.</li>
+   <li>Pin a letter (type Z in a corner) and press Start: expect a message or "Failed", never a hang.</li>
+   <li>Click a light and look at the suggested fills and their popularity/viability coloring.</li>
+   <li>Try Pause, Resume, and Clear while autofill is running.</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

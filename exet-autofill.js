@@ -1136,6 +1136,8 @@ class ExetAutofill {
     this.step = 0;
     this.msUsed = 0;
     this.triedHashes = {};
+    this.status = status;
+    this.statusSpan.innerHTML = longStatus || status;
     if (!this.running) {
       return;
     }
@@ -1143,8 +1145,6 @@ class ExetAutofill {
       clearTimeout(this.throttledTimer);
       this.throttledTimer = null;
     }
-    this.status = status;
-    this.statusSpan.innerHTML = longStatus || status;
     this.activeDivMsg.innerHTML = status;
     this.running = false;
     exet.updateSweepInd();

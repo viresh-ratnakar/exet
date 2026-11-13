@@ -1,5 +1,14 @@
 # Changelog
 
+### Exet v1.10.3, November 13, 2026
+
+- Add a suite of tests.
+- All tests now work with fake localStorage, so that the test puzzles do
+  not affect actual localStorage used by Exet.
+- A couple of minor bug-fixes.
+- Rename the 3d user-input that used to be called "Height" to "Layers".
+- update `exetBlank3D()` parameter names.
+
 ### Exet v1.10.2, November 11, 2026
 
 - More tidying up: minor bug/typo fixes.

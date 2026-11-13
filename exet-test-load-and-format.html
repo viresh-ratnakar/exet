@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Loading files, awkward clue text, and formatting</title>
+<script src="exet-test-common.js"></script>
+<script>
+ExetTest.setup({
+  words: ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE', 'SLATE', 'STEAM'],
+  dim: 5,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+/**
+ * Clue and annotation texts that exercise escaping: backslashes, both kinds
+ * of quotes, entities, tags, and non-ASCII characters.
+ */
+const AWKWARD = {
+  A1: {
+    clue: 'Path c:\\temp\\new "quoted" and \'single\' (5)',
+    sol: 'EAGLE',
+    anno: 'Anno: back\\slash, "dq", \'sq\', literal \\n here',
+  },
+  A6: {
+    clue: 'Ampersand &amp; less-than &lt; <i>italic</i> and <b>bold</b> (5)',
+    sol: 'EARTH',
+    anno: 'Entities &amp; &lt;tags&gt; and a <u>tag</u>',
+  },
+  A7: {
+    clue: 'Unicode: caf\u00e9 \u2014 \u201csmart quotes\u201d \u2713 \u65e5\u672c\u8a9e (5)',
+    sol: 'HEART',
+    anno: 'Anno with \u00fc and \u2713',
+  },
+  A8: {
+    clue: 'Trailing backslash \\ (5)',
+    sol: 'EASEL',
+    anno: 'Anno ending in a backslash \\',
+  },
+};
+
+function awkwardSpecs(id) {
+  const clueText = {};
+  for (const ci in AWKWARD) {
+    const a = AWKWARD[ci];
+    clueText[ci] = `${a.clue} [${a.sol}] ${a.anno}`;
+  }
+  return ExetTest.openGridSpecs(id, 5, 5, {clueText: clueText, title: 'Awkward text'});
+}
+
+/** Selects the first occurrence of substr within elt's text and returns true. */
+function selectIn(elt, substr) {
+  const text = elt.textContent;
+  const start = text.indexOf(substr);
+  if (start < 0) return false;
+  const walker = document.createTreeWalker(elt, NodeFilter.SHOW_TEXT);
+  let pos = 0, startNode = null, startOff = 0, endNode = null, endOff = 0;
+  while (walker.nextNode()) {
+    const n = walker.currentNode;
+    const len = n.textContent.length;
+    if (!startNode && start < pos + len) { startNode = n; startOff = start - pos; }
+    if (startNode && start + substr.length <= pos + len) {
+      endNode = n; endOff = start + substr.length - pos; break;
+    }
+    pos += len;
+  }
+  if (!startNode || !endNode) return false;
+  const range = document.createRange();
+  range.setStart(startNode, startOff);
+  range.setEnd(endNode, endOff);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return true;
+}
+
+ExetTest.add('Awkward clue/anno text loads unchanged and round-trips through getExolve()', async t => {
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-awkward-1'));
+  t.eq(t.alerts, [], 'no alerts while loading');
+  const exolve = exet.getExolve();
+  for (const ci in AWKWARD) {
+    const a = AWKWARD[ci];
+    const clue = exet.puz.clues[ci];
+    t.ok(clue, `${ci}: clue exists`);
+    if (!clue) continue;
+    t.ok(clue.clue.startsWith(a.clue.replace(/ \(5\)$/, '')), `${ci}: clue text preserved: ${clue.clue}`);
+    t.eq((clue.anno || '').trim(), a.anno, `${ci}: annotation preserved`);
+    t.eq(clue.solution, a.sol, `${ci}: solution preserved`);
+    t.ok(exolve.indexOf(a.anno) >= 0, `${ci}: annotation present in getExolve() output`);
+  }
+});
+
+ExetTest.add('Open-file: cancelled dialog, and a file that is not a crossword', async t => {
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-awkward-2'));
+  let threw = '';
+  try { ExetTest.loadFileCancelled(); } catch (err) { threw = String(err); }
+  t.ok(!threw, 'cancelling the file dialog does not throw ' + threw);
+  t.eq(exet.puz.id, 'xet-test-awkward-2', 'puzzle unchanged after cancel');
+
+  const before = t.alerts.length;
+  await ExetTest.loadFileNoWait('this is not a crossword at all', 'junk.txt');
+  t.ok(t.alerts.length > before, 'junk text file: alert shown: ' + t.alerts.slice(before).join(' / '));
+  t.eq(exet.puz.id, 'xet-test-awkward-2', 'puzzle unchanged after junk file');
+
+  const before2 = t.alerts.length;
+  await ExetTest.loadFileNoWait('{"not": "an ipuz"}', 'junk.ipuz');
+  t.ok(t.alerts.length > before2, 'junk JSON file: alert shown');
+  t.eq(exet.puz.id, 'xet-test-awkward-2', 'puzzle unchanged after junk JSON');
+});
+
+ExetTest.add('Loading a file resets per-puzzle options (preferred/excluded words, regexps)', async t => {
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-awkward-3'));
+  exet.lightRegexps = {A1: '^E'};
+  exet.processRegexps();
+  exet.setPreflex(['EAGLE']);
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-awkward-4'));
+  t.eq(exet.lightRegexps, {}, 'regexps cleared by loading a different puzzle');
+  t.eq(exet.preflex, [], 'preferred words cleared by loading a different puzzle');
+});
+
+/**
+ * Formatting through the real Format-panel code path: selects text in the
+ * clue/annotation editors, lets Exet's maybeShowFormat() build the options,
+ * and clicks the option button.
+ */
+async function formatVia(ci, elementId, substr, tag) {
+  const [dir, rest] = [ci[0], ci.substring(1)];
+  let row = 0, col = 0;
+  if (dir == 'A') row = (rest == '1') ? 0 : parseInt(rest) - 5;
+  else col = parseInt(rest) - 1;
+  exet.startNav(dir, row, col);
+  const elt = document.getElementById(elementId);
+  if (!elt) return 'no element #' + elementId;
+  if (!selectIn(elt, substr)) return 'could not select "' + substr + '"';
+  exet.maybeShowFormat();
+  const opt = document.getElementById('xet-format-' + tag);
+  if (!opt || opt.style.display == 'none') return 'format option "' + tag + '" not offered';
+  opt.firstElementChild.click();
+  return '';
+}
+
+ExetTest.add('Formatting (italic) a selection in an annotation that has backslashes and quotes', async t => {
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-format-1'));
+  const sub = 'back\\slash, "dq"';
+  const err = await formatVia('A1', 'xet-anno', sub, 'i');
+  t.eq(err, '', 'italic option offered and clicked');
+  const anno = exet.puz.clues['A1'].anno || '';
+  t.eq(anno.trim(), AWKWARD.A1.anno.replace(sub, '<i>' + sub + '</i>'),
+       'annotation is the original with only <i>..</i> added');
+});
+
+ExetTest.add('Formatting (bold) in an annotation ending with a backslash', async t => {
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-format-2'));
+  const err = await formatVia('A8', 'xet-anno', 'ending in a backslash \\', 'b');
+  t.eq(err, '', 'bold option offered and clicked');
+  const anno = exet.puz.clues['A8'].anno || '';
+  t.eq(anno.trim(), 'Anno <b>ending in a backslash \\</b>', 'annotation formatted, backslash intact');
+});
+
+ExetTest.add('Formatting (italic) in a clue containing quotes', async t => {
+  await ExetTest.loadSpecs(awkwardSpecs('xet-test-format-3'));
+  const err = await formatVia('A1', 'xet-clue', '"quoted"', 'i');
+  t.eq(err, '', 'italic option offered and clicked');
+  const clue = exet.puz.clues['A1'].clue;
+  t.ok(clue.indexOf('<i>"quoted"</i>') >= 0, 'clue now contains <i>"quoted"</i>: ' + clue);
+  t.ok(clue.indexOf('c:\\temp\\new') >= 0, 'backslashes in the clue are intact');
+});
+
+ExetTest.start('Exet Test: loading files, awkward text, formatting', `
+  <b>Manual checks:</b>
+  <ol style="margin:2px 0">
+   <li>The grid has awkward clues and annotations (backslashes, quotes, entities, Unicode).
+       Click each clue (1, 6, 7, 8 Across) and confirm the clue and annotation display exactly as written.</li>
+   <li>Select words in the annotation and use the Format panel (italic, bold, underline, strike, caps, alternate letters,
+       clear): the text must change only by the tags/case. Try with annotations containing multiple lines.</li>
+   <li>Open &gt; Open a real .puz and a real .ipuz file, if you have them: both should load, and re-saving should keep the clues.</li>
+   <li>In the Open dialog choose a file, then cancel the next time: nothing should break.</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

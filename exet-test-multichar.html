@@ -14,6 +14,13 @@ See the full license notice in exet.js.
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
 <link rel="stylesheet" type="text/css" href="exet.css"/>
 
+<!--
+  Installs an in-memory localStorage, so that this page never touches your
+  real saved crosswords (add ?realstorage to the URL to disable). This page
+  has no automated checks: it is for manual testing. Must come before exet.js.
+-->
+<script src="exet-test-common.js"></script>
+
 <script>
 /**
  * Language-specific parameters.
@@ -50,6 +57,10 @@ exetConfig = {
 
 </head>
 <body>
+
+  <center>
+  <i>Only the following fake multi-letter characters should work (press Shift to enter): "CH", "GH", "ING", "ST", "TH". </i>
+  </center>
 
 <div id="xet-loading"
     style="text-align:center;font-family:monospace;padding-top:100px">

@@ -776,10 +776,23 @@ ExetRevManager.prototype.throttledSaveRev = function(revType, details="") {
   }, this.saveLagMS);
 }
 
+/**
+ * Returns a snapshot of the current localStorage keys. Use this (instead of
+ * indexing into window.localStorage) in loops that may call setItem() or
+ * removeItem(): removing a key shifts the indices of the later keys, and a
+ * loop over indices would then silently skip an entry.
+ */
+ExetRevManager.prototype.storageKeys = function() {
+  const keys = [];
+  for (let idx = 0; idx < window.localStorage.length; idx++) {
+    keys.push(window.localStorage.key(idx));
+  }
+  return keys;
+}
+
 ExetRevManager.prototype.saveAllRevisions = function() {
   const storage = {};
-  for (let idx = 0; idx < window.localStorage.length; idx++) {
-    const id = window.localStorage.key(idx);
+  for (const id of this.storageKeys()) {
     if (this.skippableKey(id)) {
       continue;
     }
@@ -967,14 +980,14 @@ ExetRevManager.prototype.autofree = function() {
   const tsCutoffMillis =
     Date.now() - (SAVE_LAST_THESE_MANY_HOURS * 60 * 60 * 1000);
 
-  let bytesUsed = 0;
   let itemsPurged = 0;
-  for (let idx = 0; idx < window.localStorage.length; idx++) {
-    const id = window.localStorage.key(idx);
-    const storedJson = window.localStorage.getItem(id);
-    bytesUsed += storedJson.length;
+  for (const id of this.storageKeys()) {
     if (this.skippableKey(id)) {
       continue;
+    }
+    const storedJson = window.localStorage.getItem(id);
+    if (storedJson === null) {
+      continue;  /* Removed while we were looping (e.g., stale pref data). */
     }
     let stored = '';
     try {

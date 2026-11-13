@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Regexp constraints and macros</title>
+<script src="exet-test-common.js"></script>
+<script>
+/** Tiny synthetic lexicon: 5-letter words (some with "EA"), plus 3-letter ones. */
+var TEST_WORDS5 = ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE',
+                   'SLATE', 'STEAM', 'TREAD', 'QUEEN', 'EQUAL', 'ROUTE',
+                   'MOUSE', 'HOUSE', 'HORSE'];
+var TEST_WORDS3 = ['EAT', 'TEA', 'ATE', 'EEL', 'EAR', 'ARE'];
+ExetTest.setup({words: TEST_WORDS5.concat(TEST_WORDS3), dim: 5});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+/** Words (of the given list) that match a RegExp, sorted. */
+function expectedMatches(words, re) {
+  return words.filter(w => new RegExp(re.source, re.flags.replace(/[gy]/g, '')).test(w)).sort();
+}
+
+/** What getLexChoices() returns for the compiled regexp of clue index ci. */
+function lexChoicesFor(len, re) {
+  const key = '?'.repeat(len);
+  const choices = exetLexicon.getLexChoices(key, 0, null, false, 0, false, {}, {}, re);
+  return choices.map(i => exetLexicon.getLex(i)).sort();
+}
+
+async function freshPuzzle(id) {
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  exet.lightRegexps = {};
+  exet.processRegexps();
+}
+
+/** Opens the regexp panel, sets macros text and per-light inputs, and applies. */
+function applyRegexpUI(macrosText, perClue) {
+  exet.showLightRegexps({stopPropagation: () => {}});
+  document.getElementById('xet-regexp-macros').value = macrosText;
+  for (const input of document.getElementsByClassName('xet-regexp-input')) {
+    input.value = (perClue && perClue[input.dataset.ci]) || '';
+  }
+  exet.handleRegexpChange();
+  return document.getElementById('xet-regexp-error').textContent.trim();
+}
+
+ExetTest.add('regexpIsMacro(): which keys are macros vs. light indices', async t => {
+  for (const k of ['A1', 'D12', 'Z3', 'A10', 'D100']) {
+    t.eq(exet.regexpIsMacro(k), false, `${k} is a light index, not a macro`);
+  }
+  for (const k of ['noQ', 'VWL', 'A', 'D', 'A0', 'A01', 'AB1', 'X1', 'a1', 'Down1']) {
+    t.eq(exet.regexpIsMacro(k), true, `${k} is a macro name`);
+  }
+});
+
+ExetTest.add('processRegexp(): g and y flags are dropped (they make test() stateful)', async t => {
+  await freshPuzzle('xet-test-regexps-1');
+  exet.lightRegexps = {A1: '/EA/g', D1: '/ea/gi', A6: '/ea/y', A7: '/ea/i', A8: 'EA'};
+  const errs = [];
+  exet.processRegexps(errs);
+  t.eq(errs, [], 'no errors for flagged regexps');
+  t.eq(exet.lightRegexpsC['A1'].flags, '', '/EA/g compiled with no flags');
+  t.eq(exet.lightRegexpsC['D1'].flags, 'i', '/ea/gi compiled with only i');
+  t.eq(exet.lightRegexpsC['A6'].flags, '', '/ea/y compiled with no flags');
+  t.eq(exet.lightRegexpsC['A7'].flags, 'i', '/ea/i keeps i');
+  t.eq(exet.lightRegexpsC['A8'].flags, '', 'bare EA has no flags');
+});
+
+ExetTest.add('A /EA/g constraint filters every candidate consistently', async t => {
+  await freshPuzzle('xet-test-regexps-2');
+  exet.lightRegexps = {A1: '/EA/g'};
+  exet.processRegexps();
+  const re = exet.lightRegexpsC['A1'];
+  const want = expectedMatches(TEST_WORDS5, /EA/);
+  t.eq(lexChoicesFor(5, re), want, '5-letter candidates for /EA/g: first call');
+  t.eq(lexChoicesFor(5, re), want, '5-letter candidates for /EA/g: second call (no stale lastIndex)');
+  t.ok(want.length >= 5, `sanity: expected list is non-trivial (${want.join(',')})`);
+});
+
+ExetTest.add('Basic regexp forms (anchors, flags, alternation) match plain JS RegExp', async t => {
+  await freshPuzzle('xet-test-regexps-3');
+  const cases = [['^E', /^E/], ['E$', /E$/], ['/^h/i', /^h/i], ['^(EA|HO)', /^(EA|HO)/],
+                 ['[AEIOU]{3}', /[AEIOU]{3}/], ['/^[^e]*$/i', /^[^e]*$/i]];
+  for (const [src, jsre] of cases) {
+    exet.lightRegexps = {A1: src};
+    const errs = [];
+    exet.processRegexps(errs);
+    t.eq(errs, [], `"${src}" compiles`);
+    t.eq(lexChoicesFor(5, exet.lightRegexpsC['A1']), expectedMatches(TEST_WORDS5, jsre),
+         `"${src}" filters like ${jsre}`);
+  }
+});
+
+ExetTest.add('UI: a macro whose value contains "=" (lookahead) is accepted', async t => {
+  await freshPuzzle('xet-test-regexps-4');
+  const err = applyRegexpUI('hasEA = ^(?=.*EA)', {A1: '${hasEA}.*'});
+  t.eq(err, '', 'no error text shown');
+  t.eq(exet.lightRegexps['hasEA'], '^(?=.*EA)', 'macro value kept intact, including its "="');
+  t.ok(exet.lightRegexpsC['A1'], 'A1 regexp compiled using the macro');
+  if (exet.lightRegexpsC['A1']) {
+    t.eq(lexChoicesFor(5, exet.lightRegexpsC['A1']), expectedMatches(TEST_WORDS5, /EA/),
+         'A1 candidates are the words containing EA');
+  }
+});
+
+ExetTest.add('UI: nested macros expand; unknown macro reports an error', async t => {
+  await freshPuzzle('xet-test-regexps-5');
+  let err = applyRegexpUI('VWL = [AEIOU]\ntwoV = ${VWL}${VWL}', {A1: '${twoV}'});
+  t.eq(err, '', 'nested macros: no error');
+  t.ok(exet.lightRegexpsC['A1'], 'nested macros: compiled');
+  if (exet.lightRegexpsC['A1']) {
+    t.eq(lexChoicesFor(5, exet.lightRegexpsC['A1']), expectedMatches(TEST_WORDS5, /[AEIOU][AEIOU]/),
+         'nested macros: candidates with two adjacent vowels');
+  }
+  err = applyRegexpUI('', {D1: '${nosuchmacro}'});
+  t.ok(err.length > 0, 'unknown macro: error shown: "' + err + '"');
+});
+
+ExetTest.add('UI: invalid regexp reports an error and is not kept', async t => {
+  await freshPuzzle('xet-test-regexps-6');
+  const err = applyRegexpUI('', {D1: '([', A1: '^E'});
+  t.ok(err.length > 0, 'error shown for "([": "' + err + '"');
+  t.ok(!exet.lightRegexps['D1'], 'bad D1 regexp dropped');
+  t.eq(exet.lightRegexps['A1'], '^E', 'good A1 regexp kept');
+});
+
+ExetTest.add('UI: macro line without "=" is reported', async t => {
+  await freshPuzzle('xet-test-regexps-7');
+  const err = applyRegexpUI('this is not a macro', {});
+  t.ok(err.length > 0, 'error shown: "' + err + '"');
+});
+
+ExetTest.add('3-D: regexps on Z-direction lights are applied (not treated as macros)', async t => {
+  exetBlank3D(3, 3, 3, 'xet-test-regexps-3d');
+  await ExetTest.until(() => exet.puz && exet.puz.id == 'xet-test-regexps-3d', 3000, '3-D puzzle');
+  t.eq(t.alerts, [], 'no alerts creating the 3-D grid');
+  const zs = exet.puz.allClueIndices.filter(ci => ci.startsWith('Z'));
+  t.ok(zs.length > 0, 'the 3-D puzzle has Z clue indices: ' + zs.join(','));
+  if (zs.length > 0) {
+    const ci = zs[0];
+    const err = applyRegexpUI('', {[ci]: '^E'});
+    t.eq(err, '', 'no error for ' + ci);
+    t.ok(exet.lightRegexpsC[ci], ci + ' is compiled as a light regexp');
+    t.ok(!exet.regexpIsMacro(ci), ci + ' is not a macro');
+  }
+});
+
+ExetTest.add('Known limitation (informational): "/" inside the slash form', async t => {
+  await freshPuzzle('xet-test-regexps-8');
+  exet.lightRegexps = {A1: '/a\\/b/i'};
+  const errs = [];
+  exet.processRegexps(errs);
+  t.info('"/a\\/b/i" -> ' + (errs.length ? 'error: ' + errs[0] : 'compiled as ' + exet.lightRegexpsC['A1']) +
+         '. (The slash-form parser stops at the first "/", so an escaped slash cannot be expressed in /.../flags form.)');
+});
+
+ExetTest.start('Exet Test: regexp constraints and macros', `
+  <b>Manual checks</b> (after the automated run):
+  <ol style="margin:2px 0">
+   <li>Use <i>Edit &gt; Edit regexp constraints</i>. Type <code>/EA/g</code> for one 5-letter light.
+       Click that light and look at the suggested fills: every fill must contain EA (try typing
+       the same constraint into a second light and confirm both lists look right).</li>
+   <li>In the Macros box type <code>hasEA = ^(?=.*EA)</code>, and use <code>\${hasEA}.*</code> in a light. No error should appear.</li>
+   <li>Type a bad regexp such as <code>([</code>: a red error should appear, and the entry should vanish.</li>
+   <li>Reload the page: the regexps are kept only in the in-memory storage, so they are gone (expected).</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

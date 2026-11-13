@@ -6,6 +6,12 @@
 <link rel="stylesheet" type="text/css" href="exolve-m.css"/>
 <link rel="stylesheet" type="text/css" href="exet.css"/>
 <title>Exet Test: Lexicon, Regions, Stems & Wordplay</title>
+<!--
+  Installs an in-memory localStorage (so that this page never touches your
+  real saved crosswords; add ?realstorage to the URL to disable) and provides
+  the reporting used by exet-test-all.html. Must come before exet.js.
+-->
+<script src="exet-test-common.js"></script>
 <script>
 exetConfig = {
   language: "en",
@@ -105,9 +111,12 @@ exetLexicon.anagrams = [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]];
 <div id="xet-xlv-frame"></div>
 
 <script>
-function runLexiconAssertions() {
+/**
+ * If t (an ExetTest test object) is given, each assertion is also reported to it.
+ */
+function runLexiconAssertions(t) {
   const errs = [];
-  const assert = (cond, msg) => { if (!cond) errs.push(msg); };
+  const assert = (cond, msg) => { if (!cond) errs.push(msg); if (t) t.ok(cond, msg); };
 
   assert(!exetLexicon.isProperNoun("I do"), "'I do' should not be a proper noun");
   assert(!exetLexicon.isProperNoun("X-ray"), "'X-ray' should not be a proper noun");
@@ -130,7 +139,12 @@ function runLexiconAssertions() {
   } else {
     status.innerHTML = "<b style='color:red'>Failed: " + errs.join("; ") + "</b>";
   }
+  return errs;
 }
+
+/** Lets exet-test-all.html (and ?autorun) run the self-checks. */
+ExetTest.add('Lexicon self-checks', async t => { runLexiconAssertions(t); });
+ExetTest.start('Lexicon self-checks');
 </script>
 </body>
 </html>

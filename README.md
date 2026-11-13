@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.10.2, November 11, 2026
+#### Version: Exet v1.10.3, November 13, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -20,34 +20,34 @@ that enables interactive crossword solving in a browser.
 
 These are all the files needed from this repository:
 
-- [`exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.html),
+- [`exet.html`](exet.html),
 - One set from the following word list files should be used:
   - English ("Lufz" word list):
-    - [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
-    - [`lufz-en-lexicon-stems.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon-stems.js),
+    - [`lufz-en-lexicon.js`](lufz-en-lexicon.js),
+    - [`lufz-en-lexicon-stems.js`](lufz-en-lexicon-stems.js),
   - English ("Nediger List" word list):
-    - [`nediger-list-part-1.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/nediger-list-part-1.js),
-    - [`nediger-list-part-2.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/nediger-list-part-2.js),
-    - [`nediger-list-stems.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/nediger-list-stems.js),
+    - [`nediger-list-part-1.js`](nediger-list-part-1.js),
+    - [`nediger-list-part-2.js`](nediger-list-part-2.js),
+    - [`nediger-list-stems.js`](nediger-list-stems.js),
   - Hindi ("Lufz" word list):
-    - [`exet-hindi.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-hindi.html),
-    - [`lufz-hi-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-hi-lexicon.js),
+    - [`exet-hindi.html`](exet-hindi.html),
+    - [`lufz-hi-lexicon.js`](lufz-hi-lexicon.js),
   - Portuguese (Brazilian) ("Lufz" word list):
-    - [`exet-brazilian.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-brazilian.html),
-    - [`lufz-pt-br-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-pt-br-lexicon.js),
-- [`exet.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.js),
-- [`exet-grid-edits.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-grid-edits.js),
-- [`exet-autofill.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-autofill.js),
-- [`exet-analysis.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-analysis.js),
-- [`exet.css`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet.css),
-- [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js),
-- [`exet-storage.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-storage.js),
-- [`about-exet.html`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/about-exet.html),
-- [`exet-version.txt`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-version.txt),
-- [`no-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/no-unches.png),
-  [`t-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/t-unches.png),
-  [`l-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/l-unches.png),
-  [`tl-unches.png`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/tl-unches.png),
+    - [`exet-brazilian.html`](exet-brazilian.html),
+    - [`lufz-pt-br-lexicon.js`](lufz-pt-br-lexicon.js),
+- [`exet.js`](exet.js),
+- [`exet-grid-edits.js`](exet-grid-edits.js),
+- [`exet-autofill.js`](exet-autofill.js),
+- [`exet-analysis.js`](exet-analysis.js),
+- [`exet.css`](exet.css),
+- [`exet-lexicon.js`](exet-lexicon.js),
+- [`exet-storage.js`](exet-storage.js),
+- [`about-exet.html`](about-exet.html),
+- [`exet-version.txt`](exet-version.txt),
+- [`no-unches.png`](no-unches.png),
+  [`t-unches.png`](t-unches.png),
+  [`l-unches.png`](l-unches.png),
+  [`tl-unches.png`](tl-unches.png),
 
 And here are the files needed from Exolve:
 
@@ -182,14 +182,14 @@ The `exetLexicon` JavaScript object can be set up in other apps too,
 by loading two script files.
 
 - One of these word-list-specific sets of files:
-  - [`lufz-en-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon.js),
-    [`lufz-en-lexicon-stems.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-en-lexicon-stems.js)
-  - [`nediger-list-part-1.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/nediger-list-part-1.js),
-    [`nediger-list-part-2.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/nediger-list-part-2.js),
-    [`nediger-list-stems.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/nediger-list-stems.js)
-  - [`lufz-hi-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-hi-lexicon.js)
-  - [`lufz-pt-br-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/lufz-pt-br-lexicon.js)
-- [`exet-lexicon.js`](https://raw.githubusercontent.com/viresh-ratnakar/exet/master/exet-lexicon.js)
+  - [`lufz-en-lexicon.js`](lufz-en-lexicon.js),
+    [`lufz-en-lexicon-stems.js`](lufz-en-lexicon-stems.js)
+  - [`nediger-list-part-1.js`](nediger-list-part-1.js),
+    [`nediger-list-part-2.js`](nediger-list-part-2.js),
+    [`nediger-list-stems.js`](nediger-list-stems.js)
+  - [`lufz-hi-lexicon.js`](lufz-hi-lexicon.js)
+  - [`lufz-pt-br-lexicon.js`](lufz-pt-br-lexicon.js)
+- [`exet-lexicon.js`](exet-lexicon.js)
 
 This provides functionality such as getting anagrams, homophones, spoonerisms,
 and words/phrases matching a pattern.
@@ -1533,6 +1533,23 @@ to be very relevant to some recent action that you took.
   [Xlufz web service](https://github.com/viresh-ratnakar/xlufz) used on the
   "Lists" tab to highlight words related to a keyword when showing lists of
   cryptic indicators or abbreviations.
+
+## Exet coding and testing
+
+For anyone looking to send pull requests: the Exet codebase is big enough and
+complex enough at this point (November 2026) that changes need to be done quite
+carefully. Bug reports and feature requests are welcome, and I usually get to
+them promptly. But if you do want to add code yourself, here are a few notes:
+
+- I'll be more receptive to bug-fixes with localized scope.
+- Before proposing PRs to add features, please discuss them first, on the
+  repo's [Discussion page](https://github.com/viresh-ratnakar/exet/discussions)
+  and/or the
+  [Exolve-Exet-Etc group](https://groups.google.com/g/exolve-exet-etc).
+- Adhere to the coding style in terms of formatting, variable names, etc.
+- Do not bring in any external dependencies.
+- Make sure to run all the tests from [exet-test-all.html](exet-test-all.html),
+  both automated and manual, before sending a Pull Request.
 
 ## Appendix
 

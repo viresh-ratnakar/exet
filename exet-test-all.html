@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Exet Tests: run everything</title>
+<style>
+  body { font-family: sans-serif; margin: 12px 20px; max-width: 1100px; }
+  h2 { margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  th, td { border: 1px solid #bbb; padding: 4px 8px; text-align: left; vertical-align: top; }
+  th { background: #eef; }
+  .st-pending { color: #777; }
+  .st-running { color: #06c; font-weight: bold; }
+  .st-pass { color: #080; font-weight: bold; }
+  .st-fail { color: #c00; font-weight: bold; }
+  .st-timeout { color: #c60; font-weight: bold; }
+  .detail { font-family: monospace; font-size: 12px; margin: 4px 0 0 0; padding-left: 16px; }
+  /* Invisible but still "on screen" (browsers may throttle offscreen frames). */
+  #frame-box.hidden { position: fixed; left: 0; top: 0; width: 1200px; height: 900px;
+                      opacity: 0; pointer-events: none; z-index: -1; }
+  #frame-box.shown { margin-top: 12px; border: 2px solid #99c; }
+  .page-frame { width: 100%; height: 100%; border: 0; }
+  #frame-box.shown .page-frame { height: 70vh; }
+  code { background: #f3f3f3; padding: 0 3px; }
+</style>
+</head>
+<body>
+<h2>Exet tests: run everything</h2>
+<p>
+  Runs each automated test page in a frame (with <code>?autorun</code>) and collects the results here.
+  Every page uses an in-memory <code>localStorage</code>, so your real crosswords are not touched.
+  Serve this folder over http (or open the files directly): the pages report back using
+  <code>postMessage</code>, which works for <code>file://</code> pages too.
+  Add <code>?autorun</code> to this page's URL to start the run on load.
+</p>
+<p>
+  <button id="run-all">Run all automated tests</button>
+  <button id="stop" disabled>Stop</button>
+  <label style="margin-left:12px">
+    <input type="checkbox" id="show"/> show the page being tested
+  </label>
+  <span id="overall" style="margin-left:12px"></span>
+</p>
+
+<table>
+  <thead><tr><th>Test page</th><th>What it covers</th><th>Status</th><th></th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<h3>Manual-only pages</h3>
+<ul>
+  <li><a href="exet-test-multichar.html">exet-test-multichar.html</a>:
+      multi-character letters (in-memory localStorage; no automated checks).</li>
+  <li><a href="exet.html">exet.html</a>: the real app, using your real localStorage.</li>
+</ul>
+
+<div id="frame-box" class="hidden"></div>
+
+<script>
+/** The automated test pages. Add new exet-test-*.html pages here. */
+const TESTS = [
+  {name: 'Lexicon', url: 'exet-test-lexicon.html',
+   desc: 'Toy lexicon: proper nouns, stem groups, spelling-region swaps'},
+  {name: 'Regexps', url: 'exet-test-regexps.html',
+   desc: 'Regexp constraints and macros (flags, lookaheads, nesting, 3-D)'},
+  {name: 'Blank grids', url: 'exet-test-blank-grids.html',
+   desc: 'Chequered/open/barred/3-D/automagic grids, invalid sizes, save-and-reload'},
+  {name: 'Blank grids (multi-letter)', url: 'exet-test-blank-grids.html?multi=1',
+   desc: 'The same, with a lexicon that has two-code-point letters (CH, LL)'},
+  {name: 'Load & format', url: 'exet-test-load-and-format.html',
+   desc: 'Awkward clue/anno text, junk and cancelled file opens, the Format panel'},
+  {name: 'Storage', url: 'exet-test-storage.html',
+   desc: 'Revisions, backup, merge, auto-free, full localStorage'},
+  {name: 'Autofill', url: 'exet-test-autofill.html',
+   desc: 'Autofill a 5x5 word square, pinned letters, unfillable grids, pause/clear'},
+];
+
+const PAGE_TIMEOUT_MS = 240000;
+const state = TESTS.map(() => ({status: 'pending', pass: 0, fail: 0, info: 0, failures: [], infos: []}));
+let stopRequested = false;
+let running = false;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function runUrl(t) {
+  return t.url + (t.url.indexOf('?') >= 0 ? '&' : '?') + 'autorun';
+}
+
+function render() {
+  let html = '';
+  let totalPass = 0, totalFail = 0, pages = 0, failedPages = 0;
+  TESTS.forEach((t, i) => {
+    const s = state[i];
+    let label = s.status;
+    if (s.status == 'done') {
+      label = s.fail ? `FAILED: ${s.pass} passed, ${s.fail} failed` : `passed (${s.pass} checks)`;
+      pages++;
+      totalPass += s.pass;
+      totalFail += s.fail;
+      if (s.fail) failedPages++;
+    } else if (s.status == 'timeout') {
+      label = `no report within ${PAGE_TIMEOUT_MS / 1000}s`;
+      failedPages++;
+    }
+    const cls = s.status == 'done' ? (s.fail ? 'st-fail' : 'st-pass') : 'st-' + s.status;
+    let detail = '';
+    if (s.failures.length || s.infos.length) {
+      detail = '<ul class="detail">' +
+        s.failures.map(f => `<li style="color:#c00"><b>FAIL</b> ${esc(f)}</li>`).join('') +
+        s.infos.map(f => `<li style="color:#06c"><b>info</b> ${esc(f)}</li>`).join('') + '</ul>';
+    }
+    html += `<tr><td><a href="${t.url}">${esc(t.name)}</a></td><td>${esc(t.desc)}</td>` +
+      `<td class="${cls}">${esc(label)}${detail}</td>` +
+      `<td><button data-i="${i}" ${running ? 'disabled' : ''}>Run</button></td></tr>`;
+  });
+  $('rows').innerHTML = html;
+  for (const b of $('rows').getElementsByTagName('button')) {
+    b.onclick = () => runSelected([parseInt(b.dataset.i)]);
+  }
+  const ran = state.filter(s => s.status == 'done' || s.status == 'timeout').length;
+  $('overall').innerHTML = ran == 0 ? '' :
+    `<b class="${failedPages ? 'st-fail' : 'st-pass'}">${totalPass} checks passed, ${totalFail} failed ` +
+    `(${ran} of ${TESTS.length} pages run${failedPages ? ', ' + failedPages + ' with problems' : ''})</b>`;
+}
+
+/** Runs one page in the frame; resolves when it reports (or times out). */
+function runOne(i) {
+  const t = TESTS[i];
+  const s = state[i];
+  Object.assign(s, {status: 'running', pass: 0, fail: 0, info: 0, failures: [], infos: []});
+  render();
+  /**
+   * A fresh frame for every page: nothing (timers, listeners, state) can leak
+   * from one page under test into the next.
+   */
+  const frame = document.createElement('iframe');
+  frame.className = 'page-frame';
+  frame.title = 'page under test: ' + t.name;
+  $('frame-box').innerHTML = '';
+  $('frame-box').appendChild(frame);
+  return new Promise((resolve) => {
+    let timer = null;
+    const finish = () => {
+      window.removeEventListener('message', onMessage);
+      clearTimeout(timer);
+      frame.remove();
+      resolve();
+    };
+    const onMessage = (e) => {
+      const d = e.data;
+      if (!d || d.source != 'exet-test' || d.page != runUrl(t)) return;
+      s.status = 'done';
+      for (const r of d.results) {
+        for (const row of r.rows) {
+          if (row.s == 'pass') s.pass++;
+          else if (row.s == 'fail') { s.fail++; s.failures.push(`${r.name}: ${row.msg}`); }
+          else { s.info++; s.infos.push(`${r.name}: ${row.msg}`); }
+        }
+      }
+      finish();
+    };
+    window.addEventListener('message', onMessage);
+    timer = setTimeout(() => { s.status = 'timeout'; finish(); }, PAGE_TIMEOUT_MS);
+    $('stop').onclick = () => { stopRequested = true; s.status = 'pending'; finish(); };
+    frame.src = runUrl(t);
+  });
+}
+
+async function runSelected(indices) {
+  if (running) return;
+  running = true;
+  stopRequested = false;
+  $('run-all').disabled = true;
+  $('stop').disabled = false;
+  window.ExetTestAll.done = false;
+  for (const i of indices) {
+    if (stopRequested) break;
+    await runOne(i);
+    render();
+  }
+  running = false;
+  $('run-all').disabled = false;
+  $('stop').disabled = true;
+  render();
+  window.ExetTestAll.done = true;
+}
+
+/** Handle for scripts/headless drivers: state per page, and a done flag. */
+window.ExetTestAll = {state: state, tests: TESTS, done: false,
+                      runAll: () => runSelected(TESTS.map((t, i) => i))};
+
+$('run-all').onclick = () => window.ExetTestAll.runAll();
+$('show').onchange = () => {
+  $('frame-box').className = $('show').checked ? 'shown' : 'hidden';
+};
+render();
+if (new URLSearchParams(window.location.search).has('autorun')) {
+  window.ExetTestAll.runAll();
+}
+</script>
+</body>
+</html>

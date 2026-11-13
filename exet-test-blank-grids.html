@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Creating blank grids (2-D, 3-D, barred, multi-letter)</title>
+<script src="exet-test-common.js"></script>
+<script>
+/**
+ * Add ?multi=1 to the URL to run everything with a lexicon that has the
+ * two-code-point letters "CH" and "LL" (like Hindi or Spanish): blank-grid
+ * creation must work for multi-letter languages too.
+ */
+var MULTI = new URLSearchParams(window.location.search).has('multi');
+/**
+ * Automagic grid creation only adds blocks/bars while the grid stays
+ * fillable, so the toy lexicon needs plenty of words of every length. We
+ * generate pseudo-words (deterministically) from a vowel-heavy alphabet.
+ */
+var GENERATED_WORDS = [];
+(function() {
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const alphabet = 'AEIOURSTLN';
+  const seen = new Set();
+  for (let n = 3; n <= 15; n++) {
+    for (let k = 0; k < 300; k++) {
+      let w = '';
+      for (let c = 0; c < n; c++) w += alphabet[Math.floor(rnd() * alphabet.length)];
+      if (!seen.has(w)) { seen.add(w); GENERATED_WORDS.push(w); }
+    }
+  }
+})();
+ExetTest.setup({
+  words: ['CAT', 'DOG', 'CHAT', 'LLAMA', 'TREE', 'HOUSE', 'CHAIR', 'MOUSE'].concat(GENERATED_WORDS),
+  multi: MULTI ? ['CH', 'LL'] : [],
+  dim: 7,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+let idCounter = 0;
+const newId = () => `xet-test-blank-${MULTI ? 'm' : 's'}-${++idCounter}`;
+
+function countDark(puz) {
+  let n = 0;
+  for (let i = 0; i < puz.gridHeight; i++)
+    for (let j = 0; j < puz.gridWidth; j++)
+      if (!puz.grid[i][j].isLight) n++;
+  return n;
+}
+
+ExetTest.add('Chequered grids: every top/left "unches" combination, odd and even sizes', async t => {
+  const sizes = [[7, 7], [5, 9], [9, 5], [6, 8]];
+  for (const [w, h] of sizes) {
+    for (const top of [false, true]) {
+      for (const left of [false, true]) {
+        const id = newId();
+        exetBlank(w, h, 1, id, false, true, top, left);
+        const label = `${w}x${h} top=${top} left=${left}`;
+        t.ok(exet.puz && exet.puz.id == id, `${label}: puzzle created`);
+        if (!exet.puz || exet.puz.id != id) continue;
+        t.eq([exet.puz.gridWidth, exet.puz.gridHeight], [w, h], `${label}: dimensions`);
+        const fl = Math.floor, ce = Math.ceil;
+        const expectDark = (top ? ce(h / 2) : fl(h / 2)) * (left ? ce(w / 2) : fl(w / 2));
+        t.eq(countDark(exet.puz), expectDark, `${label}: number of blocks`);
+      }
+    }
+  }
+  t.eq(t.alerts, [], 'no alerts while creating chequered grids');
+});
+
+ExetTest.add('Open (unblocked) grids, with and without enums', async t => {
+  for (const requireEnums of [true, false]) {
+    const id = newId();
+    exetBlank(6, 4, 1, id, false, false, false, false, requireEnums);
+    t.ok(exet.puz && exet.puz.id == id, `requireEnums=${requireEnums}: created`);
+    if (!exet.puz || exet.puz.id != id) continue;
+    t.eq([exet.puz.gridWidth, exet.puz.gridHeight, countDark(exet.puz)], [6, 4, 0],
+         `requireEnums=${requireEnums}: 6x4 with no blocks`);
+    t.eq(exet.requireEnums, requireEnums, `requireEnums=${requireEnums}: flag stored in Exet`);
+  }
+  t.eq(t.alerts, [], 'no alerts');
+});
+
+ExetTest.add('Barred grid creation (no automagic)', async t => {
+  const id = newId();
+  exetBlank(7, 7, 1, id, false, false, false, false, true, true);
+  t.ok(exet.puz && exet.puz.id == id, 'created');
+  if (exet.puz && exet.puz.id == id) {
+    t.eq([exet.puz.gridWidth, exet.puz.gridHeight, countDark(exet.puz)], [7, 7, 0], '7x7 with no blocks');
+  }
+  t.eq(t.alerts, [], 'no alerts');
+});
+
+ExetTest.add('Automagic blocks produce a connected, symmetric grid', async t => {
+  const id = newId();
+  exetBlank(6, 9, 1, id, true, false);
+  await ExetTest.until(() => exet.puz && exet.puz.id == id && countDark(exet.puz) > 0, 8000,
+                       'automagic blocks to appear');
+  const a = new ExetAnalysis(exet.puz.grid, 6, 9, 1);
+  t.ok(a.numBlocks() > 0, 'has blocks: ' + a.numBlocks());
+  t.ok(a.isConnected(), 'grid is connected');
+  t.ok(a.isSymmetric(), 'grid is symmetric');
+});
+
+ExetTest.add('Automagic bars produce a connected, symmetric barred grid', async t => {
+  const id = newId();
+  exetBlank(10, 7, 1, id, true, false, false, false, true, true);
+  await ExetTest.until(() => exet.puz && exet.puz.id == id &&
+      new ExetAnalysis(exet.puz.grid, 10, 7, 1).numBars() > 0, 8000, 'automagic bars to appear');
+  const a = new ExetAnalysis(exet.puz.grid, 10, 7, 1);
+  t.ok(a.numBars() > 0, 'has bars: ' + a.numBars());
+  t.ok(a.isConnected(), 'grid is connected');
+  t.ok(a.isSymmetric(), 'grid is symmetric');
+});
+
+ExetTest.add('Invalid dimensions are rejected and do not replace the current puzzle', async t => {
+  const idOk = newId();
+  exetBlank(5, 5, 1, idOk);
+  t.eq(exet.puz.id, idOk, 'starting from a valid 5x5');
+  const bad = [['abc', 5], [5, 'abc'], ['7.5', 7], [0, 5], [5, 0], [-3, 5], [101, 5], [5, 101], ['', 5], [null, 5]];
+  for (const [w, h] of bad) {
+    const before = t.alerts.length;
+    const label = `exetBlank(${JSON.stringify(w)}, ${JSON.stringify(h)})`;
+    let threw = '';
+    try { exetBlank(w, h, 1, newId()); } catch (err) { threw = String(err); }
+    t.ok(!threw, `${label} does not throw ${threw}`);
+    t.ok(t.alerts.length > before, `${label} shows an alert`);
+    const kept = !!(exet.puz && exet.puz.id == idOk);
+    t.ok(kept, `${label} keeps the current puzzle`);
+    if (!kept) exetBlank(5, 5, 1, idOk);  /** restore, to keep checking the rest */
+  }
+  /** Numeric strings (as read from <input>.value) must still work. */
+  const id2 = newId();
+  exetBlank('9', '9', 1, id2);
+  t.eq([exet.puz.id, exet.puz.gridWidth, exet.puz.gridHeight], [id2, 9, 9], 'numeric strings "9","9" work');
+});
+
+ExetTest.add('3-D grids: valid sizes, and rejected sizes', async t => {
+  const id = newId();
+  exetBlank3D(3, 3, 3, id);
+  t.ok(exet.puz && exet.puz.id == id, '3x3x3 created');
+  if (exet.puz && exet.puz.id == id) {
+    t.eq([exet.puz.gridWidth, exet.puz.gridHeight, exet.puz.layers3d], [3, 9, 3], '3x3x3: 3 wide, 9 rows, 3 layers');
+  }
+  t.eq(t.alerts, [], 'no alerts for valid 3-D');
+  for (const [w, h, d] of [[4, 3, 3], [3, 4, 3], [3, 3, 4], [3, 3, 0], [0, 3, 3], [-3, 3, 3]]) {
+    const before = t.alerts.length;
+    exetBlank3D(w, h, d, newId());
+    t.ok(t.alerts.length > before, `exetBlank3D(${w},${h},${d}) shows an alert`);
+  }
+  const before = t.alerts.length;
+  exetBlank(5, 10, 3, newId());
+  t.ok(t.alerts.length > before, 'exetBlank(5, 10, layers=3) rejected: layers must divide the height');
+});
+
+ExetTest.add('A created grid survives getExolve() -> Open-file round trip', async t => {
+  const id = newId();
+  exetBlank(7, 5, 1, id, false, true, true, false);
+  const dark = countDark(exet.puz);
+  const specs = exet.getExolve();
+  t.ok(specs.indexOf('exolve-begin') >= 0, 'getExolve() produced Exolve specs');
+  if (MULTI) {
+    t.ok(/exolve-language:\s*en Latin 2/.test(specs), 'multi-letter mode: exolve-language declares 2 code points');
+  }
+  await ExetTest.loadSpecs(specs);
+  t.eq([exet.puz.id, exet.puz.gridWidth, exet.puz.gridHeight, countDark(exet.puz)], [id, 7, 5, dark],
+       'reloaded puzzle has the same id, size and blocks');
+  t.eq(t.alerts, [], 'no alerts');
+});
+
+ExetTest.start(
+  'Exet Test: creating blank grids' + (MULTI ? ' (multi-letter lexicon)' : ''), `
+  Run with and without <code>?multi=1</code> (links below). <b>Manual checks:</b>
+  <ol style="margin:2px 0">
+   <li>Open &gt; New blank grid: try 7x7, 8x8, 15x15 with each of the blocked/barred/US-style choices.</li>
+   <li>Open &gt; New 3-D grid with 3, 3, 3 and then 5, 3, 5.</li>
+   <li>Type letters in a chequered grid and check that numbering and enums look right.</li>
+  </ol>
+  Add <code>&amp;autorun</code> (or <code>?autorun</code>) to run the automated checks on load.`);
+</script>
+</body>
+</html>
