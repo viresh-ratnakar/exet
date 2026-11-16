@@ -2044,10 +2044,10 @@ Exet.prototype.exostUploadCallback = function(result) {
 }
 
 /**
- * Shows the panel for exporting the crossword to Exost (a free crossword-hosting
- * services—see the README). The panel is created once and reused across
- * crosswords, so that the email address and password that were typed in are
- * retained.
+ * Shows the panel for exporting the crossword to Exost (a free
+ * crossword-hosting service—see the README). The panel is created once and
+ * reused across crosswords, so that the email address and password that were
+ * typed in are retained.
  */
 Exet.prototype.showExostPanel = function() {
   /**
