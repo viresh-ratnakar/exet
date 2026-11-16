@@ -247,6 +247,57 @@ ExetTest.add('saveLocal(): reports a full localStorage instead of throwing', asy
   }
 });
 
+ExetTest.add('A damaged saved record does not stop saving: it is kept aside and replaced', async t => {
+  resetStorage();
+  const id = 'xet-test-store-dmg';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  const damaged = '{"id": "xet-test-store-dmg", "revs": [{"revNum": 1, ';
+  LS().setItem(id, damaged);
+  exet.puz.clues['A1'].clue = 'Changed after the damage (5)';
+  let threw = '';
+  try { REVMGR().saveRev(REVMGR().REV_CLUE_CHANGE); } catch (err) { threw = String(err); }
+  t.eq(threw, '', 'saving does not throw');
+  const stored = storedPuz(id);
+  t.eq(stored.revs.length, 1, 'the history starts afresh, with the new revision');
+  t.ok(stored.revs[0].exolve.indexOf('Changed after the damage') >= 0, 'which has the new clue');
+  const keptKey = REVMGR().storageKeys().find(k => k.startsWith(id + '-damaged-'));
+  t.ok(keptKey, 'a copy of the damaged text was kept aside');
+  if (keptKey) t.eq(LS().getItem(keptKey), damaged, 'and it is the original text');
+  exet.puz.clues['A1'].clue = 'Changed again (5)';
+  REVMGR().saveRev(REVMGR().REV_CLUE_CHANGE);
+  t.eq(numRevs(id), 2, 'and later saves go on normally');
+});
+
+ExetTest.add('A saved record of the wrong shape is treated like a damaged one', async t => {
+  resetStorage();
+  const id = 'xet-test-store-shape';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  LS().setItem(id, '{"id": "xet-test-store-shape", "maxRevNum": 4}');
+  exet.puz.clues['A1'].clue = 'Changed after the damage (5)';
+  let threw = '';
+  try { REVMGR().saveRev(REVMGR().REV_CLUE_CHANGE); } catch (err) { threw = String(err); }
+  t.eq(threw, '', 'saving does not throw');
+  t.eq(numRevs(id), 1, 'the record was replaced by a proper one');
+});
+
+ExetTest.add('Damaged preferred-words data does not stop saving or retrieving', async t => {
+  resetStorage();
+  const id = 'xet-test-store-prefdmg';
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+  const key = REVMGR().keyPrefUnpref(id, true);
+  LS().setItem(key, '{"abc": ["EAGLE"');
+  exet.setPreflex(['EAGLE']);
+  let threw = '';
+  try { REVMGR().saveRev(REVMGR().REV_PREFLEX_CHANGE); } catch (err) { threw = String(err); }
+  t.eq(threw, '', 'saving does not throw');
+  const data = JSON.parse(LS().getItem(key));
+  t.ok(Object.values(data).some(a => JSON.stringify(a) == '["EAGLE"]'), 'the preferred words were saved afresh');
+  LS().setItem(key, 'not json');
+  threw = '';
+  try { REVMGR().retrievePrefUnpref({id: id, preflexHash: 'x', unpreflexHash: 'y'}); } catch (err) { threw = String(err); }
+  t.eq(threw, '', 'retrieving from damaged data does not throw either');
+});
+
 ExetTest.start('Exet Test: revisions, backup, merge, auto-free', `
   Uses an in-memory localStorage, so your real crosswords are safe.
   Two checks here ("Backup includes every crossword..." and "Auto-free...") exercise a hazard:

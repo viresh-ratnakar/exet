@@ -27,6 +27,9 @@ body {
 }
 .xet-controls-col {
   padding: 4px;
+  display: flex;
+  flex-flow: column wrap;
+  align-items: flex-start;
 }
 .xet-frame hr {
   margin-left: 0;
@@ -284,7 +287,6 @@ body {
 .xet-format-panel {
   margin: 0;
   padding: 4px;
-  display: block;
   text-align: left;
   position: absolute;
   background-color: white;
@@ -339,11 +341,6 @@ body {
   display: flex;
   flex-flow: row wrap;
   justify-content: left;
-}
-.xet-controls-col {
-  display: flex;
-  flex-flow: column wrap;
-  align-items: flex-start;
 }
 .xet-in-tab-scrollable {
   border: 0;
@@ -499,6 +496,8 @@ body {
   left: auto;
   right: 100%;
   top: 0;
+  padding: 4px;
+  min-width: 400px;
 }
 #xet-autofill-active {
   display: none;
@@ -819,10 +818,6 @@ body {
 }
 #xet-unpreflex-editor {
   border: 1px solid chocolate;
-}
-.xet-autofill-panel {
-  padding: 4px;
-  min-width: 400px;
 }
 .xet-autofill-panel .xlv-button {
   margin: 2px 6px 4px;

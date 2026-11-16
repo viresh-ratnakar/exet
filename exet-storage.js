@@ -98,6 +98,13 @@ function ExetRev(id, title, revNum, revType, timestamp, details="") {
   // prefix, suffix, exolve should be set directly.
 };
 
+/**
+ * Manages the saved revisions of crosswords in localStorage. Each crossword
+ * is stored under its id, as an object with its revisions (ExetRev) and the
+ * latest revision number. The preferred and excluded word lists are large and
+ * change rarely, so they are stored separately, keyed by a hash, and shared
+ * between the revisions that use them (see savePrefUnpref()).
+ */
 function ExetRevManager() {
   this.REV_LOADED_FROM_FILE = 1;
   this.REV_CREATED_BLANK = 2;
@@ -201,8 +208,7 @@ ExetRevManager.prototype.choosePuzRev = function(params) {
     }
     choices = [{id: params.onlyPuz.id, title: params.onlyPuz.title, space: lsUsed, timestamp: 0}];
   } else {
-    for (let idx = 0; idx < window.localStorage.length; idx++) {
-      const id = window.localStorage.key(idx);
+    for (const id of this.storageKeys()) {
       if (this.skippableKey(id)) {
         continue;
       }
@@ -500,6 +506,11 @@ ExetRevManager.prototype.choosePuzRev = function(params) {
   }
 };
 
+/**
+ * Shows the saved revisions of the crossword whose id is this.idChoice (the
+ * current one, or one picked in the puzzle chooser), to switch to one of them
+ * or to delete some.
+ */
 ExetRevManager.prototype.chooseRev = function() {
   let stored = window.localStorage.getItem(this.idChoice);
   if (!stored) {
@@ -583,6 +594,11 @@ ExetRevManager.prototype.hashPrefUnpref = function(arr) {
   return exetLexicon.javaHash(JSON.stringify(arr));
 }
 
+/**
+ * Stores the preferred (or excluded) word lists of the given revisions, keyed
+ * by hash, for the puzzle with this id. With doGC, lists that no revision
+ * uses any more are removed.
+ */
 ExetRevManager.prototype.savePrefUnpref = function(id, revs, doGC=false) {
   const isCurrPuz = (exet.puz && exet.puz.id && exet.puz.id == id);
   console.assert(doGC || isCurrPuz, doGC, isCurrPuz);
@@ -594,11 +610,7 @@ ExetRevManager.prototype.savePrefUnpref = function(id, revs, doGC=false) {
     let changed = false;
     const key = this.keyPrefUnpref(id, isPref);
     let data = window.localStorage.getItem(key);
-    if (data) {
-      data = JSON.parse(data);
-    } else {
-      data = {};
-    }
+    data = (data && this.parseStored(data, key)) || {};
     if (isCurrPuz && exet[hashName] && !data.hasOwnProperty(exet[hashName])) {
       data[exet[hashName]] = isPref ? exet.preflex : exet.unpreflex;
       changed = true;
@@ -631,6 +643,10 @@ ExetRevManager.prototype.savePrefUnpref = function(id, revs, doGC=false) {
   }
 }
 
+/**
+ * Loads the preferred and excluded word lists that the given revision refers
+ * to (by hash), into Exet.
+ */
 ExetRevManager.prototype.retrievePrefUnpref = function(rev) {
   for (const isPref of [true, false]) {
     const hashName = isPref ? 'preflexHash' : 'unpreflexHash';
@@ -653,11 +669,7 @@ ExetRevManager.prototype.retrievePrefUnpref = function(rev) {
     } else if (rev[hashName]) {
       const key = this.keyPrefUnpref(rev.id, isPref);
       let data = window.localStorage.getItem(key);
-      if (data) {
-        data = JSON.parse(data);
-      } else {
-        data = {};
-      }
+      data = (data && this.parseStored(data, key)) || {};
       obj = data[rev[hashName]] || null;
       if (!obj) {
         console.log('Missing data for ' + hashName + ' = ' + rev[hashName]);
@@ -684,20 +696,37 @@ ExetRevManager.prototype.equalExolves = function(x1, x2) {
   return x1mod == x2mod;
 }
 
+/**
+ * Saves a revision of the current crossword with the given type and details:
+ * Nothing is saved if the state is the same as that of the latest revision.
+ */
 ExetRevManager.prototype.saveRev = function(revType, details="") {
   if (!exet || !exet.puz || !exet.puz.id) {
     console.log('Cannot save revision when there is no puzzle!');
     return;
   }
-  let stored = window.localStorage.getItem(exet.puz.id);
+  const storedText = window.localStorage.getItem(exet.puz.id);
+  let stored = storedText ? this.parseStored(storedText, exet.puz.id) : null;
+  if (stored && !Array.isArray(stored.revs)) {
+    stored = null;
+  }
+  if (storedText && !stored) {
+    /**
+     * The saved data of this crossword is damaged. Start its history afresh,
+     * so that its saves do not fail, but keep a copy of the damaged text.
+     */
+    try {
+      window.localStorage.setItem(exet.puz.id + '-damaged-' + Date.now(), storedText);
+    } catch (err) {
+      console.log('Could not keep a copy of the damaged data: ' + err);
+    }
+  }
   if (!stored) {
     stored = {
       id: exet.puz.id,
       maxRevNum: 0,
       revs: []
     };
-  } else {
-    stored = JSON.parse(stored);
   }
   /**
    * Do garbage collection of unused pref/unpref data when saving,
@@ -790,6 +819,24 @@ ExetRevManager.prototype.storageKeys = function() {
   return keys;
 }
 
+/**
+ * Parses text that was read from localStorage. If it is damaged, notes that
+ * in the console and returns null, instead of throwing: callers can then carry
+ * on (which matters on paths like saving, where throwing would mean that the
+ * user's work silently stops being saved).
+ */
+ExetRevManager.prototype.parseStored = function(text, what) {
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.log('Ignoring damaged saved data (' + what + '): ' + err);
+    return null;
+  }
+}
+
+/**
+ * Downloads a backup file with every crossword's revisions and word lists.
+ */
 ExetRevManager.prototype.saveAllRevisions = function() {
   const storage = {};
   for (const id of this.storageKeys()) {
@@ -829,6 +876,11 @@ ExetRevManager.prototype.saveAllRevisions = function() {
   exetModals.hide();
 }
 
+/**
+ * Merges the revisions in a backup file (made by saveAllRevisions()) into the
+ * ones in localStorage: a revision that is already there is not duplicated.
+ * With "only latest", just the latest revision of each crossword is merged.
+ */
 ExetRevManager.prototype.mergeRevisionsFile = function() {
   exetModals.hide();
   let fr = new FileReader(); 
@@ -841,8 +893,7 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
       return;
     }
     const existingRevs = {};
-    for (let idx = 0; idx < window.localStorage.length; idx++) {
-      const id = window.localStorage.key(idx);
+    for (const id of exetRevManager.storageKeys()) {
       if (exetRevManager.skippableKey(id)) {
         continue;
       }
@@ -971,6 +1022,11 @@ ExetRevManager.prototype.mergeRevisionsFile = function() {
   fr.readAsText(f);
 }
 
+/**
+ * Frees up localStorage. A backup is downloaded first. Then, for each
+ * crossword, about half of its older revisions are deleted (the latest 25
+ * revisions and the ones from the last hour are not deleted).
+ */
 ExetRevManager.prototype.autofree = function() {
   this.saveAllRevisions();
 

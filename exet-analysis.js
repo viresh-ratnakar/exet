@@ -126,6 +126,10 @@ class ExetAnalysis {
     }
   }
 
+  /**
+   * Returns whether all the light cells form one connected region, moving
+   * between adjacent light cells (and, in 3-D grids, between layers).
+   */
   isConnected() {
     const cells = [];
     const visited = new Array(this.h);
@@ -735,6 +739,11 @@ Exet.prototype.addStat = function(dict, stat, details, bad=false) {
   }
 }
 
+/**
+ * Reduces an annotation to plain words, for the Analysis report's counts of
+ * frequent words: "*" becomes "anagram", and punctuation and tags are
+ * dropped.
+ */
 Exet.prototype.essenceOfAnno = function(s) {
   let out = '';
   for (let c of s) {
@@ -786,7 +795,7 @@ Exet.prototype.getSubstrings = function(s) {
   for (let len = 3; len <= letters.length; len++) {
     const end = letters.length - len;
     for (let start = 0; start <= end; start++) {
-      substrings.add(letters.substr(start, len));
+      substrings.add(letters.substring(start, start + len));
     }
   }
   return substrings;
@@ -819,6 +828,12 @@ Exet.prototype.trimSubsumedSubstrings = function(substrings) {
   }
 }
 
+/**
+ * Collects the statistics shown in the Analysis report, separately for all
+ * lights, across lights, down lights, and other lights (3-D), in ExetLightInfo
+ * objects: counts of light lengths and clue (enum) lengths, letters, how
+ * popular the entries are, repeated substrings and words, and annotations.
+ */
 Exet.prototype.getLightInfos = function() {
   const infos = {
     All: new ExetLightInfo(),
@@ -940,6 +955,11 @@ Exet.prototype.getLightInfos = function() {
   return infos;
 }
 
+/**
+ * Builds the Analysis report: the grid checks (see ExetAnalysis), the
+ * statistics from getLightInfos(), and the words used in annotations. Shown
+ * in the Analysis panel.
+ */
 Exet.prototype.updateAnalysis = function(elt) {
   const grid = this.puz.grid;
   const w = this.puz.gridWidth;
@@ -1120,6 +1140,10 @@ Exet.prototype.updateAnalysis = function(elt) {
   this.selectAnalysis();
 }
 
+/**
+ * Renders stats (an object with a count for each key) as a small HTML
+ * histogram. Keys are sorted numerically if they are all numbers.
+ */
 Exet.prototype.plotStats = function(stats) {
   let keys = Object.keys(stats);
   let numeric = true;

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: The Exost panel</title>
+<script src="exet-test-common.js"></script>
+<script>
+ExetTest.setup({
+  words: ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE', 'SLATE', 'STEAM'],
+  dim: 5,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+let idCounter = 0;
+const newPuzzle = () => ExetTest.loadSpecs(ExetTest.openGridSpecs(`xet-test-exost-${++idCounter}`, 5, 5));
+const panels = () => document.querySelectorAll('.xet-xst-panel');
+const $ = (id) => document.getElementById(id);
+
+ExetTest.add('Showing the panel repeatedly keeps one panel and one helper object', async t => {
+  await newPuzzle();
+  exet.showExostPanel();
+  const helper = exet.exost;
+  t.ok(helper, 'there is a helper object (ExolveExost) after showing the panel');
+  t.eq(panels().length, 1, 'there is one panel in the document');
+  exet.showExostPanel();
+  exet.showExostPanel();
+  t.eq(panels().length, 1, 'still one panel after showing it again');
+  t.ok(exet.exost === helper, 'and still the same helper object');
+  t.ok(exetModals.modal === exet.exostState.panel, 'the panel is the one showing');
+});
+
+ExetTest.add('The helper object uses the panel\'s own elements', async t => {
+  await newPuzzle();
+  exet.showExostPanel();
+  t.ok(exet.exost.emailElt === $('xet-xst-email'), 'email input');
+  t.ok(exet.exost.pwdElt === $('xet-xst-pwd'), 'password input');
+  t.ok(exet.exost.pwdStatusElt === $('xet-xst-pwd-status'), 'password status');
+  t.ok(exet.exostState.urlRow === $('xet-xst-url-row'), 'URL row');
+  t.ok(exet.exostState.urlElt === $('xet-xst-url'), 'URL link');
+});
+
+ExetTest.add('Email and password are kept across crosswords; the Exost URL is not', async t => {
+  await newPuzzle();
+  exet.showExostPanel();
+  const helper = exet.exost;
+  $('xet-xst-email').value = 'setter@example.com';
+  $('xet-xst-pwd').value = 'secret';
+
+  /** As if the crossword had just been uploaded. */
+  exet.exostState.url = 'https://example.com/exost/abc';
+  exet.exostState.urlRow.style.display = '';
+  exet.exostState.uploadStatus.innerHTML = 'Uploaded!';
+
+  exet.showExostPanel();
+  t.eq(exet.exostState.url, 'https://example.com/exost/abc', 'same crossword: the URL is kept');
+  t.eq(exet.exostState.urlRow.style.display, '', 'same crossword: the URL row is still shown');
+  t.eq(exet.exostState.uploadStatus.innerHTML, 'Uploaded!', 'same crossword: the upload status is kept');
+
+  await newPuzzle();
+  exet.showExostPanel();
+  t.eq(panels().length, 1, 'still one panel for the new crossword');
+  t.ok(exet.exost === helper, 'and the same helper');
+  t.eq($('xet-xst-email').value, 'setter@example.com', 'the email is kept');
+  t.eq($('xet-xst-pwd').value, 'secret', 'the password is kept');
+  t.eq(exet.exost.emailElt.value, 'setter@example.com', 'and the helper sees it');
+  t.eq(exet.exostState.url, '', 'but the URL belongs to the other crossword, so it is gone');
+  t.eq(exet.exostState.urlRow.style.display, 'none', 'the URL row is hidden');
+  t.eq(exet.exostState.uploadStatus.innerHTML, '', 'and the upload status is cleared');
+  t.eq(exet.exostState.id, exet.puz.id, 'the panel now belongs to the new crossword');
+});
+
+ExetTest.add('The panel survives puzzle rebuilds (such as edits) and can be shown again', async t => {
+  await newPuzzle();
+  exet.showExostPanel();
+  exet.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
+  exet.showExostPanel();
+  t.eq(panels().length, 1, 'one panel');
+  t.ok(exet.exost.emailElt === $('xet-xst-email'), 'and the helper still points at its elements');
+  t.ok(exetModals.modal === exet.exostState.panel, 'it is showing');
+});
+
+ExetTest.start('Exet Test: the Exost panel', `
+  Nothing is uploaded: these checks only look at the panel and its helper object.
+  <b>Manual checks:</b>
+  <ol style="margin:2px 0">
+   <li>Save menu &gt; the Exost option: the panel opens. Type an email address and a password, close it, and open it again:
+       they are still there. Open another crossword and look again: still there, but the Exost URL (if any) is gone.</li>
+   <li>(Only if you want to use the real service) request a password and upload a crossword.</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

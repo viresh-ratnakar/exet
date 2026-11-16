@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Starting up and loading with damaged saved data</title>
+<script src="exet-test-common.js"></script>
+<script>
+ExetTest.setup({
+  words: ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE', 'SLATE', 'STEAM'],
+  dim: 5,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+<script>
+/**
+ * With no ?case in the URL, this page runs unit-style checks of the code
+ * that loads saved data. With ?case=..., it instead seeds damaged data into
+ * the (in-memory) localStorage BEFORE Exet starts, and checks that Exet still
+ * comes up:
+ *   ?case=state          the saved Exet state (settings, last crossword) is damaged
+ *   ?case=puzzle-json    the last crossword's saved data is not valid JSON
+ *   ?case=puzzle-exolve  the last crossword's saved revision has invalid Exolve
+ * Alerts shown during startup are collected in window.bootAlerts.
+ */
+var CASE = new URLSearchParams(window.location.search).get('case');
+window.bootAlerts = [];
+window.alert = (msg) => { window.bootAlerts.push(String(msg)); };
+window.SEEDED = {};
+(function seedDamagedData() {
+  if (!CASE || !ExetTest.usingMemStorage) return;  // Never damage the real storage.
+  const set = (k, v) => { window.localStorage.setItem(k, v); window.SEEDED[k] = v; };
+  const stateKey = new ExetRevManager().SPECIAL_KEY;
+  if (CASE == 'state') {
+    set(stateKey, '{"lastId": "xet-test-s1", "exolveUrl": ');
+  } else if (CASE == 'puzzle-json') {
+    set(stateKey, JSON.stringify({lastId: 'xet-test-p1'}));
+    set('xet-test-p1', '{"id": "xet-test-p1", "revs": [{"revNum": 1, ');
+  } else if (CASE == 'puzzle-exolve') {
+    set(stateKey, JSON.stringify({lastId: 'xet-test-p2'}));
+    set('xet-test-p2', JSON.stringify({id: 'xet-test-p2', maxRevNum: 1, revs: [{
+      id: 'xet-test-p2', revNum: 1, title: 't', revType: 1, timestamp: Date.now(),
+      details: '', prefix: '', suffix: '',
+      exolve: 'exolve-begin\n exolve-id: xet-test-p2\n exolve-width: 5\n exolve-height: 5\n exolve-grid:\n  zz\nexolve-end',
+    }]}));
+  }
+})();
+</script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+const LS = () => window.localStorage;
+const tryit = (f) => { try { f(); return ''; } catch (err) { return String(err); } };
+
+/** Runs after the page has loaded and Exet has started up. */
+function bootChecks(t, usedId) {
+  t.ok(ExetTest.usingMemStorage, 'running with the in-memory localStorage (the damage was seeded)');
+  t.ok(exet.puz, 'Exet came up with a crossword');
+  t.ok(exet.puz && exet.puz.id != usedId, 'it is a new crossword, not the damaged one');
+  t.ok(exet.getExolve().indexOf('exolve-begin') >= 0, 'and it works: getExolve() gives Exolve specs');
+}
+
+if (CASE == 'state') {
+  ExetTest.add('Boot with a damaged saved Exet state', async t => {
+    bootChecks(t, 'xet-test-s1');
+    t.eq(window.bootAlerts, [], 'no alert (settings just revert to their defaults)');
+    t.eq(exetState.exolveUrl, EXET_DEFAULT_EXOLVE_URL, 'the settings have their default values');
+  });
+} else if (CASE == 'puzzle-json' || CASE == 'puzzle-exolve') {
+  const id = CASE == 'puzzle-json' ? 'xet-test-p1' : 'xet-test-p2';
+  ExetTest.add('Boot when the last crossword cannot be re-opened (' + CASE + ')', async t => {
+    bootChecks(t, id);
+    t.eq(window.bootAlerts.length, 1, 'one alert was shown');
+    t.ok(window.bootAlerts[0] && window.bootAlerts[0].indexOf(id) >= 0, 'it names the crossword: ' + window.bootAlerts[0]);
+    t.eq(LS().getItem(id), window.SEEDED[id], 'the saved data was left untouched');
+  });
+} else {
+  /** ------------------------- unit-style checks ------------------------- */
+
+  ExetTest.add('exetLoadState(): damaged or odd saved state falls back to the defaults', async t => {
+    const key = exetRevManager.SPECIAL_KEY;
+    const savedText = LS().getItem(key);
+    const savedState = exetState;
+    try {
+      for (const text of ['{"lastId": "a", ', 'not json at all', '[1, 2, 3]', '"a string"', '42', 'null', 'true']) {
+        LS().setItem(key, text);
+        const threw = tryit(() => exetLoadState());
+        t.eq(threw, '', `${text}: does not throw`);
+        t.ok(exetState && typeof exetState == 'object' && !Array.isArray(exetState), `${text}: gives an object`);
+        t.eq(exetState.lastId, undefined, `${text}: no last crossword`);
+        t.eq(exetState.exolveUrl, EXET_DEFAULT_EXOLVE_URL, `${text}: default settings`);
+      }
+      LS().setItem(key, JSON.stringify({lastId: 'zzz', exolveUrl: 'https://example.com/'}));
+      exetLoadState();
+      t.eq([exetState.lastId, exetState.exolveUrl], ['zzz', 'https://example.com/'], 'good saved state is used');
+    } finally {
+      if (savedText === null) LS().removeItem(key); else LS().setItem(key, savedText);
+      exetState = savedState;
+    }
+  });
+
+  ExetTest.add('exetStorageAvailable(): false when merely touching localStorage throws', async t => {
+    t.eq(exetStorageAvailable(), true, 'true normally');
+    const desc = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {get: () => { throw new Error('SecurityError'); }, configurable: true});
+    try {
+      t.eq(tryit(() => exetStorageAvailable()), '', 'does not throw');
+      t.eq(exetStorageAvailable(), false, 'false when access is blocked');
+    } finally {
+      Object.defineProperty(window, 'localStorage', desc);
+    }
+    t.eq(exetStorageAvailable(), true, 'true again afterwards');
+  });
+
+  /** Makes sure that there is a good current puzzle, with this id. */
+  async function goodPuzzle(id) {
+    await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5));
+    await ExetTest.until(() => !ExetTest.busy(), 10000, 'idle');
+  }
+  const restoreLastWith = (id, text) => {
+    if (text === null) LS().removeItem(id); else LS().setItem(id, text);
+    const saved = exetState.lastId;
+    exetState.lastId = id;
+    let ok;
+    const threw = tryit(() => { ok = exetRestoreLast(); });
+    exetState.lastId = saved;
+    return {ok: ok, threw: threw};
+  };
+
+  ExetTest.add('exetRestoreLast(): re-opens the last crossword when its data is good', async t => {
+    await goodPuzzle('xet-test-startup-good');
+    const stored = LS().getItem('xet-test-startup-good');
+    await goodPuzzle('xet-test-startup-other');
+    const r = restoreLastWith('xet-test-startup-good', stored);
+    t.eq([r.threw, r.ok], ['', true], 'restored');
+    t.eq(exet.puz.id, 'xet-test-startup-good', 'the right crossword is open');
+    t.eq(t.alerts, [], 'no alerts');
+  });
+
+  ExetTest.add('exetRestoreLast(): nothing to restore is not an error', async t => {
+    await goodPuzzle('xet-test-startup-cur');
+    exetState.lastId = '';
+    t.eq(exetRestoreLast(), false, 'no last id');
+    t.eq(restoreLastWith('xet-test-startup-missing', null).ok, false, 'no saved data under the id');
+    t.eq(restoreLastWith('xet-test-startup-empty', '{"id": "xet-test-startup-empty", "maxRevNum": 0, "revs": []}').ok, false,
+         'no revisions');
+    t.eq(t.alerts, [], 'no alerts');
+    t.eq(exet.puz.id, 'xet-test-startup-cur', 'the current crossword was left alone');
+  });
+
+  /**
+   * [description, saved text, whether exetFromHistory() falls back to a new
+   * blank grid (when it is the one that fails) rather than the open crossword
+   * being left alone (when the data cannot even be read)].
+   */
+  const damaged = [
+    ['data that is not valid JSON', '{"id": "xet-test-startup-bad", "revs": [{"revNum": 1, ', false],
+    ['JSON that is not an object', '42', false],
+    ['an object without a list of revisions', '{"id": "xet-test-startup-bad", "maxRevNum": 3}', false],
+    ['a revision with invalid Exolve', JSON.stringify({id: 'xet-test-startup-bad', maxRevNum: 1, revs: [{
+      id: 'xet-test-startup-bad', revNum: 1, title: 't', revType: 1, timestamp: 1, details: '', prefix: '', suffix: '',
+      exolve: 'exolve-begin\n exolve-id: xet-test-startup-bad\n exolve-width: 5\n exolve-height: 5\n exolve-grid:\n  zz\nexolve-end'}]}), true],
+  ];
+  for (const [what, text, blankFallback] of damaged) {
+    ExetTest.add('exetRestoreLast(): ' + what + ' is reported and left untouched', async t => {
+      await goodPuzzle('xet-test-startup-cur2');
+      const r = restoreLastWith('xet-test-startup-bad', text);
+      t.eq(r.threw, '', 'does not throw');
+      t.eq(r.ok, false, 'reports failure');
+      t.eq(t.alerts.length, 1, 'tells the user');
+      t.ok(t.alerts[0] && t.alerts[0].indexOf('xet-test-startup-bad') >= 0, 'naming the crossword');
+      t.eq(LS().getItem('xet-test-startup-bad'), text, 'the saved data is untouched');
+      if (blankFallback) {
+        t.ok(exet.puz && exet.puz.id != 'xet-test-startup-bad', 'a new blank grid was made instead');
+      } else {
+        t.eq(exet.puz && exet.puz.id, 'xet-test-startup-cur2', 'the crossword that was open is left alone');
+      }
+      await goodPuzzle('xet-test-startup-after');   /** Exet can carry on */
+      t.eq(exet.puz.id, 'xet-test-startup-after', 'and Exet can carry on');
+    });
+  }
+
+  ExetTest.add('Opening a file whose saved data (same id) is damaged still works, and saving recovers', async t => {
+    const id = 'xet-test-startup-dmg';
+    const specs = ExetTest.openGridSpecs(id, 5, 5);
+    await ExetTest.loadSpecs(specs);
+    const text = '{"id": "xet-test-startup-dmg", "revs": [{"revNum": 1, ';
+    LS().setItem(id, text);
+    await ExetTest.loadSpecs(specs);
+    t.eq(t.alerts, [], 'no alerts');
+    const stored = JSON.parse(LS().getItem(id));
+    t.ok(Array.isArray(stored.revs) && stored.revs.length >= 1, 'the crossword is saved again, with a fresh history');
+    const keptKey = exetRevManager.storageKeys().find(k => k.startsWith(id + '-damaged-'));
+    t.ok(keptKey, 'a copy of the damaged text was kept aside under ' + keptKey);
+    if (keptKey) t.eq(LS().getItem(keptKey), text, 'and it is the original text');
+    exet.puz.clues['A1'].clue = 'Changed after recovery (5)';
+    exetRevManager.saveRev(exetRevManager.REV_CLUE_CHANGE);
+    t.ok(JSON.parse(LS().getItem(id)).revs.length >= 2, 'later edits are saved normally');
+  });
+}
+
+ExetTest.start('Exet Test: starting up and loading with damaged saved data' + (CASE ? ' (' + CASE + ')' : ''), `
+  Uses an in-memory localStorage. The three <code>?case=</code> variants (links below, or in
+  exet-test-all.html) seed damaged data before Exet starts.
+  <ul style="margin:2px 0">
+   <li><a href="exet-test-startup.html?case=state">damaged saved state</a></li>
+   <li><a href="exet-test-startup.html?case=puzzle-json">damaged JSON for the last crossword</a></li>
+   <li><a href="exet-test-startup.html?case=puzzle-exolve">invalid Exolve in the last crossword</a></li>
+  </ul>
+  <b>Manual check:</b> with your real browser's storage, none of this should ever be needed. If Exet does not
+  come up (a blank page) after a browser crash, please report it.
+  Add <code>?autorun</code> to run the automated checks on load.`);
+</script>
+</body>
+</html>

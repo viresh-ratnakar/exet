@@ -244,7 +244,10 @@ exolve-end
   /**
    * Loads Exolve specs through Exet's real exetLoadFile() path (the same
    * code that runs when you use Open > Open Exolve/.puz/.ipuz file).
-   * Resolves when the puzzle with the id in the specs is current.
+   * Resolves when the load has finished: a NEW puzzle object is current, with
+   * the id in the specs. (Checking only the id is not enough: the file is read
+   * asynchronously, and the current puzzle may already have that id, as when a
+   * puzzle is reloaded from its own getExolve() output.)
    */
   function loadSpecs(specs, fileName) {
     const m = /exolve-id:\s*(\S+)/.exec(specs);
@@ -253,8 +256,10 @@ exolve-end
     const file = new File([specs], fileName || 'exet-test.xlv',
                           {type: 'text/plain'});
     Object.defineProperty(input, 'files', {value: [file], configurable: true});
+    const before = exet.puz;
     exetLoadFile();
-    return until(() => exet.puz && (!id || exet.puz.id == id), 5000,
+    return until(() => exet.puz && exet.puz !== before &&
+                       (!id || exet.puz.id == id), 5000,
                  'puzzle ' + id + ' to load');
   }
 
@@ -403,9 +408,13 @@ exolve-end
     ['exet-test-regexps.html', 'regexps'],
     ['exet-test-blank-grids.html', 'blank grids'],
     ['exet-test-blank-grids.html?multi=1', 'blank grids (multi-letter)'],
+    ['exet-test-grid-edits.html', 'grid edits'],
     ['exet-test-load-and-format.html', 'load/format'],
     ['exet-test-storage.html', 'storage'],
     ['exet-test-autofill.html', 'autofill'],
+    ['exet-test-preferred-fills.html', 'preferred fills'],
+    ['exet-test-exost.html', 'exost'],
+    ['exet-test-startup.html', 'startup'],
     ['exet-test-multichar.html', 'multichar'],
   ];
 
@@ -431,7 +440,21 @@ exolve-end
   /** Waits for Exet to be ready, draws the panel, optionally auto-runs. */
   async function start(title, introHtml) {
     panel(title, introHtml);
-    await whenReady();
+    try {
+      await whenReady();
+    } catch (err) {
+      /**
+       * Exet did not come up. Say so as a failed result (rather than just
+       * hanging), so that exet-test-all.html can report it right away.
+       */
+      results.length = 0;
+      results.push({name: 'Exet starts up',
+                    rows: [{s: 'fail', msg: String(err && err.message || err)}]});
+      render();
+      ExetTest.done = true;
+      report();
+      return;
+    }
     if (params.has('autorun')) {
       await runAll();
     }

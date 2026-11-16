@@ -164,6 +164,85 @@ ExetTest.add('Viability: suggested fills respect crossing letters', async t => {
   t.ok(choices.indexOf('SMART') >= 0, 'SMART is among the D1 candidates');
 });
 
+ExetTest.add('Pangram options keep "all" consistent with the specific choices', async t => {
+  openSquare();
+  await ExetTest.until(() => exet.autofill, 3000, 'autofill object');
+  const box = (name) => document.getElementById('xet-autofill-pangram-' + name);
+  const flip = (name, checked) => {
+    box(name).checked = checked;
+    box(name).dispatchEvent(new Event('change'));
+  };
+  const state = () => JSON.stringify(['all', 'circled', 'checked', 'unchecked', 'firsts', 'lasts'].map(n => box(n).checked));
+  t.eq(state(), '[true,false,false,false,false,false]', 'initially only "all" is selected');
+  flip('circled', true);
+  t.eq(state(), '[false,true,false,false,false,false]', 'choosing "circled" deselects "all"');
+  flip('circled', false);
+  t.eq(state(), '[true,false,false,false,false,false]', 'deselecting the only specific choice reselects "all"');
+  flip('checked', true);
+  t.eq(state(), '[false,false,true,false,false,false]', 'choosing "checked" alone deselects "all"');
+  flip('unchecked', true);
+  t.eq(state(), '[true,false,true,true,false,false]', 'checked + unchecked together mean "all"');
+  flip('checked', false);
+  flip('unchecked', false);
+  flip('lasts', true);
+  flip('all', true);
+  t.eq(state(), '[true,false,false,false,false,false]', 'selecting "all" clears the specific choices');
+  flip('all', false);
+  t.eq(state(), '[true,false,false,false,false,false]', 'deselecting "all" with nothing else selected keeps it selected');
+});
+
+/**
+ * Rebuilding the puzzle (for example after an edit of the "other sections")
+ * aborts a running autofill. The Autofill panel is rebuilt along with the
+ * puzzle, so the new panel has to say what happened.
+ */
+ExetTest.add('A puzzle rebuild during a run aborts it cleanly, and the new panel says so', async t => {
+  openSquare();
+  await ExetTest.until(() => exet.autofill, 3000, 'autofill object');
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'idle');
+  const old = exet.autofill;
+  old.lag = 400;  /** slow, so that it is still running when we rebuild */
+  startBtn().click();
+  t.ok(old.running, 'running after Start');
+  await ExetTest.sleep(100);
+  /** 60 is above the revision types that update the puzzle by aborting autofill explicitly. */
+  exet.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
+  t.ok(exet.autofill !== old, 'the rebuild made a new autofill object');
+  t.ok(!old.running && old.throttledTimer === null, 'the old run is stopped, and its timer cleared');
+  t.ok(!exet.autofill.running, 'the new autofill is not running');
+  t.eq(exet.autofill.status, 'Aborted', 'its status is Aborted');
+  t.ok(exet.autofill.statusSpan.textContent.indexOf('Aborted') >= 0,
+       'and the panel shows that: "' + exet.autofill.statusSpan.textContent + '"');
+  t.eq(startBtn().textContent.trim(), 'Start', 'the button offers Start again');
+  exet.autofill.lag = 5;
+  startBtn().click();
+  await ExetTest.until(() => !exet.autofill.running, 60000, 'autofill to stop');
+  t.eq(exet.autofill.status, 'Succeeded!', 'and autofill can be run again after that');
+});
+
+ExetTest.add('A puzzle rebuild when autofill is not running does not claim an abort', async t => {
+  openSquare();
+  await ExetTest.until(() => exet.autofill, 3000, 'autofill object');
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'idle');
+  const old = exet.autofill;
+  exet.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
+  t.ok(exet.autofill !== old, 'a new autofill object');
+  t.eq(exet.autofill.status, 'None', 'its status is None');
+  t.eq(exet.autofill.statusSpan.textContent, 'None', 'and the panel says None');
+});
+
+ExetTest.add('A finished run is not reported as aborted by a later rebuild', async t => {
+  openSquare();
+  await ExetTest.until(() => exet.autofill, 3000, 'autofill object');
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'idle');
+  exet.autofill.lag = 5;
+  startBtn().click();
+  await ExetTest.until(() => !exet.autofill.running, 60000, 'autofill to stop');
+  t.eq(exet.autofill.status, 'Succeeded!', 'it succeeded');
+  exet.updatePuzzle(exetRevManager.REV_METADATA_CHANGE);
+  t.eq(exet.autofill.status, 'None', 'a rebuild afterwards starts a fresh panel, not an abort notice');
+});
+
 ExetTest.start('Exet Test: autofill and viability', `
   A 5x5 open grid is filled from a ~40-word lexicon (a double word square is hidden in it).
   <b>Manual checks:</b>

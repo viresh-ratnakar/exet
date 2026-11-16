@@ -24,7 +24,7 @@ SOFTWARE.
 The latest code and documentation for Exet can be found at:
 https://github.com/viresh-ratnakar/exet
 
-Current version: v1.10.3, November 13, 2026
+Current version: v1.10.4, November 16, 2026
 */
 
 function ExetModals() {
@@ -125,8 +125,20 @@ ExetModals.prototype.hide = function() {
   this.modal = null;
 }
 
+/**
+ * The Exet application object. There is a single instance, the global `exet`.
+ * It wraps an Exolve puzzle (this.puz), holds the settings that go with the
+ * puzzle (fill preferences, light regexps, the preferred and excluded word
+ * lists, etc.), and owns the UI. Most of its methods are defined in the other
+ * exet-*.js files, by adding to Exet.prototype.
+ *
+ * Whenever the crossword changes, its Exolve specs are regenerated from this
+ * state by getExolve(), and the puzzle is rebuilt by updatePuzzle(), which
+ * ends up calling setPuzzle() (the Exolve customizer) to re-create all of the
+ * UI around the new puzzle.
+ */
 function Exet() {
-  this.version = 'v1.10.3, November 13, 2026';
+  this.version = 'v1.10.4, November 16, 2026';
   this.puz = null;
   this.prefix = '';
   this.suffix = '';
@@ -135,7 +147,12 @@ function Exet() {
   this.preflexGroups = new Map;  // from lex index to array
   this.preflexSet = {};
   this.preflexHash = null;
-  this.preflexUsed = new Set;
+  /**
+   * preflexPidOf maps from the text of a preferred fill to its lex index,
+   * used to determine which entries have been used and hence need bolding
+   * in the rendering.
+   */
+  this.preflexPidOf = {};
   this.unpreflex = [];
   this.unpreflexSet = {};
   this.unpreflexHash = null;
@@ -233,61 +250,68 @@ function Exet() {
   this.lsLeftAtStart = -1;
   this.lsLeftIsAmple = true;
 
-  this.tipsList = [
-    `If you want to allow enum mismatches, then add the line
+  /**
+   * Tips, in the order in which they get shown. Each is [name, html]. Tips
+   * that are also shown in a specific situation (not just in rotation) are
+   * looked up by name, through the TIP_* indices computed below.
+   */
+  const tips = [
+    ['enumMismatch', `If you want to allow enum mismatches, then add the line
      <blockquote>exolve-option: ignore-enum-mismatch</blockquote>
      using
-     <i>Edit &gt; Add/Edit special sections: &gt; Other Exolve sections</i>.`,
-    `You can specify up to ${this.MAX_PREFLEX} desired words to fill, using
+     <i>Edit &gt; Add/Edit special sections: &gt; Other Exolve sections</i>.`],
+    ['preferredFills', `You can specify up to ${this.MAX_PREFLEX} desired words to fill, using
      the <span style="color:green">"Set preferred fills"</span> button near
      the bottom. These words will be prioritized in autofill as well
-     as in the suggested fills list.`,
-    `In a cryptic clue, you can specify a part of the clue to be the definition
+     as in the suggested fills list.`],
+    ['definitionPart', `In a cryptic clue, you can specify a part of the clue to be the definition
      part using Ctrl-d after selecting it. This part gets underlined when
-     the solution is revealed.`,
-    `When looking at any list of indicators through the "Lists" tab, you
+     the solution is revealed.`],
+    ['indicatorTopics', `When looking at any list of indicators through the "Lists" tab, you
      can type a topic word that describes the clue surface that you're
      trying to craft (in the blank provided near the top-right corner), and
-     hit Enter, to highlight all words that might be related to that topic.`,
-    `The "Analysis" button shows useful information about the grid, the
+     hit Enter, to highlight all words that might be related to that topic.`],
+    ['analysis', `The "Analysis" button shows useful information about the grid, the
      grid-fill, and the clues. You can use it to check for issues such
      as: grids that are not fully connected, consecutive unchecked cells,
-     too many long clues, too many uncommon entries, etc.`,
-    `When setting a crossword with ninas, enter the nina letters first
+     too many long clues, too many uncommon entries, etc.`],
+    ['ninas', `When setting a crossword with ninas, enter the nina letters first
      and mark them using <i>Edit &gt; Mark grid cell: &gt; Toggle nina ($)</i>.
      While you fill the rest of the grid, clearing lights will not
-     erase any nina cells.`,
-    `You can add a preamble to the crossword (e.g., some special instructions)
+     erase any nina cells.`],
+    ['preamble', `You can add a preamble to the crossword (e.g., some special instructions)
      using
-     <i>Edit &gt; Add/Edit special sections: &gt; Preamble</i>.`,
-    `Wordplay tabs such as "Charades" and "Anagrams" show candidate wordplays
+     <i>Edit &gt; Add/Edit special sections: &gt; Preamble</i>.`],
+    ['wordplayTabs', `Wordplay tabs such as "Charades" and "Anagrams" show candidate wordplays
      for the currently selected entry. However, you can edit the fodder text
-     directly in the tab to experiment with alternatives.`,
-    `Saving the crossword as HTML (Exolve format) with solutions included
+     directly in the tab to experiment with alternatives.`],
+    ['saving', `Saving the crossword as HTML (Exolve format) with solutions included
      can be done using the keyboard shortcut Ctrl-s (Cmd-s on Mac). Exet
-     overrides the browser's default "save" functionality.`,
-    `You can use autofill to create pangrams, and even <i>constrained</i>
+     overrides the browser's default "save" functionality.`],
+    ['pangrams', `You can use autofill to create pangrams, and even <i>constrained</i>
      pangrams, where all the letters in the alphabet get used over some
-     specified cells, such as circled cells and unchecked cells.`,
-    `You can specify regular expressions that constrains fill-choices
+     specified cells, such as circled cells and unchecked cells.`],
+    ['regexps', `You can specify regular expressions that constrains fill-choices
      shown for lights (for example, forcing a palindrome, or a specific
-     substring) using the "Edit regexp constraints" Edit menu option.`,
-    `You can create a <i>3-D</i> crossword using
+     substring) using the "Edit regexp constraints" Edit menu option.`],
+    ['threeD', `You can create a <i>3-D</i> crossword using
      <i>New &gt; New 3-D grid:</i>. You can also reverse some lights with
      <i>Edit &gt; Reverse current light</i>. You can let autofill suggest
      reversals using the "Try reversals: [ ]" option on the main Exet tab.
-     Reversed lights are often seen in 3-D crosswords.`,
-    `For some wordplay suggestions (anagrams, charades, containments), if the
+     Reversed lights are often seen in 3-D crosswords.`],
+    ['longFodder', `For some wordplay suggestions (anagrams, charades, containments), if the
      fodder is too long (longer than ${this.MAX_FODDER_LENGTH}), then we trim
      it down and indicate this trimming by showing it in red and showing
      exclamation marks next to it. You can generate the wordplay for the
      full untrimmed fodder by appending an exclamation mark at the end (this
-     will be SLOW and may lock up your browser for a short while).`,
+     will be SLOW and may lock up your browser for a short while).`],
   ];
+  this.tipsList = tips.map(tip => tip[1]);
   this.tipIdx = -1;
-  this.TIP_ENUM_MISMATCH = 0;
-  this.TIP_ANALYSIS = 4;
-  this.TIP_LONG_FODDER = 12;
+  const tipIndex = (name) => tips.findIndex(tip => tip[0] == name);
+  this.TIP_ENUM_MISMATCH = tipIndex('enumMismatch');
+  this.TIP_ANALYSIS = tipIndex('analysis');
+  this.TIP_LONG_FODDER = tipIndex('longFodder');
   this.lastTipShownTime = 0;
 };
 
@@ -369,6 +393,12 @@ Exet.prototype.renderMinLex = function() {
   }
 }
 
+/**
+ * Puts the cursor on the cell (row, col) (default: the top-left cell),
+ * activating the light that runs in direction dir ('A', 'D', or 'Z' for 3-D).
+ * If dir is not one of these, a direction that has a light through the cell
+ * is chosen.
+ */
 Exet.prototype.startNav = function(dir='A', row=0, col=0) {
   if (!this.puz) return;
   if (row < 0 || row >= this.puz.gridHeight ||
@@ -404,6 +434,11 @@ Exet.prototype.hideExolveElement = function(suffix) {
   }
 }
 
+/**
+ * Exolve only records where lights start. This also records where they end,
+ * by setting endsAcrossClue, endsDownClue, or endsZ3dClue (to the clue's
+ * label) on the last cell of every light.
+ */
 Exet.prototype.markClueEnds = function() {
   for (let r = 0; r < this.puz.gridHeight; r++) {
     for (let c = 0; c < this.puz.gridWidth; c++) {
@@ -433,6 +468,15 @@ Exet.prototype.markClueEnds = function() {
   }
 }
 
+/**
+ * The Exolve "customizer": Exolve calls this every time it has built a puzzle
+ * (see makeExolve()). Puzzles that Exet cannot handle (diagramless, rebus,
+ * nodir, or non-numeric clues, or a language that does not match the lexicon)
+ * are rejected with an alert. Otherwise puz becomes this.puz, and everything
+ * around it is (re)built: the tabs and menus, the editable current-clue area,
+ * the viability markers, and the fill-state and autofill objects. Some of
+ * Exolve's handlers are also replaced (see replaceHandlers()).
+ */
 Exet.prototype.setPuzzle = function(puz) {
   if (puz.hasDgmlessCells) {
     alert('Diagramless cells are not supported');
@@ -827,9 +871,17 @@ Exet.prototype.setPuzzle = function(puz) {
 
   this.markClueEnds();  /** Needed for some autofill options */
   this.fillState = new ExetFillState(this.puz);
+  /**
+   * Rebuilding the puzzle aborts a running autofill (resetViability() does
+   * that), and the new Autofill panel is a fresh one: carry over the news.
+   */
+  const autofillWasRunning = !!(this.autofill && this.autofill.running);
   this.resetViability();  /** Also calls autofill.reset() */
 
   this.autofill = new ExetAutofill();
+  if (autofillWasRunning) {
+    this.autofill.noteAborted();
+  }
 
   this.updateSweepInd();
   this.reposition();
@@ -854,6 +906,12 @@ Exet.prototype.populateSpellingsRegionMenu = function() {
   this.regionMenu.style.display = '';
 }
 
+/**
+ * Builds the main "Exet" tab: the menu bar (New, Open, Edit, Save, Fill
+ * options, Analysis, etc.), written as one large HTML template with inline
+ * handlers, and the panels and inputs that the menus show. Called by
+ * setPuzzle().
+ */
 Exet.prototype.makeExetTab = function() {
   let exetTab = this.tabs["exet"]
   const properNounOptions = (exetLexicon.script != 'Latin') ? '' : `
@@ -906,10 +964,7 @@ Exet.prototype.makeExetTab = function() {
           <hr>
           <div class="xet-dropdown-item"
               title="Doubly checked U.S.-style blocked grid with already added blocks that you can modify as needed"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                  `document.getElementById('xet-h').value, 1, ` +
-                  `document.getElementById('xet-id').value, ` +
-                  `true, false, false, false, false);">
+                onclick="exetBlankFromMenu('', true, false, false, false, false);">
               New U.S.-style doubly-checked grid (with blocks added)
           </div>
           <hr>
@@ -919,34 +974,22 @@ Exet.prototype.makeExetTab = function() {
             <div class="xet-controls-row">
               <div class="xet-dropdown-item"
                    title="Blocked with no top/left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `true, true, false, false);">
+                onclick="exetBlankFromMenu('', true, true, false, false);">
                 <img class="xet-icon" src="no-unches.png"/>
               </div>
               <div class="xet-dropdown-item"
                    title="Blocked with top but not left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `true, true, true, false);">
+                onclick="exetBlankFromMenu('', true, true, true, false);">
                 <img class="xet-icon" src="t-unches.png"/>
               </div>
               <div class="xet-dropdown-item"
                    title="Blocked with left but not top unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `true, true, false, true);">
+                onclick="exetBlankFromMenu('', true, true, false, true);">
                 <img class="xet-icon" src="l-unches.png"/>
               </div>
               <div class="xet-dropdown-item"
                    title="Blocked with top/left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `true, true, true, true);">
+                onclick="exetBlankFromMenu('', true, true, true, true);">
                 <img class="xet-icon" src="tl-unches.png"/>
               </div>
             </div>
@@ -958,34 +1001,22 @@ Exet.prototype.makeExetTab = function() {
             <div class="xet-controls-row">
               <div class="xet-dropdown-item"
                    title="Blocked with no top/left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, false, false);">
+                onclick="exetBlankFromMenu('', false, true, false, false);">
                 <img class="xet-icon" src="no-unches.png"/>
               </div>
               <div class="xet-dropdown-item"
                    title="Blocked with top but not left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, true, false);">
+                onclick="exetBlankFromMenu('', false, true, true, false);">
                 <img class="xet-icon" src="t-unches.png"/>
               </div>
               <div class="xet-dropdown-item"
                    title="Blocked with left but not top unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, false, true);">
+                onclick="exetBlankFromMenu('', false, true, false, true);">
                 <img class="xet-icon" src="l-unches.png"/>
               </div>
               <div class="xet-dropdown-item"
                    title="Blocked with top/left unches"
-                onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, true, true, true);">
+                onclick="exetBlankFromMenu('', false, true, true, true);">
                 <img class="xet-icon" src="tl-unches.png"/>
               </div>
             </div>
@@ -996,17 +1027,11 @@ Exet.prototype.makeExetTab = function() {
             New blank grid (add blocks/bars later), choose style:
             <div class="xet-dropdown-submenu">
               <div class="xet-dropdown-subitem"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, false, false, false, true);">
+                  onclick="exetBlankFromMenu('', false, false, false, false, true);">
                 With enums
               </div>
               <div class="xet-dropdown-subitem"
-                  onclick="exetBlank(document.getElementById('xet-w').value, ` +
-                    `document.getElementById('xet-h').value, 1, ` +
-                    `document.getElementById('xet-id').value, ` +
-                    `false, false, false, false, false);">
+                  onclick="exetBlankFromMenu('', false, false, false, false, false);">
                 Without enums (U.S.-style)
               </div>
             </div>
@@ -1040,10 +1065,7 @@ Exet.prototype.makeExetTab = function() {
               </div>
               <hr/>
               <div class="xet-dropdown-subitem"
-                  onclick="exetBlank(document.getElementById('xet-barred-w').value, ` +
-                    `document.getElementById('xet-barred-h').value, 1, ` +
-                    `document.getElementById('xet-barred-id').value, ` +
-                    `true, false, false, false, true, true);">
+                  onclick="exetBlankFromMenu('barred-', true, false, false, false, true, true);">
                 Create new barred grid!
               </div>
             </div>
@@ -1780,7 +1802,7 @@ Exet.prototype.makeExetTab = function() {
   });
   exolveUrl.addEventListener('keyup', e => {
     if (e.key == "Escape") {
-      exolveUrl.value = "https://viresh-ratnakar.github.io/";
+      exolveUrl.value = EXET_DEFAULT_EXOLVE_URL;
       exetState.exolveUrl = exolveUrl.value;
       exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
     }
@@ -1895,6 +1917,11 @@ Exet.prototype.stripInputLF = function(inp) {
   inp.innerText = inp.innerText.replace(/\n/g, ' ')
 }
 
+/**
+ * Copies the edited title, setter, and copyright text into the puzzle, after
+ * a pause (so that it does not run on every keystroke), and then saves a
+ * revision.
+ */
 Exet.prototype.updateMetadata = function() {
   if (!this.puz) {
     return
@@ -1922,6 +1949,13 @@ Exet.prototype.updateMetadata = function() {
   }, 2000);
 }
 
+/**
+ * Applies the text of the "Other Exolve sections" editor. Only the sections
+ * in ALLOWED_SECTIONS are accepted. The text is checked by building a throw-
+ * away Exolve puzzle with it (with alert() silenced while doing so), and any
+ * error is shown under the editor. If the text is valid, it is kept with the
+ * puzzle.
+ */
 Exet.prototype.updateOtherSections = function() {
   if (!this.puz) {
     return
@@ -2009,6 +2043,12 @@ Exet.prototype.exostUploadCallback = function(result) {
   }
 }
 
+/**
+ * Shows the panel for exporting the crossword to Exost (a free crossword-hosting
+ * services—see the README). The panel is created once and reused across
+ * crosswords, so that the email address and password that were typed in are
+ * retained.
+ */
 Exet.prototype.showExostPanel = function() {
   /**
    * We reuse an Exost panel across multiple crosswords so that the user's
@@ -2089,18 +2129,24 @@ Exet.prototype.showExostPanel = function() {
   }
   this.frame.appendChild(this.exostState.panel);
 
-  this.exost = new ExolveExost({
-    exostURL: 'https://xlufz.ratnakar.org/exost.html',
-    apiServer: 'https://xlufz.ratnakar.org/exost.php',
-    emailEltId: 'xet-xst-email',
-    pwdEltId: 'xet-xst-pwd',
-    pwdStatusEltId: 'xet-xst-pwd-status',
-    uploadStatusEltId: 'xet-xst-upload-status',
-    uploadCallback: exet.exostUploadCallback
-  });
-  this.exostState.urlRow = document.getElementById('xet-xst-url-row');
-  this.exostState.urlElt = document.getElementById('xet-xst-url');
-  this.exostState.uploadStatus = document.getElementById('xet-xst-upload-status');
+  if (!this.exost) {
+    /**
+     * The panel's elements persist, so one ExolveExost (which just holds
+     * references to them) is enough. They have to be in the document first.
+     */
+    this.exost = new ExolveExost({
+      exostURL: 'https://xlufz.ratnakar.org/exost.html',
+      apiServer: 'https://xlufz.ratnakar.org/exost.php',
+      emailEltId: 'xet-xst-email',
+      pwdEltId: 'xet-xst-pwd',
+      pwdStatusEltId: 'xet-xst-pwd-status',
+      uploadStatusEltId: 'xet-xst-upload-status',
+      uploadCallback: exet.exostUploadCallback
+    });
+    this.exostState.urlRow = document.getElementById('xet-xst-url-row');
+    this.exostState.urlElt = document.getElementById('xet-xst-url');
+    this.exostState.uploadStatus = document.getElementById('xet-xst-upload-status');
+  }
   if (this.exostState.id != this.puz.id) {
     this.exostState.id = this.puz.id;
     this.exostState.url = '';
@@ -2112,7 +2158,7 @@ Exet.prototype.showExostPanel = function() {
 
 Exet.prototype.trimUrl = function(url) {
   if (url.length < 100) return url;
-  return url.substr(0, 97) + '...';
+  return url.slice(0, 97) + '...';
 }
 
 Exet.prototype.loadIframe = function(iframe, url, urlElt) {
@@ -2159,6 +2205,11 @@ Exet.prototype.indsTabNav = function() {
   this.loadIframe(this.indsIframe, url, this.indsUrl);
 }
 
+/**
+ * Builds the "Lists" tab: a chooser of lists of wordplay indicators
+ * (exetConfig.listsLinks), with options for highlighting words that are
+ * related to a keyword (using the Datamuse API).
+ */
 Exet.prototype.makeIndsTab = function() {
   const inds = [
     {name: "Please select:", url: ""},
@@ -2253,6 +2304,12 @@ Exet.prototype.researchNeedsClueWords = function() {
   return researchTab.choices[rc].needsClueWords || false;
 }
 
+/**
+ * Handles a choice in the Research tab's selector of tools
+ * (exetConfig.researchTools). The tool's URL is built from the relevant words
+ * (the words of the current clue, or of the current entry) and is loaded in
+ * the tab, or in a new browser tab if the tool says so.
+ */
 Exet.prototype.researchTabNav = function() {
   const researchTab = this.tabs['research'];
   const choiceIndex = this.researchSelect.value;
@@ -2281,6 +2338,10 @@ Exet.prototype.researchTabNav = function() {
   this.loadIframe(this.researchIframe, url, this.researchUrl);
 }
 
+/**
+ * Builds the Research tab: the selector of external research tools
+ * (exetConfig.researchTools) and the area where the chosen tool is shown.
+ */
 Exet.prototype.makeResearchTab = function() {
   const researchTab = this.tabs["research"];
   researchTab.choices = exetConfig.researchTools;
@@ -2315,6 +2376,11 @@ Exet.prototype.makeResearchTab = function() {
   this.researchUrl = document.getElementById('xet-research-choice-url')
 }
 
+/**
+ * Builds the panel that offers grid-fill suggestions from web sources
+ * (exetConfig.webFills), along with a caveat about their quality. Does
+ * nothing if no such sources are configured.
+ */
 Exet.prototype.makeWebFillsPanel = function() {
   const webFills = exetConfig.webFills;
   if (!webFills || webFills.length == 0) {
@@ -2429,6 +2495,13 @@ Exet.prototype.getAllSplits = function(fodder, k) {
   return splits;
 }
 
+/**
+ * Given a sequence of elements (each with a '.possible' word and a '.score',
+ * and possibly a '.container' that identifies a container charade and is a
+ * subsequent index into 'elements' pointing to where the contained elements
+ * end), forms the charade that they make, as HTML, and adds it to
+ * this.charadeCandidates with the average of the scores.
+ */
 Exet.prototype.pushCharadeCandidate = function(elements) {
   if (!elements || elements.length == 0) {
     return
@@ -2558,6 +2631,12 @@ Exet.prototype.updateAnagdel = function(fodder) {
   this.anagdel.innerHTML = html;
 }
 
+/**
+ * Finds charade candidates for the fodder by working through the ways of
+ * splitting it into this.charadeParts parts, increasing the number of parts
+ * up to this.charadeMax. It does about `work` ms of work at a time, and then
+ * reschedules itself after `sleep` ms, so that the UI stays responsive.
+ */
 Exet.prototype.updateCharadesPartial = function(work=100, sleep=50) {
   const startTS = Date.now()
   while (this.charadeParts <= this.charadeMax) {
@@ -2703,11 +2782,11 @@ Exet.prototype.editsMatch = function(fodder, phrase, dp,
   if (match[2] < match_thresh) {
     return;
   }
-  const prefix_f = fodder.substr(0, match[0]);
-  const prefix_p = phrase_norm.substr(0, match[1]);
+  const prefix_f = fodder.slice(0, match[0]);
+  const prefix_p = phrase_norm.slice(0, match[1]);
   const prefix_match = this.lcs(prefix_f, prefix_p, dp);
-  const suffix_f = fodder.substr(match[0] + match[2]);
-  const suffix_p = phrase_norm.substr(match[1] + match[2]);
+  const suffix_f = fodder.slice(match[0] + match[2]);
+  const suffix_p = phrase_norm.slice(match[1] + match[2]);
   const suffix_match = this.lcs(suffix_f, suffix_p, dp);
 
   const n = fodder.length;
@@ -2750,10 +2829,10 @@ Exet.prototype.editsMatch = function(fodder, phrase, dp,
       corresp[offset + suffix_match[1] + suffix_match[2]], corresp[m]);
   const p7_l = m - (offset + suffix_match[1] + suffix_match[2]);
 
-  const f1 = prefix_f.substr(0, prefix_match[0]);
-  const f3 = prefix_f.substr(prefix_match[0] + prefix_match[2]);
-  const f5 = suffix_f.substr(0, suffix_match[0]);
-  const f7 = suffix_f.substr(suffix_match[0] + suffix_match[2]);
+  const f1 = prefix_f.slice(0, prefix_match[0]);
+  const f3 = prefix_f.slice(prefix_match[0] + prefix_match[2]);
+  const f5 = suffix_f.slice(0, suffix_match[0]);
+  const f7 = suffix_f.slice(suffix_match[0] + suffix_match[2]);
 
   // We sort candidates in order of increasing diff. A substitution counts
   // for a diff of the max of the length of the  plus and minus terms.
@@ -2984,6 +3063,10 @@ Exet.prototype.urlSectionHtml = function(id, section, i, sectionClass) {
     </iframe>`;
 }
 
+/**
+ * Builds the tab buttons and the tab frames from this.tabs, and hooks up the
+ * tab-button clicks.
+ */
 Exet.prototype.populateFrame = function() {
   let frameHTML = '';
   frameHTML = frameHTML + '<div class="xet-tab">';
@@ -3237,6 +3320,11 @@ Exet.prototype.print = function(solved=true) {
   exetModals.hide()
 }
 
+/**
+ * Builds a self-contained HTML snippet for embedding the crossword into a
+ * web-page, puts it in the textarea whose id is inpid, and copies it to the
+ * clipboard.
+ */
 Exet.prototype.toClipboard = function(solved=true, inpid) {
   const inp = document.getElementById(inpid);
   const id = `exolve-div-${Math.random().toString(36).substring(2, 8)}`;
@@ -3294,10 +3382,10 @@ Exet.prototype.currClueWordsList = function() {
   const theClue = this.currClue();
   let clue = theClue ? theClue.clue : '';
   if (clue.startsWith(this.DRAFT)) {
-    clue = clue.substr(this.DRAFT.length).trim();
+    clue = clue.slice(this.DRAFT.length).trim();
   }
   if (clue.startsWith(this.CLUE_NOT_SET)) {
-    clue = clue.substr(this.CLUE_NOT_SET.length).trim();
+    clue = clue.slice(this.CLUE_NOT_SET.length).trim();
   }
   clue = clue.toLowerCase().replace(/[^a-z'-]/g, ' ').replace(
       /\s+/g, ' ').trim();
@@ -3430,6 +3518,11 @@ Exet.prototype.onelookFillParam = function(s) {
   return s.toLowerCase();
 }
 
+/**
+ * Maps the name of a "maker" (used in exetConfig.extraTabs to make the
+ * parameter for a research section, e.g., 'Nutrimatic-Hidden') to the Exet
+ * method that makes it. With no name, returns the default maker.
+ */
 Exet.prototype.getNamedMaker = function(name) {
   if (!name) {
     return this.makeCAParam;
@@ -3498,6 +3591,10 @@ Exet.prototype.draftClue = function(ci, puz=null) {
   return ret;
 }
 
+/**
+ * Switches to the tab with the given id: shows its frame, hides the others,
+ * and marks its button as active.
+ */
 Exet.prototype.handleTabClick = function(id) {
   const tab = this.tabs[id];
   if (!tab) {
@@ -3683,6 +3780,13 @@ Exet.prototype.finishClueChanges = function() {
   this.throttledClueTimer = null;
 }
 
+/**
+ * Replaces some of Exolve's handlers (such as those for clearing the current
+ * light or all lights, and for moving to another clue) with Exet versions
+ * that call the original and then do what Exet needs on top: for example,
+ * clearing a light also resets its clue, and ninas are handled so that they
+ * are not cleared. Called from setPuzzle() for every new puzzle.
+ */
 Exet.prototype.replaceHandlers = function() {
   this.puz.clearCurr = (function() {
     exet.clearCurrSaved = exet.puz.clearCurr;
@@ -3799,7 +3903,7 @@ Exet.prototype.renderClue = function(theClue=null) {
   let modC = c;
   if (this.isDraftClue(c)) {
     modC = '<span class="xet-draft-marker">' +
-      this.DRAFT + '</span> ' + c.substr(this.DRAFT.length).trim();
+      this.DRAFT + '</span> ' + c.slice(this.DRAFT.length).trim();
     theClue.clueTR.className = "xet-draft";
   } else {
     theClue.clueTR.className = "xlv-solved";
@@ -3846,8 +3950,8 @@ Exet.prototype.deTag = function(s, inClue) {
     // There may be a closing tag prior to the matched one
     const cStart = idx + match[1].length
     const end = s.indexOf(match[5], cStart)
-    s = s.substr(0, idx) + s.substring(cStart, end) +
-        s.substr(end + match[5].length);
+    s = s.slice(0, idx) + s.substring(cStart, end) +
+        s.slice(end + match[5].length);
   }
   if (!inClue) {
     return s
@@ -4007,6 +4111,11 @@ Exet.prototype.throttledReposition = function() {
   }, this.inputLagMS);
 }
 
+/**
+ * Blurs the title, setter, and preamble editors that the current-clue box
+ * would overlap, so that the clue box stays readable when the page is
+ * scrolled or resized.
+ */
 Exet.prototype.reposition = function() {
   const elts = [this.xetTitle, this.xetTitleCTA,
                 this.xetSetter, this.xetSetterCTA, this.preamble];
@@ -4067,11 +4176,17 @@ Exet.prototype.reposition = function() {
 Exet.prototype.lastTagOpener = function(s) {
   let mark = s.lastIndexOf('<');
   while (mark > 0 && s.charAt(mark - 1) == '<') {
-    mark = s.substr(0, mark - 1).lastIndexOf('<');
+    mark = s.slice(0, mark - 1).lastIndexOf('<');
   }
   return mark;
 }
 
+/**
+ * Shows the options of the Format panel that apply to the current selection
+ * in the clue or annotation editor (which of this.formatTags make sense
+ * there, given the selected text), and hooks up their buttons. Hides the
+ * panel if nothing suitable is selected.
+ */
 Exet.prototype.maybeShowFormat = function() {
   const xetFormat = document.getElementById('xet-format');
   if (!xetFormat) {
@@ -4095,9 +4210,9 @@ Exet.prototype.maybeShowFormat = function() {
     reversed = true;
   }
   const sub = text.substring(start, end);
-  const prefix = text.substr(0, start);
+  const prefix = text.slice(0, start);
   const lprefix = prefix.toLowerCase();
-  const suffix = text.substr(end);
+  const suffix = text.slice(end);
   const lsuffix = suffix.toLowerCase();
   if (!sub.trim()) {
     return;
@@ -4167,10 +4282,10 @@ Exet.prototype.maybeShowFormat = function() {
       if (inTag) {
         heading = 'Clear selection\'s enclosing "' + tag + '" tag:';
         opt.className = 'xet-format-option-active';
-        modPrefix = prefix.substr(0, inTag[0]) +
-          prefix.substr(inTag[0] + props.open.length);
-        modSuffix = suffix.substr(0, inTag[1]) +
-          suffix.substr(inTag[1] + props.close.length);
+        modPrefix = prefix.slice(0, inTag[0]) +
+          prefix.slice(inTag[0] + props.open.length);
+        modSuffix = suffix.slice(0, inTag[1]) +
+          suffix.slice(inTag[1] + props.close.length);
       } else {
         heading = 'Wrap selection in "' + tag + '" tag:';
         opt.className = 'xet-format-option';
@@ -4271,7 +4386,7 @@ Exet.prototype.processRegexp = function(k, reStr) {
   let re = null;
   k = k.trim();
   const dispK = !this.regexpIsMacro(k) ?
-    k.substr(1) + k.substr(0,1).toLowerCase() : k;
+    k.slice(1) + k.slice(0,1).toLowerCase() : k;
   const reStrUnexp = reStr.trim();
   if (!k || !reStrUnexp) {
     return `${dispK}:${reStrUnexp}: empty key/regexp`;
@@ -4403,6 +4518,13 @@ Exet.prototype.throttledRegexpChange = function() {
   }, this.longInputLagMS * 2);
 }
 
+/**
+ * Handles edits in the regexp-constraints panel. The macros (lines like "name
+ * = value") and the per-light regexps are parsed, macros are expanded, and
+ * the regexps are compiled, with errors shown in the panel. The regexps that
+ * are valid are kept (in this.lightRegexps and, compiled, in
+ * this.lightRegexpsC), and the fill choices are refreshed.
+ */
 Exet.prototype.handleRegexpChange = function() {
   const reErr = document.getElementById('xet-regexp-error');
   reErr.innerHTML = '';
@@ -4503,6 +4625,10 @@ Exet.prototype.makeLinkingPanel = function() {
   this.unlink.addEventListener('click', this.unlinkCurrClue.bind(this));
 }
 
+/**
+ * Builds the Format panel, with an option for each of this.formatTags and the
+ * keyboard shortcut that goes with it.
+ */
 Exet.prototype.makeFormatPanel = function() {
   const previewPanel = `
     <div class="xet-action xet-placeholder"></div>
@@ -4615,6 +4741,12 @@ Exet.prototype.makeFormatPanel = function() {
   this.puz.currClue.appendChild(format);
 }
 
+/**
+ * Turns the current-clue area (below the grid) into an editor: the clue text
+ * and the annotation become editable, and the solution display, the
+ * previous/next-light buttons, and the linking panel are set up, with all
+ * their handlers. Called whenever the current clue changes.
+ */
 Exet.prototype.makeClueEditable = function() {
   const theClue = this.currClue();
   if (!theClue) {
@@ -4714,7 +4846,7 @@ Exet.prototype.makeClueEditable = function() {
   const xetClue = document.getElementById("xet-clue");
   xetClue.spellcheck = exetState.spellcheck;
   xetClue.innerText = this.currClueIsDraft ?
-    theClue.clue.substr(this.DRAFT.length).trim() : theClue.clue;
+    theClue.clue.slice(this.DRAFT.length).trim() : theClue.clue;
   const handler = this.throttledClueChange.bind(this);
   xetClue.addEventListener('input', handler);
   this.setDraftToggler();
@@ -4794,6 +4926,12 @@ Exet.prototype.throttledClueChange = function() {
   }, this.longInputLagMS);
 }
 
+/**
+ * Handles an edit of the current clue's text or annotation: updates the clue
+ * in the puzzle (checking and adjusting its enum), keeps the cursor where it
+ * was, refreshes whatever depends on the clue, and schedules saving a
+ * revision.
+ */
 Exet.prototype.handleClueChange = function() {
   let ci = this.currClueIndex();
   if (!ci) {
@@ -4841,7 +4979,7 @@ Exet.prototype.handleClueChange = function() {
    * the required length, unless ignoreEnumMismatch is set.
    */
   if (this.requireEnums) {
-    const clueSansEnum = clue.substr(0, enumParse.afterClue).trim();
+    const clueSansEnum = clue.slice(0, enumParse.afterClue).trim();
     /**
      * Revert to the old enum if the new one isn't an
      * enum or if the new one says a length that is different
@@ -5014,7 +5152,7 @@ Exet.prototype.handleGridInput = function(revType=null) {
     let enumPos = theClue.clue.lastIndexOf('(');
     if (enumPos >= 0) {
       theClue.placeholder = this.puz.parseEnum(
-          theClue.clue.substr(enumPos)).placeholder;
+          theClue.clue.slice(enumPos)).placeholder;
     }
     this.puz.setClueSolution(ci);
     if (theClue.placeholder != oldPH || theClue.solution != oldSol) {
@@ -5032,7 +5170,7 @@ Exet.prototype.remapDisplayLabel = function(displayLabel, dir, newLabels) {
   let s = 0;
   let mapped = '';
   while (s < displayLabel.length) {
-    const parse = this.puz.parseClueLabel(displayLabel.substr(s), false);
+    const parse = this.puz.parseClueLabel(displayLabel.slice(s), false);
     if (parse.notLabel || !parse.skip || !parse.label) {
       mapped += displayLabel.charAt(s);
       s++;
@@ -5118,17 +5256,22 @@ Exet.prototype.maybeAdjustEnum = function(ci) {
   const expEnumLen = this.puz.getAllCells(ci).length
   const enumPos = theClue.clue.lastIndexOf('(')
   if (enumPos >= 0) {
-    const oldEnum = theClue.clue.substr(enumPos).trim()
+    const oldEnum = theClue.clue.slice(enumPos).trim()
     const enumParse = this.puz.parseEnum(oldEnum)
     if (enumParse.enumLen == expEnumLen) {
       return;
     }
-    theClue.clue = theClue.clue.substr(0, enumPos).trim();
+    theClue.clue = theClue.clue.slice(0, enumPos).trim();
   }
   theClue.clue = theClue.clue +
                  ((expEnumLen > 0) ? ' (' + expEnumLen + ')' : '');
 }
 
+/**
+ * Links the clue that the user typed (such as "7d") to the current clue, as a
+ * child of it, after checking that the two can be linked (same direction
+ * type, not already linked, etc.). An error message is shown otherwise.
+ */
 Exet.prototype.addLinkedClue = function() {
   if (!this.puz) return;
   let ci = this.currClueIndex();
@@ -5293,6 +5436,12 @@ Exet.prototype.parentWithId = function(elt) {
   return elt;
 }
 
+/**
+ * Remembers the selection (or cursor position) in the editable
+ * clue/annotation, as offsets in its text. Setting an element's text resets
+ * its cursor, so code that changes the text calls this first, and
+ * restoreCursor() afterwards.
+ */
 Exet.prototype.saveCursor = function() {
   this.savedCursorStart = 0;
   this.savedCursorEnd = 0;
@@ -5386,6 +5535,11 @@ Exet.prototype.restoreCursor = function() {
   this.savedCursorId = '';
 }
 
+/**
+ * Builds an Exolve puzzle from the specs, in the Exet frame, with setPuzzle()
+ * as the customizer, so that the Exet UI is built around it. (For a puzzle
+ * that was changed in the Exet UI, use updatePuzzle().)
+ */
 Exet.prototype.makeExolve = function(specs) {
   let xlvFrame = document.getElementById('xet-xlv-frame');
   xlvFrame.innerHTML = '';
@@ -5423,6 +5577,12 @@ Exet.prototype.makeExolve = function(specs) {
   exetRevManager.saveLocal(exetRevManager.SPECIAL_KEY, JSON.stringify(exetState));
 }
 
+/**
+ * Regenerates the Exolve specs from the current state (see getExolve()) and
+ * rebuilds the puzzle from them, then saves a revision of type revType (see
+ * ExetRevManager). A running autofill is aborted if the grid has been changed
+ * by something other than the autofill itself.
+ */
 Exet.prototype.updatePuzzle = function(revType=0) {
   if (revType > 0 &&
       revType <= exetRevManager.REV_GRIDFILL_CHANGE &&
@@ -5476,6 +5636,10 @@ Exet.prototype.updatePuzzle = function(revType=0) {
   }
 }
 
+/**
+ * Returns the grid as the lines of an "exolve-grid" section. Unless `solved`
+ * is false, letters that have been filled in are included.
+ */
 Exet.prototype.getGrid = function(solved=true) {
   if (!this.puz) {
     return '';
@@ -5505,6 +5669,11 @@ Exet.prototype.getGrid = function(solved=true) {
   return grid;
 }
 
+/**
+ * Returns the clues in direction dir as the lines of an Exolve clues section
+ * (labels, clue text with enum, and the solution and annotation if `solved`),
+ * in label order, with linked clues folded into their parents.
+ */
 Exet.prototype.getClues = function(dir, solved=true) {
   if (!this.puz) {
     return ''
@@ -5586,8 +5755,8 @@ Exet.prototype.getExolveQuestions = function(solved) {
     let tq = q;
     if (!solved) {
       let enumParse = this.puz.parseEnum(q);
-      tq = q.substr(0, enumParse.afterEnum);
-      if (q.substr(enumParse.afterEnum).indexOf('[lowercase-ok]') >= 0) {
+      tq = q.slice(0, enumParse.afterEnum);
+      if (q.slice(enumParse.afterEnum).indexOf('[lowercase-ok]') >= 0) {
         tq = tq + ' [lowercase-ok]';
       }
     }
@@ -5597,6 +5766,11 @@ Exet.prototype.getExolveQuestions = function(solved) {
   return ret;
 }
 
+/**
+ * Returns the Exolve specs of the crossword: everything that is needed to
+ * recreate it, which includes the Exet-specific language and lexicon
+ * settings. With `solved` false, solutions and annotations are left out.
+ */
 Exet.prototype.getExolve = function(id='', skipClues=false, solved=true,
                                     showColoursNinas=true) {
   const maker = `
@@ -5681,19 +5855,16 @@ Exet.prototype.getHTML = function(solved=true) {
          '\n' + this.suffix;
 }
 
-Exet.prototype.IntersectChoices = function(set1, set2) {
+/**
+ * Intersects two sets of choices (letters or lexicon indices), each given as
+ * an object whose keys are the members. Returns a new such object.
+ */
+Exet.prototype.intersectChoices = function(set1, set2) {
   const result = {};
   for (const x in set2) {
     if (set1[x]) result[x] = true;
   }
   return result;
-}
-
-Exet.prototype.Set2Trims = function(set1, set2) {
-  for (const x in set1) {
-    if (!set2[x]) return true;
-  }
-  return false;
 }
 
 Exet.prototype.atdrInner = function(p, dontReuse) {
@@ -5808,7 +5979,7 @@ Exet.prototype.refineLightChoices = function(fillState, limit=0) {
       if (gridCell.solution != '?') {
         continue;
       }
-      gridCell.cChoices = this.IntersectChoices(
+      gridCell.cChoices = this.intersectChoices(
           gridCell.cChoices, cellChoiceSets[i]);
       const choices = Object.keys(gridCell.cChoices);
       if (choices.length > 1) {
@@ -5848,6 +6019,11 @@ Exet.prototype.findDeadendsByCell = function(fillState) {
   return this.refineLightChoices(fillState, this.sweepMaxChoices);
 }
 
+/**
+ * Updates the small viability markers ("viablots") on unfilled cells from
+ * this.fillState, according to how many letter choices each cell has left.
+ * Cells with no choices are the dead ones.
+ */
 Exet.prototype.updateViablots = function() {
   const fillState = this.fillState;
   let dead = 0;
@@ -5903,6 +6079,12 @@ Exet.prototype.updateViablots = function() {
   }
 }
 
+/**
+ * Accepts autofill (or forced-letter) suggestions: copies the letters that
+ * this.fillState has for the unfilled cells into the grid, and updates the
+ * puzzle. Refused while autofill is running, as a partial fill may turn
+ * out to be non-viable.
+ */
 Exet.prototype.acceptAll = function() {
   if (this.autofill.running) {
     alert('Wait while autofill is running, as partial solutions may ' +
@@ -5995,7 +6177,7 @@ Exet.prototype.someClueTurnsNonViable = function(tempFillState) {
         if (gridCell.solution != '?') {
           continue;
         }
-        gridCell.cChoices = this.IntersectChoices(
+        gridCell.cChoices = this.intersectChoices(
             gridCell.cChoices, cellChoiceSets[i]);
       }
     }
@@ -6222,6 +6404,12 @@ Exet.prototype.updateSweepInd = function() {
       'xet-sweeping-animated' : 'xet-sweeping';
 }
 
+/**
+ * Runs a round of the dead-end sweep: finds choices whose use would leave
+ * some cell with no possible letter, and removes them. If anything changed,
+ * it reschedules itself (using a timer), so that the sweep keeps going until
+ * there are no more changes. ci, if given, is the clue to start from.
+ */
 Exet.prototype.findAllDeadendFills = function(ci) {
   if (this.viabilityUpdateTimer) {
     clearTimeout(this.viabilityUpdateTimer);
@@ -6285,13 +6473,7 @@ Exet.prototype.resetViability = function() {
     this.autofill.reset('Aborted');
   }
   this.fillState.resetViability();
-  this.preflexUsed = this.fillState.preflexUsed;
-  if (this.preflexUsedDisp) {
-    this.preflexUsedDisp.innerHTML = (this.fillState.preflexUsed.size > 0) ?
-      ('<b>' + this.fillState.preflexUsed.size + '</b>') :
-      ('' + this.fillState.preflexUsed.size);
-  }
-  this.updateFillChoices();
+  this.updateFillChoices();  /** Also updates the preferred-fills display */
   this.updateViablots();
   this.startDeadendSweep();
 }
@@ -6416,7 +6598,7 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   if (this.requireEnums) {
     const parsedEnum = this.puz.parseEnum(theClue.clue);
     if (parsedEnum.enumStr != enumStr) {
-      theClue.clue = theClue.clue.substr(0, parsedEnum.afterClue).trim() +
+      theClue.clue = theClue.clue.slice(0, parsedEnum.afterClue).trim() +
         ' ' + enumStr;
       changed = true;
     }
@@ -6426,6 +6608,37 @@ Exet.prototype.fillLight = function(idx, ci='', revType=null) {
   }
 }
 
+/**
+ * Returns the set of lexicon indices of the preferred fills that the current
+ * fill (this.fillState) uses. This must not be cached: the set is replaced
+ * every time the viability is recomputed.
+ */
+Exet.prototype.preflexUsedSet = function() {
+  return (this.fillState && this.fillState.preflexUsed) || new Set;
+}
+
+/**
+ * Shows how many preferred fills the current fill uses (in the Fill options
+ * menu). Also refreshes the bolding in the preferred-fills editor if it is open,
+ * unless the user is typing in it or an update of it is under way.
+ */
+Exet.prototype.updatePreflexUsed = function() {
+  const numUsed = this.preflexUsedSet().size;
+  if (this.preflexUsedDisp) {
+    this.preflexUsedDisp.innerHTML = (numUsed > 0) ?
+      ('<b>' + numUsed + '</b>') : ('' + numUsed);
+  }
+  if (this.preflexEditor && this.preflexInput && !this.updatePreflexState &&
+      exetModals.modal && exetModals.modal.id == this.preflexEditor.id &&
+      document.activeElement != this.preflexInput) {
+    this.renderPreflex();
+  }
+}
+
+/**
+ * Shows the preferred-fills list in its editor, with the entries that the
+ * current fill uses in bold.
+ */
 Exet.prototype.renderPreflex = function() {
   /* populate with existing preflex */
   let preflexText = '';
@@ -6445,15 +6658,17 @@ Exet.prototype.renderPreflex = function() {
     this.autofill.preflexTotalSpan.innerText = this.preflex.length;
   }
 
-  /** Apply bolding for preflexUsed */
-  const pidOf = {};
-  for (let pid in this.preflexSet) {
-    pidOf[this.preflexSet[pid]] = parseInt(pid);
-  }
+  /**
+   * Apply bolding for the preferred fills that the current fill uses. A line
+   * can list alternatives ("word1|word2"): it is bold if any of them is used.
+   */
+  const used = this.preflexUsedSet();
   let preflexHtml = '';
   let preflexTextLen = 0;
   for (let ptext of this.preflex) {
-    if (this.preflexUsed.has(pidOf[ptext])) {
+    const isUsed = ptext.split('|').some(
+        part => used.has(this.preflexPidOf[part.trim()]));
+    if (isUsed) {
       preflexHtml += '<b>' + ptext + '</b>\n';
     } else {
       preflexHtml += ptext + '\n';
@@ -6484,6 +6699,7 @@ Exet.prototype.setPreflex = function(preflex) {
   this.preflexGroups.clear();
   this.preflexHash = exetRevManager.hashPrefUnpref(preflex);
   this.preflexSet = {};
+  this.preflexPidOf = {};
 
   if (exetLexicon.lexicon.length > exetLexicon.startLen) {
     /** trim back to original size */
@@ -6511,6 +6727,7 @@ Exet.prototype.setPreflex = function(preflex) {
       if (!this.preflexByLen[len]) this.preflexByLen[len] = [];
       this.preflexByLen[len].push(p);
       this.preflexSet[p] = part;
+      this.preflexPidOf[part] = p;
       group.push(p);
     }
     if (group.length > 1) {
@@ -6699,7 +6916,14 @@ Exet.prototype.choiceDisplayHTML = function(choice) {
     <tr><td${cls}${hover}>${rev}${exetLexicon.getLex(choice)}</td></tr>`;
 }
 
+/**
+ * Shows fill choices for the current light (the lexicon entries that fit its
+ * letters and crossing constraints). Also shows choices that have been rejected
+ * based upon some amount of look-ahead filling (with a distinctive colour).
+ * them.
+ */
 Exet.prototype.updateFillChoices = function() {
+  this.updatePreflexUsed();
   let ci = this.currClueIndex();
   if (!ci) {
     return;
@@ -6780,6 +7004,10 @@ Exet.prototype.warnVersion = function(ver) {
   warnIcon.style.display = '';
 }
 
+/**
+ * Fetches exet-version.txt from the server, and, if the deployed version is
+ * newer than the running one, suggests reloading.
+ */
 Exet.prototype.checkVersion = function() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -6877,29 +7105,49 @@ Exet.prototype.changeLexicon = function() {
   exetLoadLexicon(lopts.value);
 }
 
+/**
+ * Sets the per-puzzle fill options (minimum popularity or score, proper nouns,
+ * spelling region, asymmetry, reversals, and the light regexps) from the given
+ * saved revision (or from a plain object with some of the same fields). Fields
+ * that are missing get their defaults. Call with no argument to reset them.
+ *
+ * Note that the spelling region is applied via exetLexicon.preferRegion(), so
+ * that exet.region (what the Region menu shows, and what gets saved) and
+ * exetLexicon.region (which spelling swaps are actually in force) always agree.
+ */
+Exet.prototype.restoreFillSettings = function(rev) {
+  rev = rev || {};
+  if (exetLexicon.scoresSummary &&
+      rev.hasOwnProperty('lexId') &&
+      rev.hasOwnProperty('minscore') &&
+      exetLexicon.id == rev.lexId) {
+    this.setMinScore(rev.minscore);
+  } else {
+    this.setMinPop(rev.minpop || 0);
+  }
+  this.noProperNouns = rev.noProperNouns || false;
+  this.region = exetLexicon.preferRegion(rev.region || '');
+  this.asymOK = rev.asymOK || false;
+  this.tryReversals = rev.tryReversals || false;
+  this.lightRegexps = rev.lightRegexps || {};
+  this.processRegexps();
+}
+
+/**
+ * Switches to the saved revision exetRev (an ExetRev from ExetRevManager):
+ * restores its fill settings, and rebuilds the puzzle from it.
+ */
 function exetFromHistory(exetRev) {
   exet.exitGridBuildingMode();
   exet.prefix = exetRev.prefix;
   exet.suffix = exetRev.suffix;
   exetRevManager.retrievePrefUnpref(exetRev);
-  if (exetLexicon.scoresSummary &&
-      exetRev.hasOwnProperty('lexId') &&
-      exetRev.hasOwnProperty('minscore') &&
-      exetLexicon.id == exetRev.lexId) {
-    exet.setMinScore(exetRev.minscore);
-  } else {
-    exet.setMinPop(exetRev.minpop || 0);
-  }
-  exet.noProperNouns = exetRev.noProperNouns || false;
-  exet.region = exetRev.region || '';
-  exet.region = exetLexicon.preferRegion(exet.region);
-  exet.asymOK = exetRev.asymOK || false;
-  exet.tryReversals = exetRev.tryReversals || false;
-  exet.lightRegexps = exetRev.lightRegexps || {};
-  exet.processRegexps();
+  exet.restoreFillSettings(exetRev);
   exet.makeExolve(exetRev.exolve);
   if (!exet.puz) {
-    alert('Could not load puzzle from history, reverting to a new blank puzzle');
+    alert('Could not load puzzle from history' +
+          (exetRev.id ? ' (' + exetRev.id + ')' : '') +
+          ', reverting to a new blank puzzle');
     exetBlank(exetConfig.defaultDimension, exetConfig.defaultDimension);
     return;
   }
@@ -7016,14 +7264,11 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
   exet.suffix = '';
   exet.setPreflex([]);
   exet.setUnpreflex([]);
-  exet.setMinPop(exetConfig.defaultPopularity);
-  exet.noProperNouns = false;
-  exet.region = '';
-  exet.asymOK = false;
+  exet.restoreFillSettings({
+    minpop: exetConfig.defaultPopularity,
+    tryReversals: layers3d > 1,
+  });
   exet.requireEnums = requireEnums;
-  exet.tryReversals = layers3d > 1 ? true : false;
-  exet.lightRegexps = {};
-  exet.processRegexps();
   exet.makeExolve(specs);
   if (!exet.puz) {
     alert('Failed to create a blank crossword, unfortunately! Perhaps the ' +
@@ -7039,6 +7284,20 @@ function exetBlank(w, h, layers3d=1, id='', automagic=false,
   exetRevManager.throttledSaveRev(exetRevManager.REV_CREATED_BLANK);
 }
 
+/**
+ * Click handler of the "New" menu's grid-creating items: creates a grid of the
+ * size and with the ID typed into the matching section of the menu. The
+ * section is '' for the main width/height/ID inputs, or 'barred-' for the
+ * barred-grid inputs. The remaining arguments are those of exetBlank(), from
+ * "automagic" onwards.
+ */
+function exetBlankFromMenu(section, automagic, chequered, topUnches,
+                           leftUnches, requireEnums=true, barred=false) {
+  const value = (name) => document.getElementById('xet-' + section + name).value;
+  exetBlank(value('w'), value('h'), 1, value('id'),
+            automagic, chequered, topUnches, leftUnches, requireEnums, barred);
+}
+
 function exetBlank3D(w3d, layers3d, d3d, id='') {
   if (w3d <= 0 || layers3d <= 0 || d3d <= 0 ||
       w3d % 2 != 1 || layers3d % 2 != 1 || d3d % 2 != 1) {
@@ -7048,6 +7307,12 @@ function exetBlank3D(w3d, layers3d, d3d, id='') {
   return exetBlank(w3d, layers3d * d3d, layers3d, id);
 }
 
+/**
+ * Handler for the file input of the Open menu: reads an Exolve (or HTML
+ * containing Exolve), .puz, or .ipuz file, and loads it as the current
+ * puzzle. If Exet has seen the puzzle before (same id), its last saved fill
+ * settings are restored.
+ */
 function exetLoadFile() {
   exet.exitGridBuildingMode();
   let fr = new FileReader(); 
@@ -7083,13 +7348,8 @@ function exetLoadFile() {
     let specs = exolve.substring(start, end);
     exet.setPreflex([]);
     exet.setUnpreflex([]);
-    exet.setMinPop(0);  // Do not presume: there may be filled entries!
-    exet.noProperNouns = false;
-    exet.region = '';
-    exet.asymOK = false;
-    exet.tryReversals = false;
-    exet.lightRegexps = {};
-    exet.processRegexps();
+    /** Do not presume a popularity cutoff: there may be filled entries! */
+    exet.restoreFillSettings();
     exet.makeExolve(specs);
     if (!exet.puz) {
       alert('Could not load Exolve puzzle from file, reverting to a new blank puzzle');
@@ -7098,26 +7358,17 @@ function exetLoadFile() {
     }
     exet.requireEnums = exet.puz.allCluesHaveEnums;
     exet.startNav();
-    let stored = window.localStorage.getItem(exet.puz.id);
-    if (stored) {
-      stored = JSON.parse(stored);
+    let stored = null;
+    try {
+      stored = JSON.parse(window.localStorage.getItem(exet.puz.id));
+    } catch (err) {
+      console.log('Ignoring the damaged saved data of ' + exet.puz.id + ': ' + err);
+    }
+    if (stored && Array.isArray(stored.revs)) {
       if (stored.revs.length > 0) {
         const lastRev = stored.revs[stored.revs.length - 1];
         exetRevManager.retrievePrefUnpref(lastRev);
-        if (exetLexicon.scoresSummary &&
-            lastRev.hasOwnProperty('lexId') &&
-            lastRev.hasOwnProperty('minscore') &&
-            exetLexicon.id == lastRev.lexId) {
-          exet.setMinScore(lastRev.minscore);
-        } else {
-          exet.setMinPop(lastRev.minpop || 0);
-        }
-        exet.noProperNouns = lastRev.noProperNouns || false;
-        exet.asymOK = lastRev.asymOK || false;
-        exet.region = lastRev.region || '';
-        exet.tryReversals = lastRev.tryReversals || false;
-        exet.lightRegexps = lastRev.lightRegexps || {};
-        exet.processRegexps();
+        exet.restoreFillSettings(lastRev);
         exet.resetViability();
         exet.renderPreflex();
       }
@@ -7135,6 +7386,12 @@ function exetLoadFile() {
   fr.readAsArrayBuffer(f);
 }
 
+/**
+ * The default place to load exolve-m.js and exolve-m.css from, in the
+ * "Exolve URL prefix" setting of the Save panel (see exetState.exolveUrl).
+ */
+const EXET_DEFAULT_EXOLVE_URL = 'https://viresh-ratnakar.github.io/';
+
 let exetRevManager;
 let exetModals;
 let exetState;
@@ -7143,14 +7400,20 @@ let exetLexiconSaved;
 let exetLexiconNewName;
 
 function exetLoadState() {
-  exetState = window.localStorage.getItem(exetRevManager.SPECIAL_KEY);
-  if (exetState) {
-    exetState = JSON.parse(exetState);
-  } else {
+  exetState = null;
+  const stored = window.localStorage.getItem(exetRevManager.SPECIAL_KEY);
+  if (stored) {
+    try {
+      exetState = JSON.parse(stored);
+    } catch (err) {
+      console.log('Ignoring the damaged saved Exet state: ' + err);
+    }
+  }
+  if (!exetState || typeof exetState != 'object' || Array.isArray(exetState)) {
     exetState = {};
   }
   if (!exetState.hasOwnProperty('exolveUrl')) {
-    exetState.exolveUrl = 'https://viresh-ratnakar.github.io/';
+    exetState.exolveUrl = EXET_DEFAULT_EXOLVE_URL;
   }
   if (!exetState.hasOwnProperty('spellcheck')) {
     exetState.spellcheck = false;
@@ -7160,6 +7423,10 @@ function exetLoadState() {
   }
 }
 
+/**
+ * Loads the data files of the named lexicon (by adding script elements), with
+ * a loading message, and calls exetLoadedLexicon() when they are all loaded.
+ */
 function exetLoadLexicon(lexiconName=null) {
   const lexiconNames = Object.keys(exetConfig.lexicons);
   if (!lexiconNames || lexiconNames.length == 0) {
@@ -7210,6 +7477,10 @@ function exetLoadLexicon(lexiconName=null) {
     });
 }
 
+/**
+ * Called once the lexicon's data files have loaded: initializes the lexicon
+ * (exetLexiconInit()), and refreshes Exet's state for it.
+ */
 function exetLoadedLexicon() {
   try {
     exetLexiconInit();
@@ -7264,21 +7535,54 @@ function exetFailedToLoadLexicon() {
 }
 
 /**
+ * Re-opens the crossword that was open when Exet was last used, from its
+ * latest saved revision. Returns whether that crossword itself was re-opened.
+ * If its saved data is damaged, the user is told (the data is left untouched)
+ * and false is returned: at startup, the caller then makes a new grid, instead
+ * of leaving Exet dead. (If exetFromHistory() could not build the crossword, it
+ * tells the user and makes a blank grid, which also counts as false.)
+ */
+function exetRestoreLast() {
+  const id = exetState.lastId;
+  if (!id) {
+    return false;
+  }
+  const saved = window.localStorage.getItem(id);
+  if (!saved) {
+    return false;
+  }
+  const hadPuz = !!exet.puz;
+  try {
+    const stored = JSON.parse(saved);
+    if (!stored || !Array.isArray(stored.revs)) {
+      throw new Error('it has no list of revisions');
+    }
+    if (stored.revs.length == 0) {
+      return false;
+    }
+    exetFromHistory(stored.revs[stored.revs.length - 1]);
+    return !!exet.puz && (!stored.id || exet.puz.id == stored.id);
+  } catch (err) {
+    if (!hadPuz) {
+      exet.puz = null;  /** Discard anything half-built */
+    }
+    alert('Could not re-open the last crossword (' + id + '): ' + err +
+          '\n\nStarting with a new grid instead. The saved data of that ' +
+          'crossword has been left untouched in your browser\'s local ' +
+          'storage, so earlier revisions of it may still be recoverable, ' +
+          'and you can also restore from a backup file if you have one.');
+    return false;
+  }
+}
+
+/**
  * Should be called only after exetLexicon has loaded and exetLexiconInit()
  * has been called.
  */
 function exetInit() {
   exet = new Exet();
 
-  if (exetState.lastId) {
-    let saved = window.localStorage.getItem(exetState.lastId);
-    if (saved) {
-      saved = JSON.parse(saved);
-      if (saved.revs.length > 0) {
-        exetFromHistory(saved.revs[saved.revs.length - 1]);
-      }
-    }
-  }
+  exetRestoreLast();
   if (!exet.puz) {
     const url = new URL(location.href);
     const newgrid = url.searchParams.get('newgrid');
@@ -7291,11 +7595,31 @@ function exetInit() {
   exet.finishSetup();
 }
 
+/**
+ * Returns whether localStorage can be used. (Merely touching
+ * window.localStorage throws in some browser settings, such as when all
+ * cookies are blocked.)
+ */
+function exetStorageAvailable() {
+  try {
+    return !!window.localStorage;
+  } catch (err) {
+    return false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   exetRevManager = new ExetRevManager();
   exetModals = new ExetModals();
-  if (!window.localStorage) {
-    throw "localStorage is not available!"
+  if (!exetStorageAvailable()) {
+    const msg = 'localStorage is not available! Exet needs it to save your ' +
+                'work. Please allow this site to store data (for example, ' +
+                'do not block all cookies), and reload.';
+    const xetLoading = document.getElementById('xet-loading');
+    if (xetLoading) {
+      xetLoading.innerHTML = `<div class="xet-red"><h3>${msg}</h3></div>`;
+    }
+    throw msg;
   }
   exetLoadState();
 

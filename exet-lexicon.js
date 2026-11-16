@@ -38,12 +38,16 @@ See the full Exet license notice in exet.js.
  */
 function exetLexiconInit() {
   const xetLoading = document.getElementById('xet-loading');
-  if (typeof exetLexicon == "undefined" || !exetLexicon) {
-    const error = `Failed to load the lexicon ${exetLexiconNewName ?? "named in the script tag"}`;
+  /** Shows the error in the loading area (if there is one), and throws it. */
+  const fail = (error) => {
     if (xetLoading) {
       xetLoading.innerHTML = `<div class="xet-red"><h3>${error} :-(</h3></div>`;
     }
     throw error;
+  };
+  if (typeof exetLexicon == "undefined" || !exetLexicon) {
+    const error = `Failed to load the lexicon ${exetLexiconNewName ?? "named in the script tag"}`;
+    fail(error);
   }
   if (typeof exetConfig !== 'undefined' &&
       (exetLexicon.language != exetConfig.language ||
@@ -52,20 +56,14 @@ function exetLexiconInit() {
       The exetLexicon object has different language/script
       (${exetLexicon.language}/${exetLexicon.script}) than the config
       (${exetConfig.language}/${exetConfig.script})`;
-    if (xetLoading) {
-      xetLoading.innerHTML = `<div class="xet-red"><h3>${error} :-(</h3></div>`;
-    }
-    throw error;
+    fail(error);
   }
   if (exetLexicon.language == 'en') {
     if (!exetLexicon.hasOwnProperty('stems')) {
       const error = 'English lexicon, but missing stems info. Please update using ' +
             'the instructions in ' +
             'https://github.com/viresh-ratnakar/lufz/blob/master/README.md';
-      if (xetLoading) {
-        xetLoading.innerHTML = `<div class="xet-red"><h3>${error} :-(</h3></div>`;
-      }
-      throw error;
+      fail(error);
     }
   }
   if (exetLexicon.hasOwnProperty('stems') &&
@@ -74,10 +72,7 @@ function exetLexiconInit() {
           'it should be ' + exetLexicon.id + '. Please update using ' +
           'the instructions in ' +
           'https://github.com/viresh-ratnakar/lufz/blob/master/README.md';
-    if (xetLoading) {
-      xetLoading.innerHTML = `<div class="xet-red"><h3>${error} :-(</h3></div>`;
-    }
-    throw error;
+    fail(error);
   }
 
   exetLexicon.startLen = exetLexicon.lexicon.length;
@@ -106,10 +101,7 @@ function exetLexiconInit() {
       const error = `
         The exetLexicon object has different maxCharCodes
         (${exetLexicon.maxCharCodes}) than the config (${configMaxCharCodes})`;
-      if (xetLoading) {
-        xetLoading.innerHTML = `<div class="xet-red"><h3>${error} :-(</h3></div>`;
-      }
-      throw error;
+      fail(error);
     }
   }
   for (let c of exetLexicon.letters) {
@@ -908,6 +900,12 @@ function exetLexiconInit() {
         this.getAnagramsKIndices(letters, limit, k, seqOK));
   }
 
+  /**
+   * Returns anagrams of letters made from k lexicon entries, as arrays of
+   * lexicon indices (at most `limit`, if it is positive). If seqOK is false,
+   * anagrams that merely rearrange the words of the original phrase are
+   * skipped.
+   */
   exetLexicon.getAnagramsKIndices = function(letters, limit, k, seqOK) {
     console.assert(k > 1, k);
     console.assert(limit >= 0, limit);
@@ -1059,6 +1057,11 @@ function exetLexiconInit() {
     return false;
   }
 
+  /**
+   * Returns the possible pronunciations (arrays of phonemes) of a word or
+   * phrase, from the lexicon's phones, breaking a phrase into words when
+   * needed.
+   */
   exetLexicon.getPhones = function(phrase) {
     const phones = [];
     let inLexicon = this.getLexChoices(phrase, 5);
@@ -1075,10 +1078,10 @@ function exetLexiconInit() {
       space = phrase.indexOf('-');
     }
     if (space > 0) {
-      const part1 = phrase.substr(0, space);
+      const part1 = phrase.slice(0, space);
       const part1_phones = this.getPhones(part1);
       if (part1_phones.length > 0) {
-        const part2 = phrase.substr(space + 1);
+        const part2 = phrase.slice(space + 1);
         const part2_phones = this.getPhones(part2);
         for (let p2 of part2_phones) {
           for (let p1 of part1_phones) {
@@ -1090,6 +1093,10 @@ function exetLexiconInit() {
     return this.dedupe(phones);
   }
 
+  /**
+   * Returns Spoonerisms of the phrase, given its phones (see getPhones()):
+   * phrases that are made by swapping the starting sounds its two words.
+   */
   exetLexicon.getSpoonerismsInner = function(phrase, phones) {
     const spoons = [];
     const nphrase = this.letterString(phrase);
@@ -1175,6 +1182,9 @@ function exetLexiconInit() {
     return this.getSpoonerismsInner(phrase, this.getPhones(phrase));
   }
 
+  /**
+   * Returns the homophones of the phrase, given its phones (see getPhones()).
+   */
   exetLexicon.getHomophonesInner = function(phrase, phones) {
     const hp = [];
     const nphrase = this.letterString(phrase);
@@ -1262,6 +1272,11 @@ function exetLexiconInit() {
       }
     }
   }
+  /**
+   * Swaps the lexicon entries listed in swaps (pairs of indices, such as the
+   * entries for "colour" and "color"), and records the swaps in redirects.
+   * The swaps apply to the lexicon, and to the index and phone-index lists.
+   */
   exetLexicon.applySwapsList = function(swaps, redirects) {
     let s = 0;
     for (const swap of swaps) {
@@ -1315,6 +1330,12 @@ function exetLexiconInit() {
       phindex.sort((a, b) => a - b);
     }
   }
+  /**
+   * Makes the lexicon apply the spelling swaps of the given region (or none,
+   * for ''), undoing the previous region's swaps first. Returns the region
+   * that is now in force ('' if the region is unknown). Keep exet.region
+   * equal to what this returns.
+   */
   exetLexicon.preferRegion = function(region) {
     if (!exetLexicon.hasOwnProperty('regions') ||
         (region && !exetLexicon.regions.hasOwnProperty(region))) {

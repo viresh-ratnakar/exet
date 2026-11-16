@@ -60,6 +60,10 @@ class ExetDher {
       idx = parent;
     }
   }
+  /**
+   * Restores the heap property of the max-heap (if inMax) or the min-heap,
+   * going down from position idx.
+   */
   heapifyDown(inMax, idx) {
     let elts = inMax ? this.maxelts : this.minelts;
     console.assert(idx >= 0 && idx < elts.length, idx, elts.length);
@@ -263,6 +267,12 @@ ExetFillState.prototype.getGridExolve = function(id) {
   return xlv;
 }
 
+/**
+ * Removes the clues of this fill state that no longer match a light of its
+ * grid (for example, after blocks or bars were changed). A temporary Exolve
+ * puzzle (without clues) is built for the grid, and old clues are matched to
+ * its lights by their cells.
+ */
 ExetFillState.prototype.killInvalidatedClues = function() {
   const tempId = exet.puz.id + '-temp';
   // New puzzle, but no clues/ninas/colours (these may contain invalid entries).
@@ -571,6 +581,11 @@ ExetFillState.prototype.setScore = function(autofill) {
   this.score += this.scoreF;
 }
 
+/**
+ * Computes a score for this fill state, for choosing blocks/bars to add to a
+ * grid: after refining the light choices, it rewards grids whose lights have
+ * many candidates, and that can use preferred fills.
+ */
 ExetFillState.prototype.getScoreForGridding = function() {
   this.resetViability();
   for (let s = 0; s < 2; s++) {
@@ -711,6 +726,12 @@ ExetFillState.prototype.getCurrEntry = function(ci) {
   return entry;
 }
 
+/**
+ * Returns whether the grid has a "pattern of death": an unfilled cell where
+ * the across and down lights would have to be the same word (their entries
+ * are identical apart from that cell, and they have the same solution). A
+ * word cannot be used twice, so such a cell can never be filled.
+ */
 ExetFillState.prototype.hasPatternOfDeath = function() {
   for (let i = 0; i < this.gridHeight; i++) {
     for (let j = 0; j < this.gridWidth; j++) {
@@ -741,8 +762,8 @@ ExetFillState.prototype.hasPatternOfDeath = function() {
       }
       const loc = acEntry.indexOf('?');
       console.assert(loc >= 0, acEntry);
-      if (acEntry.substr(0, loc).indexOf('?') >= 0 ||
-          acEntry.substr(loc + 1).indexOf('?') >= 0) {
+      if (acEntry.slice(0, loc).indexOf('?') >= 0 ||
+          acEntry.slice(loc + 1).indexOf('?') >= 0) {
         continue;
       }
       /* Across and down solutions are identical, and have the
@@ -803,7 +824,7 @@ class ExetAutofill {
     this.id = exet.puz.id;
     this.candidates = [];
     this.beamWidth = 64;
-    this.beam = new ExetDher(64);
+    this.beam = new ExetDher(this.beamWidth);
     this.step = 0;
     this.numCells = exet.puz.gridWidth * exet.puz.gridHeight * exet.puz.layers3d;
     this.running = false;
@@ -900,15 +921,21 @@ class ExetAutofill {
     this.pangramLastsInp = document.getElementById(
         'xet-autofill-pangram-lasts');
     this.pangramLastsInp.checked = this.pangramLasts;
+    /**
+     * "All cells" is implied when no specific kind of cell is chosen, and
+     * when both checked and unchecked cells are chosen.
+     */
+    const pangramAllIsImplied = () => {
+      return (!this.pangramCircledInp.checked &&
+              !this.pangramCheckedInp.checked &&
+              !this.pangramUncheckedInp.checked &&
+              !this.pangramFirstsInp.checked &&
+              !this.pangramLastsInp.checked) ||
+             (this.pangramCheckedInp.checked &&
+              this.pangramUncheckedInp.checked);
+    };
     const pangramOptionsSanitizer = (e) => {
-      this.pangramAllInp.checked =
-          (!this.pangramCircledInp.checked &&
-           !this.pangramCheckedInp.checked &&
-           !this.pangramUncheckedInp.checked &&
-           !this.pangramFirstsInp.checked &&
-           !this.pangramLastsInp.checked) ||
-          (this.pangramCheckedInp.checked &&
-           this.pangramUncheckedInp.checked);
+      this.pangramAllInp.checked = pangramAllIsImplied();
     };
     for (const elt of [this.pangramCircledInp,
                      this.pangramCheckedInp,
@@ -925,14 +952,7 @@ class ExetAutofill {
         this.pangramFirstsInp.checked = false;
         this.pangramLastsInp.checked = false;
       } else {
-        this.pangramAllInp.checked =
-            (!this.pangramCircledInp.checked &&
-             !this.pangramCheckedInp.checked &&
-             !this.pangramUncheckedInp.checked &&
-             !this.pangramFirstsInp.checked &&
-             !this.pangramLastsInp.checked) ||
-            (this.pangramCheckedInp.checked &&
-             this.pangramUncheckedInp.checked);
+        this.pangramAllInp.checked = pangramAllIsImplied();
       }
     });
 
@@ -971,6 +991,10 @@ class ExetAutofill {
     this.refreshDisplay();
   }
 
+  /**
+   * Returns the HTML of the Autofill panel (buttons, options, and the status
+   * display). Its elements are looked up by the constructor.
+   */
   static getUI() {
     return `
           <div title="Try to autofill the remaining grid"
@@ -1152,6 +1176,19 @@ class ExetAutofill {
     this.startstopButton.className = 'xlv-button';
   }
 
+  /**
+   * Called on a new ExetAutofill that replaces one that was running. The
+   * crossword was rebuilt, which aborted that run, so say so in the status.
+   */
+  noteAborted() {
+    this.status = 'Aborted';
+    this.statusSpan.innerHTML = 'Aborted (the crossword was changed)';
+  }
+
+  /**
+   * Handler of the Start/Pause button: starts autofill (from the state of the
+   * grid, applying the options) or pauses it if it is running.
+   */
   startstop() {
     if (!this.running) {
       if (exet.puz.numCellsToFill == exet.puz.numCellsFilled) {
@@ -1232,6 +1269,11 @@ class ExetAutofill {
         "allowed" : "disallowed";
   }
 
+  /**
+   * Updates the Autofill panel (scores, letters used, preferred fills used,
+   * reversals, and so on) for the best candidate in the beam, and shows that
+   * candidate's choices in gray on the grid.
+   */
   refreshDisplay() {
     this.pangramConstrSpan.style.display =
         this.pangramAll ? 'none' : '';
@@ -1297,6 +1339,13 @@ class ExetAutofill {
     return true;
   }
 
+  /**
+   * One step of the beam search: takes the best candidate out of the beam,
+   * and adds its refinements to the beam. A refinement fills one unfilled
+   * cell with one of its choices (preferring more constrained cells;
+   * randomized). Before the main loop, it first tries to fit the preferred-
+   * fills entries.
+   */
   addChildren() {
     if (this.priorityClues.length > 0 &&
         this.priorityLoop < this.priorityLoops) {
@@ -1430,6 +1479,11 @@ class ExetAutofill {
     }
   }
 
+  /**
+   * Does one step of autofill (see addChildren()), updates the display, and
+   * decides whether autofill has succeeded, failed, or should continue (by
+   * scheduling the next step).
+   */
   beamSearchStep() {
     if (!this.running) {
       return;

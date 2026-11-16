@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Preferred fills (bolding and the "used" count)</title>
+<script src="exet-test-common.js"></script>
+<script>
+ExetTest.setup({
+  words: ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE', 'SLATE', 'STEAM'],
+  dim: 5,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+let idCounter = 0;
+
+/**
+ * Loads a 5x5 open grid with some rows pre-filled, then sets the preferred
+ * fills, recomputes viability, and waits for everything to settle.
+ */
+async function setUp(rows, preferred) {
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(
+      `xet-test-preferred-${++idCounter}`, 5, 5, {gridRows: rows}));
+  exet.setPreflex(preferred);
+  exet.resetViability();
+  await ExetTest.sleep(300);
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'Exet to be idle');
+}
+
+const EMPTY = ['?????', '?????', '?????', '?????', '?????'];
+/** The lexicon index of a preferred fill, found without relying on any new Exet field. */
+const pidOf = (text) => parseInt(Object.keys(exet.preflexSet).find(k => exet.preflexSet[k] == text));
+const boldLines = () => Array.from(exet.preflexInput.querySelectorAll('b')).map(b => b.textContent);
+const usedCount = () => document.getElementById('xet-preflex-used').textContent;
+
+ExetTest.add('Bolding: a preferred fill that the grid uses is bold, the others are not', async t => {
+  await setUp(['EAGLE', '?????', '?????', '?????', '?????'], ['EAGLE', 'CRANE']);
+  exet.renderPreflex();
+  t.eq(boldLines(), ['EAGLE'], 'only EAGLE (which is in the grid) is bold');
+});
+
+ExetTest.add('Bolding: a line of alternatives is bold if any one of them is used', async t => {
+  await setUp(['EAGLE', '?????', 'HEART', '?????', '?????'], ['EARTH|HEART', 'CRANE|SLATE', 'EAGLE']);
+  exet.renderPreflex();
+  t.eq(boldLines(), ['EARTH|HEART', 'EAGLE'], 'the lines with a used alternative are bold');
+});
+
+ExetTest.add('Bolding: alternatives with spaces around the bar are recognized', async t => {
+  await setUp(['EAGLE', '?????', 'HEART', '?????', '?????'], ['EARTH | HEART']);
+  exet.renderPreflex();
+  t.eq(boldLines(), ['EARTH | HEART'], 'bold');
+});
+
+ExetTest.add('Bolding: nothing is bold when no preferred fill is used', async t => {
+  await setUp(EMPTY, ['CRANE', 'SLATE|STEAM']);
+  exet.renderPreflex();
+  t.eq(boldLines(), [], 'no bold lines');
+});
+
+ExetTest.add('Bolding reflects the fill as it is now, not as it was at the last reset', async t => {
+  await setUp(EMPTY, ['EAGLE']);
+  exet.renderPreflex();
+  t.eq(boldLines(), [], 'initially not used');
+  /**
+   * Viability sweeps replace fillState.preflexUsed with a new set whenever the
+   * fill changes. Do the same here, as they would, without a full reset.
+   */
+  exet.fillState.preflexUsed = new Set([pidOf('EAGLE')]);
+  exet.renderPreflex();
+  t.eq(boldLines(), ['EAGLE'], 'bold once the current fill uses it');
+  exet.fillState.preflexUsed = new Set();
+  exet.renderPreflex();
+  t.eq(boldLines(), [], 'and not bold again when it stops');
+});
+
+ExetTest.add('The "preferred fills used" count follows the current fill', async t => {
+  await setUp(['EAGLE', '?????', 'HEART', '?????', '?????'], ['EAGLE', 'HEART', 'CRANE']);
+  exet.updateFillChoices();
+  t.eq(usedCount(), '2', 'two of the three are used');
+  exet.fillState.preflexUsed = new Set([pidOf('CRANE')]);
+  exet.updateFillChoices();
+  t.eq(usedCount(), '1', 'the count follows a change of the fill (no reset needed)');
+  exet.fillState.preflexUsed = new Set();
+  exet.updateFillChoices();
+  t.eq(usedCount(), '0', 'down to zero');
+});
+
+ExetTest.add('An open preferred-fills editor is refreshed, but not while the user is typing', async t => {
+  await setUp(EMPTY, ['EAGLE', 'CRANE']);
+  exetModals.showModal(exet.preflexEditor);
+  exet.fillState.preflexUsed = new Set([pidOf('CRANE')]);
+  exet.updateFillChoices();
+  t.eq(boldLines(), ['CRANE'], 'the open editor shows the new bolding');
+
+  /** Pretend that the user is typing in the editor. */
+  Object.defineProperty(document, 'activeElement', {get: () => exet.preflexInput, configurable: true});
+  try {
+    const before = exet.preflexInput.innerHTML;
+    exet.fillState.preflexUsed = new Set([pidOf('EAGLE')]);
+    exet.updateFillChoices();
+    t.eq(exet.preflexInput.innerHTML, before, 'the editor is left alone while it has the focus');
+  } finally {
+    delete document.activeElement;
+  }
+  exetModals.hide();
+  exet.fillState.preflexUsed = new Set([pidOf('EAGLE')]);
+  exet.updateFillChoices();
+  t.eq(boldLines(), ['CRANE'], 'a closed editor is not touched either (it is refreshed when opened)');
+  exet.renderPreflex();
+  t.eq(boldLines(), ['EAGLE'], 'and renderPreflex() brings it up to date');
+});
+
+ExetTest.add('setPreflex() records the lexicon index of every alternative', async t => {
+  await setUp(EMPTY, []);
+  exet.setPreflex(['eagle|Crane', 'EARTH']);
+  for (const text of ['eagle', 'Crane', 'EARTH']) {
+    t.ok(Number.isInteger(exet.preflexPidOf[text]) && exet.preflexPidOf[text] > 0, `"${text}" has an index`);
+  }
+  t.eq(exetLexicon.getLex(exet.preflexPidOf['eagle']), 'EAGLE', 'the index of "eagle" is that of EAGLE');
+  exet.setPreflex([]);
+  t.eq(exet.preflexPidOf, {}, 'cleared with the list');
+});
+
+ExetTest.start('Exet Test: preferred fills', `
+  <b>Manual checks:</b>
+  <ol style="margin:2px 0">
+   <li>Fill options &gt; Edit preferred fills: enter a few words, with some lines like <code>word1|word2</code>.
+       Fill a light in the grid with one of them: its line (or the line it is an alternative in) turns bold,
+       and the "Preferred fills used" count in the menu goes up.</li>
+   <li>Keep the editor open while you type letters into the grid: the bolding updates, but only when you are not
+       typing in the editor itself.</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

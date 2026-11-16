@@ -2,7 +2,7 @@
 
 ## A web app for crossword construction
 
-#### Version: Exet v1.10.3, November 13, 2026
+#### Version: Exet v1.10.4, November 16, 2026
 
 #### Author: Viresh Ratnakar
 
@@ -49,6 +49,10 @@ These are all the files needed from this repository:
   [`l-unches.png`](l-unches.png),
   [`tl-unches.png`](tl-unches.png),
 
+(The `exet-test-*.html` pages and `exet-test-common.js` are only for testing:
+you do not need them to run Exet. See
+[Exet coding and testing](#exet-coding-and-testing).)
+
 And here are the files needed from Exolve:
 
 - [`exolve-m.css`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-m.css),
@@ -60,7 +64,7 @@ And here are the files needed from Exolve:
 - [`exolve-exost.js`](https://raw.githubusercontent.com/viresh-ratnakar/exolve/master/exolve-exost.js).
 
 Exet comes with a permissive MIT license. The full license notice is provided in
-the [`LICENSE`](license) file as well as reproduced at the bottom of this file.
+the [`LICENSE`](LICENSE) file as well as reproduced at the bottom of this file.
 
 Exet has no library/package/software dependencies. You should be able to use it
 from any modern browser. The experience may not be great on smaller screens like
@@ -260,7 +264,14 @@ made by Debsamita Basu.
 ### Constructing the grid
 
 The "New" menu allows you to start with several "new grid" options (many of
-them use "automagic" block/bar addition, which is explained in detail later):
+them use "automagic" block/bar addition, which is explained in detail later).
+Each option uses the grid size that you enter in the menu (the barred and 3-D
+options have their own size inputs), and a **Unique ID** for the new crossword.
+The ID is an alphanumeric string that must begin with a letter. Exet suggests a
+random one, but please change it to something meaningful, so that you can
+recognize the crossword later: it becomes the `exolve-id` of the puzzle, and
+Exet uses it to keep track of the crossword's saved revisions in your browser,
+and to list it in the "Open" menu. Use a different ID for every crossword.
 
 - New US-style doubly checked grid (with blocks added)
   - This creates a U.S.-style crossword (each square is doubly checked), with
@@ -288,7 +299,11 @@ them use "automagic" block/bar addition, which is explained in detail later):
 - New 3-D grid
   - A new 3-D grid is created. In a 3-D grid, there are multiple "layers," with
   "down" clues running through the layers and "across" and "away" clues within
-  the layers. See the
+  the layers. You specify the *Width* (the length of "across" lights), the
+  number of *Layers* (the length of "down" lights), and the *Depth* (the length
+  of "away" lights, i.e., the number of rows in each layer). All three have to
+  be positive odd numbers. (Internally, a 3-D grid is a 2-D grid whose height
+  is Layers &times; Depth.) See the
   [Exolve documentation](https://github.com/viresh-ratnakar/exolve/blob/master/README.md)
   for details on 3-D crosswords.
 
@@ -567,6 +582,13 @@ ignored.
 Clicking anywhere outside the panel shown for preferred fills or fill
 exclusions dismisses it.
 
+The button for preferred fills is followed by a "used/total" count, showing
+how many of your preferred fills the grid currently uses. In the preferred-fills
+panel, the lines that the grid uses are shown in bold (for a line that lists a
+group of alternatives, see below, that means that at least one of them is
+used). The panel keeps this up to date as you fill the grid, except while you
+are typing in it.
+
 Note that if you specify preferred fills, and you set the minimum popularity
 threshold to 100%, then you are effectively using the preferred fills list
 as your custom word list, as no words outside of that list will be shown in
@@ -673,6 +695,17 @@ the progress and intervene if needed: From the Autofill menu panel, you can
 click on "Pause"  to pause the Autofill (clicking on "Start" will resume it).
 You can accept or clear the Autofill suggestions by clicking on the "Accept"
 / "Clear" buttons, respectively, when Autofill is paused or has finished.
+
+While Autofill runs, its panel shows how it is doing: "Preferred fills used"
+(how many entries from your preferred-fills list the current best candidate
+uses), "Trying reversals" (whether reversals are allowed, and how many entries
+of the current candidate are reversed), "Letters used" (how many different
+letters the candidate has used so far, and how many of those are in pangram
+cells, if you have asked for a pangram), "Step" (the number of steps taken),
+"Score" (the current best candidate's score, followed by its three components:
+viability, popularity, and fullness, which are explained in the [Autofill
+algorithm](#autofill-algorithm)), "Time taken", "Beam size" (the number of
+candidates currently being considered), and "Last status".
 
 When Autofill is running, it won't stop just because of you moving away from
 its control panel and hiding it (by moving the mouse out): you can return to
@@ -1551,6 +1584,56 @@ them promptly. But if you do want to add code yourself, here are a few notes:
 - Make sure to run all the tests from [exet-test-all.html](exet-test-all.html),
   both automated and manual, before sending a Pull Request.
 
+### The test pages
+
+The tests are web pages that you open in a browser, from the same place that
+you serve `exet.html` from (they use the same Exet and Exolve files):
+
+- [exet-test-all.html](exet-test-all.html) runs all the automated test pages
+  below, one after another, and summarizes the results.
+- [exet-test-lexicon.html](exet-test-lexicon.html): a tiny synthetic lexicon,
+  to test proper nouns, stem groups, and spelling-region swaps.
+- [exet-test-regexps.html](exet-test-regexps.html): regexp constraints and
+  macros.
+- [exet-test-blank-grids.html](exet-test-blank-grids.html): creating grids
+  (every option of the "New" menu, invalid sizes, 3-D, automagic blocks and
+  bars, and saving and reloading). Add `?multi=1` to run the same tests with a
+  lexicon that has multi-character letters.
+- [exet-test-grid-edits.html](exet-test-grid-edits.html): blocks, bars,
+  circles, prefills, ninas, and colours.
+- [exet-test-load-and-format.html](exet-test-load-and-format.html): opening
+  files, clues and annotations with awkward characters, and the Format panel.
+- [exet-test-storage.html](exet-test-storage.html): saved revisions, backups,
+  merging, and auto-free.
+- [exet-test-autofill.html](exet-test-autofill.html): autofill and viability,
+  on a small grid with a known solution.
+- [exet-test-preferred-fills.html](exet-test-preferred-fills.html): the
+  bolding of used preferred fills, and the used/total count.
+- [exet-test-exost.html](exet-test-exost.html): the Exost panel (nothing is
+  uploaded).
+- [exet-test-startup.html](exet-test-startup.html): loading the saved state and
+  crossword, including damaged saved data. Its variants `?case=state`,
+  `?case=puzzle-json`, and `?case=puzzle-exolve` damage the saved data *before*
+  Exet starts, to check that Exet still comes up.
+- [exet-test-multichar.html](exet-test-multichar.html): for manual testing of
+  multi-character letters. It has no automated checks.
+
+Things worth knowing:
+
+- Every test page uses an in-memory replacement for `localStorage`, installed
+  by `exet-test-common.js`, so that running tests never touches your real saved
+  crosswords. Add `?realstorage` to a test page's URL if you do want it to use
+  the real storage.
+- Add `?autorun` to an automated test page's URL to run its checks as soon as it
+  loads (otherwise, click on "Run automated checks"). Each page also has a short
+  list of manual checks to do.
+- To add a test, add an `ExetTest.add('name', async t => {...})` call to the
+  relevant page (the existing ones show the style: `t.ok()`, `t.eq()`, and
+  `t.info()`). To add a new test page, copy the structure of an existing one
+  (include `exet-test-common.js` first, set up a lexicon with
+  `ExetTest.setup()`, and end with `ExetTest.start()`), and add it to the
+  `TESTS` list in `exet-test-all.html` and to `PAGES` in `exet-test-common.js`.
+
 ## Appendix
 
 ### Automagic blocks/bars
@@ -1629,12 +1712,23 @@ details:
     ```
   - Heuristic: treat *viability(row, col) &divide; 5* as the independent
     probability of an unfilled cell being fillable.
-  - *ScoreV = ∑{unfilled cells (r,c)} log(viability(r,c))*
+  - *ScoreV = (∑{unfilled cells (r,c)} log(viability(r,c))) &divide; 100*
   - *ScoreV* is heuristically proportional to the probability that the
     current candidate can be fully filled. Note that if any *viability(r,c)* is
-    0 then this candidate is already not viable.
-  - Boost for making progress: *ScoreF = #filled cells*.
-  - *Score = ScoreV + 0.3 ScoreF* (settled on 0.3 after some experimentation).
+    0 then this candidate is already not viable. (The division by 100 just
+    puts *ScoreV* on a scale comparable to the other two terms.)
+  - Preference for popular words: *ScoreP* is the average, over all the lights
+    (leaving out the child parts of linked clues), of the popularity of the
+    best remaining choice for the light. This popularity is *1.0* for a word in
+    the preferred-fills list, and otherwise it is *(N - rank) &divide; N*, where
+    *rank* is the position of the word in the lexicon (which is sorted by
+    decreasing popularity) and *N* is the lexicon's size. A light with no
+    remaining choices contributes 0.
+  - Boost for making progress: *ScoreF = 0.3 &times; (#filled cells)*. (When
+    trying for a pangram, *ScoreF* also gets a bonus for every pangram letter
+    that has been used so far, weighted by how rare that letter is.)
+  - *Score = ScoreP + ScoreV + ScoreF* (the 0.3 was settled on after some
+    experimentation).
 
 
 

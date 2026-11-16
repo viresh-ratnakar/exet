@@ -1,5 +1,17 @@
 # Changelog
 
+### Exet v1.10.4, November 16, 2026
+
+- More documentation of functions.
+- Some refactoring to dedupe repeated code.
+- More tests.
+- Replace deprecated `substr()` calls with `slice()`.
+- When a preferred-list entry has alternatives, make the whole list bold
+  when one of them has been used. Previously, it wasn't getting bolded
+  at all. At some later point, perhaps we can add the tedious code
+  to bold the actual alternative used instead of the whole line.
+- Unify colors/ninas-related code as there was lots of duplication.
+
 ### Exet v1.10.3, November 13, 2026
 
 - Add a suite of tests.

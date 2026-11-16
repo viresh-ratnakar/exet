@@ -186,6 +186,18 @@ ExetTest.add('Formatting (italic) in a clue containing quotes', async t => {
   t.ok(clue.indexOf('c:\\temp\\new') >= 0, 'backslashes in the clue are intact');
 });
 
+ExetTest.add('Contextual tips: the named tips are the ones their situations need', async t => {
+  t.ok(exet.tipsList[exet.TIP_ENUM_MISMATCH].indexOf('ignore-enum-mismatch') >= 0,
+       'TIP_ENUM_MISMATCH is the enum-mismatch tip');
+  t.ok(exet.tipsList[exet.TIP_ANALYSIS].indexOf('Analysis') >= 0,
+       'TIP_ANALYSIS is the Analysis tip');
+  t.ok(exet.tipsList[exet.TIP_LONG_FODDER].indexOf('too long') >= 0,
+       'TIP_LONG_FODDER is the long-fodder tip');
+  t.eq(new Set([exet.TIP_ENUM_MISMATCH, exet.TIP_ANALYSIS, exet.TIP_LONG_FODDER]).size, 3,
+       'the three indices are distinct');
+  t.ok(exet.tipsList.every(x => typeof x == 'string' && x.length > 40), 'every tip is a non-trivial string');
+});
+
 ExetTest.start('Exet Test: loading files, awkward text, formatting', `
   <b>Manual checks:</b>
   <ol style="margin:2px 0">

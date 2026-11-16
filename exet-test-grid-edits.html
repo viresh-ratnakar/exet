@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" type="text/css" href="exolve-m.css"/>
+<link rel="stylesheet" type="text/css" href="exet.css"/>
+<title>Exet Test: Grid edits (blocks, bars, circles, prefills, ninas, colours)</title>
+<script src="exet-test-common.js"></script>
+<script>
+ExetTest.setup({
+  words: ['EAGLE', 'EARTH', 'HEART', 'EASEL', 'LEARN', 'CRANE', 'SLATE', 'STEAM'],
+  dim: 5,
+});
+</script>
+<script src="exolve-m.js"></script>
+<script src="exolve-from-puz.js"></script>
+<script src="exolve-from-ipuz.js"></script>
+<script src="exolve-to-puz.js"></script>
+<script src="exolve-to-ipuz.js"></script>
+<script src="exolve-exost.js"></script>
+<script src="exet.js"></script>
+<script src="exet-analysis.js"></script>
+<script src="exet-storage.js"></script>
+<script src="exet-grid-edits.js"></script>
+<script src="exet-autofill.js"></script>
+<script src="exet-lexicon.js"></script>
+</head>
+<body>
+<div id="xet-test-panel"></div>
+<div id="xet-loading"></div>
+<div id="xet-xlv-frame"></div>
+
+<script>
+let idCounter = 0;
+
+/** Loads a fresh open 5x5 puzzle (optionally with some letters filled in). */
+async function fresh(gridRows) {
+  const id = `xet-test-grid-edits-${++idCounter}`;
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs(id, 5, 5, {gridRows: gridRows}));
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'Exet to be idle');
+  exet.asymOK = false;
+  return id;
+}
+
+/** A keydown event, as the browser would deliver it. */
+const keyEvent = (key) => ({key: key, stopPropagation: () => {}, preventDefault: () => {}});
+
+/** Presses a key with the cursor on (row, col) of the current puzzle. */
+function press(key, row, col) {
+  exet.startNav('A', row, col);
+  exet.handleKeyDown(keyEvent(key));
+}
+
+const isBlock = (r, c) => !exet.puz.grid[r][c].isLight;
+
+ExetTest.add('Blocks: "." toggles a block and its rotationally symmetric twin', async t => {
+  await fresh();
+  press('.', 0, 1);
+  t.ok(isBlock(0, 1), 'block at (0,1)');
+  t.ok(isBlock(4, 3), 'symmetric block at (4,3)');
+  t.eq(exet.puz.grid.flat().filter(c => !c.isLight).length, 2, 'exactly two blocks');
+  press('.', 0, 1);
+  t.eq(exet.puz.grid.flat().filter(c => !c.isLight).length, 0, 'toggling again removes both');
+});
+
+ExetTest.add('Blocks: with asymmetry allowed only the chosen cell changes', async t => {
+  await fresh();
+  exet.asymOK = true;
+  press('.', 0, 1);
+  t.ok(isBlock(0, 1), 'block at (0,1)');
+  t.ok(!isBlock(4, 3), 'no block at (4,3)');
+  exet.asymOK = false;
+});
+
+ExetTest.add('Blocks: the centre cell is its own twin', async t => {
+  await fresh();
+  press('.', 2, 2);
+  t.ok(isBlock(2, 2), 'block at the centre');
+  t.eq(exet.puz.grid.flat().filter(c => !c.isLight).length, 1, 'exactly one block');
+});
+
+ExetTest.add('Bars: "|" and "_" toggle bars with their symmetric twins', async t => {
+  await fresh();
+  press('|', 0, 1);
+  t.ok(exet.puz.grid[0][1].hasBarAfter, 'bar after (0,1)');
+  t.ok(exet.puz.grid[4][2].hasBarAfter, 'symmetric bar after (4,2)');
+  press('_', 0, 1);
+  t.ok(exet.puz.grid[0][1].hasBarUnder, 'bar under (0,1)');
+  t.ok(exet.puz.grid[3][3].hasBarUnder, 'symmetric bar under (3,3)');
+  press('|', 0, 1);
+  t.ok(!exet.puz.grid[0][1].hasBarAfter && !exet.puz.grid[4][2].hasBarAfter, 'toggling "|" again removes both bars');
+});
+
+ExetTest.add('Bars: cannot be put on the right or bottom edge', async t => {
+  await fresh();
+  const before = JSON.stringify(exet.puz.grid.flat().map(c => [c.hasBarAfter, c.hasBarUnder]));
+  press('|', 0, 4);
+  press('_', 4, 0);
+  t.eq(JSON.stringify(exet.puz.grid.flat().map(c => [c.hasBarAfter, c.hasBarUnder])), before, 'grid unchanged');
+});
+
+ExetTest.add('Circles: "@" toggles a circle; "0" toggles prefill only on a filled cell', async t => {
+  await fresh(['S????', '?????', '?????', '?????', '?????']);
+  press('@', 2, 2);
+  t.ok(exet.puz.grid[2][2].hasCircle, 'circle at (2,2)');
+  press('@', 2, 2);
+  t.ok(!exet.puz.grid[2][2].hasCircle, 'circle removed');
+  press('0', 2, 2);
+  t.ok(!exet.puz.grid[2][2].prefill, 'prefill ignored on an empty cell');
+  press('0', 0, 0);
+  t.ok(exet.puz.grid[0][0].prefill, 'prefill on the filled cell (0,0)');
+  press('0', 0, 0);
+  t.ok(!exet.puz.grid[0][0].prefill, 'prefill removed');
+});
+
+/** Counts the grid cells (not lights) listed across all ninas or colourfuls. */
+const countListed = (lists) => lists.reduce((n, entry) => n + entry.list.length, 0);
+
+ExetTest.add('Ninas: "$" adds a cell nina, and removes it when pressed again', async t => {
+  await fresh();
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('$'));
+  t.eq(exet.puz.ninas.length, 1, 'one nina colour');
+  t.eq(countListed(exet.puz.ninas), 1, 'one nina cell');
+  t.eq(exet.puz.ninas[0].list[0].cells, [[0, 0]], 'the nina cell is (0,0)');
+  t.ok(exet.getExolve().indexOf('exolve-nina') >= 0, 'exolve-nina is in the Exolve output');
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('$'));
+  t.eq(exet.puz.ninas.length, 0, 'pressing again removes it');
+  t.ok(exet.getExolve().indexOf('exolve-nina') < 0, 'exolve-nina is gone from the output');
+});
+
+ExetTest.add('Ninas: several cells can be added', async t => {
+  await fresh();
+  for (const [r, c] of [[0, 0], [1, 1], [2, 2]]) {
+    exet.startNav('A', r, c);
+    exet.handleKeyDown(keyEvent('$'));
+  }
+  t.eq(countListed(exet.puz.ninas), 3, 'three nina cells in total');
+  const cells = exet.puz.ninas.flatMap(n => n.list.map(l => JSON.stringify(l.cells[0]))).sort();
+  t.eq(cells, ['[0,0]', '[1,1]', '[2,2]'], 'at the cells that were chosen');
+});
+
+ExetTest.add('Colours: "^" adds a coloured cell, and removes it when pressed again', async t => {
+  await fresh();
+  exet.startNav('A', 1, 2);
+  exet.handleKeyDown(keyEvent('^'));
+  t.eq(exet.puz.colourfuls.length, 1, 'one colour');
+  t.eq(countListed(exet.puz.colourfuls), 1, 'one coloured cell');
+  t.eq(exet.puz.colourfuls[0].list[0].cells, [[1, 2]], 'the coloured cell is (1,2)');
+  t.ok(exet.getExolve().indexOf('exolve-colour') >= 0, 'exolve-colour is in the Exolve output');
+  exet.startNav('A', 1, 2);
+  exet.handleKeyDown(keyEvent('^'));
+  t.eq(exet.puz.colourfuls.length, 0, 'pressing again removes it');
+  t.ok(exet.getExolve().indexOf('exolve-colour') < 0, 'exolve-colour is gone from the output');
+});
+
+ExetTest.add('Colours and ninas are independent of each other', async t => {
+  await fresh();
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('$'));
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('^'));
+  t.eq([exet.puz.ninas.length, exet.puz.colourfuls.length], [1, 1], 'one nina and one colour on the same cell');
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('$'));
+  t.eq([exet.puz.ninas.length, exet.puz.colourfuls.length], [0, 1], 'removing the nina leaves the colour');
+});
+
+ExetTest.add('Colours and ninas survive a getExolve() -> reload round trip', async t => {
+  const id = await fresh();
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('$'));
+  exet.startNav('A', 2, 3);
+  exet.handleKeyDown(keyEvent('^'));
+  press('@', 4, 4);
+  const specs = exet.getExolve();
+  await ExetTest.loadSpecs(specs.replace(/exolve-id:\s*\S+/, 'exolve-id: ' + id + '-reloaded'));
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'idle');
+  t.eq(countListed(exet.puz.ninas), 1, 'nina cell reloaded');
+  t.eq(countListed(exet.puz.colourfuls), 1, 'coloured cell reloaded');
+  t.ok(exet.puz.grid[4][4].hasCircle, 'circle reloaded');
+});
+
+ExetTest.add('Clear all markings removes circles, prefills, ninas and colours', async t => {
+  await fresh(['S????', '?????', '?????', '?????', '?????']);
+  exet.startNav('A', 0, 0);
+  exet.handleKeyDown(keyEvent('$'));
+  exet.startNav('A', 1, 1);
+  exet.handleKeyDown(keyEvent('^'));
+  press('@', 2, 2);
+  press('0', 0, 0);
+  exet.clearAllMarkings();
+  t.eq([exet.puz.ninas.length, exet.puz.colourfuls.length], [0, 0], 'no ninas or colours');
+  t.eq(exet.puz.grid.flat().filter(c => c.hasCircle || c.prefill).length, 0, 'no circles or prefills');
+  t.ok(t.alerts.some(a => a.indexOf('[confirm]') >= 0), 'the user was asked to confirm');
+});
+
+ExetTest.start('Exet Test: grid edits', `
+  <b>Manual checks:</b>
+  <ol style="margin:2px 0">
+   <li>Click a cell and press <code>.</code>, <code>|</code>, <code>_</code>: blocks and bars appear with their symmetric twins
+       (Edit &gt; Allow asymmetry turns the symmetry off).</li>
+   <li>Press <code>$</code> and <code>^</code> to add nina and colour marks, and look at the colour dialog: change the colour,
+       switch between "cell" and "light", and add a mark on a second cell.</li>
+   <li>Press <code>@</code> (circle) and, on a filled cell, <code>0</code> (prefill).</li>
+  </ol>
+  Add <code>?autorun</code> to the URL to run the automated checks on load.`);
+</script>
+</body>
+</html>

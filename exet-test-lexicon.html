@@ -144,6 +144,73 @@ function runLexiconAssertions(t) {
 
 /** Lets exet-test-all.html (and ?autorun) run the self-checks. */
 ExetTest.add('Lexicon self-checks', async t => { runLexiconAssertions(t); });
+/**
+ * The spelling-region preference lives in two places: exet.region (what the
+ * dropdown shows and what is saved) and exetLexicon.region (which spelling
+ * swaps are actually applied). They must always agree.
+ */
+ExetTest.add('Region: New blank grid keeps Exet and the lexicon in agreement', async t => {
+  exet.region = exetLexicon.preferRegion('Britain');
+  exetBlank(5, 5, 1, 'xet-test-region-1');
+  t.eq(exetLexicon.region, exet.region, 'lexicon.region equals exet.region after New blank grid');
+  exet.region = exetLexicon.preferRegion('');
+});
+
+ExetTest.add('Region: opening a file restores its saved region in both places', async t => {
+  exetBlank(5, 5, 1, 'xet-test-region-2');
+  exet.region = exetLexicon.preferRegion('Britain');
+  exet.puz.clues['A1'].clue = 'A changed clue (5)';
+  exetRevManager.saveRev(exetRevManager.REV_CLUE_CHANGE);
+  const specs = exet.getExolve();
+  exet.region = exetLexicon.preferRegion('');
+  await ExetTest.loadSpecs(specs);
+  await ExetTest.sleep(800);
+  await ExetTest.until(() => !ExetTest.busy(), 10000, 'idle');
+  t.eq(exet.region, 'Britain', 'exet.region is the region saved with the puzzle');
+  t.eq(exetLexicon.region, 'Britain', 'the lexicon is applying that region');
+  exet.region = exetLexicon.preferRegion('');
+});
+
+ExetTest.add('Region: opening a never-seen file resets the lexicon to no preference', async t => {
+  exet.region = exetLexicon.preferRegion('Britain');
+  await ExetTest.loadSpecs(ExetTest.openGridSpecs('xet-test-region-3', 5, 5));
+  await ExetTest.sleep(500);
+  t.eq(exet.region, '', 'exet.region is no preference');
+  t.eq(exetLexicon.region, '', 'the lexicon is applying no region');
+});
+
+ExetTest.add('exetLexiconInit() rejects inconsistent lexicons with a message', async t => {
+  const good = window.exetLexicon;
+  /** Exet removes #xet-loading once it has started, so provide one if needed. */
+  let loading = document.getElementById('xet-loading');
+  const madeLoading = !loading;
+  if (madeLoading) {
+    loading = document.createElement('div');
+    loading.id = 'xet-loading';
+    document.body.appendChild(loading);
+  }
+  const cases = [
+    ['no lexicon at all', null, 'Failed to load the lexicon'],
+    ['language differs from the config', Object.assign({}, good, {language: 'fr'}), 'different language/script'],
+    ['letters imply a different maxCharCodes', Object.assign({}, good, {letters: good.letters.concat(['CH'])}), 'different maxCharCodes'],
+    ['stems missing for English', (() => { const l = Object.assign({}, good); delete l.stems; return l; })(), 'missing stems'],
+    ['stemsId does not match id', Object.assign({}, good, {stemsId: 'something-else'}), 'stemsId'],
+  ];
+  try {
+    for (const [what, lexicon, expected] of cases) {
+      window.exetLexicon = lexicon;
+      loading.innerHTML = '';
+      let thrown = '';
+      try { exetLexiconInit(); } catch (err) { thrown = String(err); }
+      t.ok(thrown.indexOf(expected) >= 0, `${what}: throws a message containing "${expected}"`);
+      t.ok(loading.textContent.indexOf(expected) >= 0, `${what}: the message is shown in #xet-loading`);
+    }
+  } finally {
+    window.exetLexicon = good;
+    if (madeLoading) loading.remove(); else loading.innerHTML = '';
+  }
+});
+
 ExetTest.start('Lexicon self-checks');
 </script>
 </body>

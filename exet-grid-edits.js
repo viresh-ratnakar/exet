@@ -414,6 +414,10 @@ Exet.prototype.flashBarOrBlock = function(row, col, bb) {
   this.flashElt(symElt);
 }
 
+/**
+ * Shows the suggested blocks/bars (each entry in candidates is
+ * [row, col, divider, score]) on the grid, clickable and shaded by score.
+ */
 Exet.prototype.displayBBChoices = function(candidates) {
   if (candidates.length == 0) return;
   const puz = this.puz;
@@ -464,6 +468,10 @@ Exet.prototype.displayBBChoices = function(candidates) {
   }
 }
 
+/**
+ * Rebuilds the assistive grid builder's panel for the current grid (with
+ * statistics about its blocks/bars and lights), and shows the suggestions.
+ */
 Exet.prototype.showViableBBInner = function(fill, analysis, hasUnches) {
   const rowcols = this.getMutableRowCols();
   const numBars = analysis.numBars();
@@ -500,6 +508,11 @@ Exet.prototype.showViableBBInner = function(fill, analysis, hasUnches) {
   return '';
 }
 
+/**
+ * Starts the assistive grid-building mode, in which Exet suggests blocks/bars
+ * as the grid is edited (and clue editing is turned off). Not available for
+ * 3-D crosswords.
+ */
 Exet.prototype.enterGridBuildingMode = function() {
   exetModals.hide();
   if (this.puz.layers3d > 1) {
@@ -534,6 +547,9 @@ Exet.prototype.enterGridBuildingMode = function() {
       func, fill, analysis, hasUnches);
 }
 
+/**
+ * Creates (if needed) and shows the assistive grid builder's panel.
+ */
 Exet.prototype.showGridBuildingPanel = function() {
   if (!this.gridBuildingPanel) {
     this.gridBuildingPanel = document.createElement('div');
@@ -631,6 +647,10 @@ Exet.prototype.reverseLightInner = function(clue) {
   return newIndex;
 }
 
+/**
+ * After confirmation, reverses the current light: its answer is then entered
+ * in the opposite direction through the same cells. See reverseLightInner().
+ */
 Exet.prototype.reverseLight = function() {
   if (!this.puz) return
   const ci = this.puz.currClueIndex;
@@ -659,6 +679,11 @@ Exet.prototype.reverseLight = function() {
   this.reverseLightInner(clue);
 }
 
+/**
+ * Fills the colour dialog (this.tweakColourNina) for a nina (isNina) or a
+ * colour, with a choice of cell or light and the colours in
+ * this.coloursInUse, plus newColour.
+ */
 Exet.prototype.populateColourNina = function(isNina, newColour) {
   // this.coloursInUse[] should have been set.
   const func = isNina ? 'exet.addNina' : 'exet.addColour';
@@ -709,7 +734,7 @@ Exet.prototype.populateColourNina = function(isNina, newColour) {
 
   for (let i = 0; i < this.coloursInUse.length; i++) {
     document.getElementById("xet-colour-nina-" + i).addEventListener('click',
-      isNina ? this.addNina.bind(this, i) : this.addColour.bind(this, i));
+      this.addColourNina.bind(this, isNina, i));
   }
 
   const newSample = document.getElementById(
@@ -723,11 +748,7 @@ Exet.prototype.populateColourNina = function(isNina, newColour) {
     } else {
       this.coloursInUse[idx] = colour;
       newSample.style.background = colour;
-      if (isNina) {
-        this.addNina(idx);
-      } else {
-        this.addColour(idx);
-      }
+      this.addColourNina(isNina, idx);
     }
   });
   newName.addEventListener('click', e => {
@@ -735,6 +756,11 @@ Exet.prototype.populateColourNina = function(isNina, newColour) {
   });
 }
 
+/**
+ * Removes the current cell or light from the nina/colour list nOrCList, and
+ * returns the index in the list of the entry that was affected, or -1 if
+ * there was none.
+ */
 Exet.prototype.removeNinaOrColour = function(nOrCList) {
   let index = -1;
   let lindex = -1;
@@ -773,21 +799,53 @@ Exet.prototype.removeNinaOrColour = function(nOrCList) {
   return index;
 }
 
-Exet.prototype.removeNina = function() {
-  const nindex = this.removeNinaOrColour(this.puz.ninas);
-  if (nindex < 0) {
+/**
+ * Ninas and colours are two flavours of the same thing: coloured marks on
+ * cells or lights. This returns what differs between the two flavours.
+ */
+Exet.prototype.markKind = function(isNina) {
+  if (isNina) {
+    return {
+      list: () => this.puz.ninas,
+      setList: (l) => { this.puz.ninas = l; },
+      redisplay: () => this.puz.redisplayNinas(),
+      palette: this.puz.NINA_COLORS,
+    };
+  }
+  return {
+    list: () => this.puz.colourfuls,
+    setList: (l) => { this.puz.colourfuls = l; },
+    redisplay: () => this.puz.recolourCells(),
+    palette: ['blue', 'green', 'red', 'cyan', 'magenta', 'orange', 'brown'],
+  };
+}
+
+/**
+ * Removes the nina (isNina) or colour mark that includes the current cell.
+ * Returns whether something was removed.
+ */
+Exet.prototype.removeColourNina = function(isNina) {
+  const kind = this.markKind(isNina);
+  const index = this.removeNinaOrColour(kind.list());
+  if (index < 0) {
     return false;
   }
-  if (this.puz.ninas[nindex].list.length == 0) {
-    this.puz.ninas = this.puz.ninas.slice(0, nindex).concat(
-        this.puz.ninas.slice(nindex + 1));
+  if (kind.list()[index].list.length == 0) {
+    kind.setList(kind.list().slice(0, index).concat(
+        kind.list().slice(index + 1)));
   }
-  this.puz.redisplayNinas();
+  kind.redisplay();
   this.puz.activateCell(this.puz.currRow, this.puz.currCol);
   return true;
 }
 
-Exet.prototype.addNina = function(index=-1) {
+/**
+ * Marks the current cell (or light, depending on this.colourToAddType) with
+ * the colour at the given index of this.coloursInUse (default: the current
+ * choice), as a nina (isNina) or as a plain colour. Only does anything while
+ * the colour dialog is showing.
+ */
+Exet.prototype.addColourNina = function(isNina, index=-1) {
   if (this.tweakColourNina.style.display == 'none') {
     return
   }
@@ -795,28 +853,29 @@ Exet.prototype.addNina = function(index=-1) {
   if (this.colourToAddType == 'light' && !light) {
     return
   }
-  this.removeNina();
+  this.removeColourNina(isNina);
   if (index < 0) {
     index = this.coloursInUseIndex;
   } else {
     this.coloursInUseIndex = index;
   }
+  const kind = this.markKind(isNina);
   const colour = this.coloursInUse[index];
-  let nindex = this.findOrAddColour(this.puz.ninas, colour);
+  const found = this.findOrAddColour(kind.list(), colour);
   if (this.colourToAddType == 'cell') {
-    this.puz.ninas[nindex].list.push({
+    kind.list()[found].list.push({
       str: this.cellCode(this.puz.currRow, this.puz.currCol),
       cells: [[this.puz.currRow, this.puz.currCol]],
       isLight: false,
     });
   } else {
-    this.puz.ninas[nindex].list.push({
+    kind.list()[found].list.push({
       str: this.puz.clueLabelDisp(light),
       cells: light.cells,
       isLight: true,
     });
   }
-  this.puz.redisplayNinas();
+  kind.redisplay();
   document.getElementById("xet-colour-" + index).checked = true;
 }
 
@@ -838,26 +897,33 @@ Exet.prototype.findOrAddColour = function(nOrCList, colour) {
   return index;
 }
 
-Exet.prototype.toggleNina = function(evt) {
-  const gridCell = exet.puz.currCell()
+/**
+ * Handles the "toggle nina" / "toggle colour" commands: removes the mark on
+ * the current cell if there is one, else opens the colour dialog and adds a
+ * mark using the first colour that is not yet in use.
+ */
+Exet.prototype.toggleColourNina = function(isNina, evt) {
+  const gridCell = this.puz.currCell()
   if (!gridCell || !gridCell.isLight) {
     return;
   }
-  if (this.removeNina()) {
+  if (this.removeColourNina(isNina)) {
     exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
     return;
   }
+  const kind = this.markKind(isNina);
   this.coloursInUse = [];
-  this.colourToAddType = 'cell'
-  for (let n of this.puz.ninas) {
-    this.coloursInUse.push(n.colour);
+  this.colourToAddType = 'cell';
+  for (const entry of kind.list()) {
+    if (!this.coloursInUse.includes(entry.colour)) {
+      this.coloursInUse.push(entry.colour);
+    }
   }
   this.coloursInUseIndex = this.coloursInUse.length - 1;
-  const newColours = this.puz.NINA_COLORS;
   let cnum = 0;
   let newColour = '';
-  while (cnum < newColours.length) {
-    newColour = newColours[cnum++];
+  while (cnum < kind.palette.length) {
+    newColour = kind.palette[cnum++];
     if (!this.coloursInUse.includes(newColour)) {
       break;
     }
@@ -867,99 +933,21 @@ Exet.prototype.toggleNina = function(evt) {
     this.coloursInUseIndex = 0;
   }
 
-  this.populateColourNina(true, newColour);
+  this.populateColourNina(isNina, newColour);
   exetModals.showModal(this.tweakColourNina);
-  evt.stopPropagation();
-  this.addNina();
+  if (evt) {
+    evt.stopPropagation();
+  }
+  this.addColourNina(isNina);
   exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
 }
 
-Exet.prototype.removeColour = function() {
-  const cindex = this.removeNinaOrColour(this.puz.colourfuls);
-  if (cindex < 0) {
-    return false;
-  }
-  if (this.puz.colourfuls[cindex].list.length == 0) {
-    this.puz.colourfuls = this.puz.colourfuls.slice(0, cindex).concat(
-        this.puz.colourfuls.slice(cindex + 1));
-  }
-  this.puz.recolourCells();
-  this.puz.activateCell(this.puz.currRow, this.puz.currCol);
-  return true;
-}
-
-Exet.prototype.addColour = function(index=-1) {
-  if (this.tweakColourNina.style.display == 'none') {
-    return
-  }
-  const light = this.currLight();
-  if (this.colourToAddType == 'light' && !light) {
-    return
-  }
-  this.removeColour();
-  if (index < 0) {
-    index = this.coloursInUseIndex;
-  } else {
-    this.coloursInUseIndex = index;
-  }
-  const colour = this.coloursInUse[index];
-  let cindex = this.findOrAddColour(this.puz.colourfuls, colour);
-  if (this.colourToAddType == 'cell') {
-    this.puz.colourfuls[cindex].list.push({
-      str: this.cellCode(this.puz.currRow, this.puz.currCol),
-      cells: [[this.puz.currRow, this.puz.currCol]],
-      isLight: false,
-    });
-  } else {
-    this.puz.colourfuls[cindex].list.push({
-      str: this.puz.clueLabelDisp(light),
-      cells: light.cells,
-      isLight: true,
-    });
-  }
-  this.puz.recolourCells();
-  document.getElementById("xet-colour-" + index).checked = true;
-}
-
-Exet.prototype.toggleColour = function(evt) {
-  const gridCell = exet.puz.currCell()
-  if (!gridCell || !gridCell.isLight) {
-    return;
-  }
-  if (this.removeColour()) {
-    exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
-    return;
-  }
-  this.coloursInUse = [];
-  this.colourToAddType = 'cell'
-  for (let c of this.puz.colourfuls) {
-    if (this.coloursInUse.includes(c.colour)) {
-      continue;
-    }
-    this.coloursInUse.push(c.colour)
-  }
-  this.coloursInUseIndex = this.coloursInUse.length - 1;
-  const newColours = ['blue', 'green', 'red', 'cyan',
-                      'magenta', 'orange', 'brown'];
-  let cnum = 0;
-  let newColour = '';
-  while (cnum < newColours.length) {
-    newColour = newColours[cnum++];
-    if (!this.coloursInUse.includes(newColour)) {
-      break;
-    }
-  }
-  this.coloursInUse.push(newColour);
-  if (this.coloursInUseIndex < 0) {
-    this.coloursInUseIndex = 0;
-  }
-
-  this.populateColourNina(false, newColour);
-  exetModals.showModal(this.tweakColourNina);
-  evt.stopPropagation();
-  this.addColour();
-  exetRevManager.throttledSaveRev(exetRevManager.REV_METADATA_CHANGE);
-}
+Exet.prototype.removeNina = function() { return this.removeColourNina(true); }
+Exet.prototype.addNina = function(index=-1) { this.addColourNina(true, index); }
+Exet.prototype.toggleNina = function(evt) { this.toggleColourNina(true, evt); }
+Exet.prototype.removeColour = function() { return this.removeColourNina(false); }
+Exet.prototype.addColour = function(index=-1) { this.addColourNina(false, index); }
+Exet.prototype.toggleColour = function(evt) { this.toggleColourNina(false, evt); }
 
 Exet.prototype.markNinasAsPrefilled = function() {
   this.ninasMarkedAsPrefilled = [];
@@ -985,6 +973,9 @@ Exet.prototype.unmarkNinasAsPrefilled = function() {
   }
 }
 
+/**
+ * After confirmation, clears all circles, prefills, colours, and ninas.
+ */
 Exet.prototype.clearAllMarkings = function() {
   if (!confirm('Are you sure you want to clear all circles, prefills, ' +
                'colours, and ninas?')) {
